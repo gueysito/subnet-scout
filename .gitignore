@@ -1,0 +1,59 @@
+# --- Logs ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Runtime Data ---
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# --- Dependency directories ---
+node_modules/
+
+# --- Builds ---
+dist/
+dist-ssr/
+build/
+.vite/
+
+# --- Env Files ---
+.env
+.env.*.local
+!.env.example
+
+# --- Editor/IDE stuff ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Mac system files ---
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Test / coverage / reports ---
+coverage/
+*.lcov
+*.tgz
+.nyc_output
+
+# --- Misc ---
+*.local
+*.log
+
+# --- Optional: OS junk ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
