@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Taostats v1 Pool History Response",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["netuid", "block_number", "timestamp", "price"],
+    "properties": {
+      "netuid": { "type": "number" },
+      "block_number": { "type": "number" },
+      "timestamp": { "type": "string", "format": "date-time" },
+      "price": { "type": "string" }
+    },
+    "additionalProperties": true
+  }
+}
