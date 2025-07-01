@@ -1,0 +1,131 @@
+# New Subnet Agent Profile Template
+# This template represents a recently launched subnet with limited historical data
+# Use this as a reference for newly launched subnets
+
+schema_version: "1.0.0"
+
+# === IDENTITY SECTION ===
+identity:
+  subnet_id: 94
+  name: "Audio Generation"
+  type: "inference"
+  description: "Newly launched subnet specializing in AI-powered audio generation and synthesis with developing ecosystem"
+  tags:
+    - "ai"
+    - "audio"
+    - "generation"
+    - "synthesis"
+    - "new"
+  website: "https://audiogen.subnet.io"
+  github: "https://github.com/bittensor-audio/subnet"
+
+# === RAW METRICS SECTION ===
+metrics:
+  emission_rate: 650.8
+  total_stake: 45000.00
+  validator_count: 72
+  activity_score: 55.0
+  price_history:
+    - 0.012
+    - 0.013
+    - 0.011
+  block_number: 5816712
+  network_participation: 35.2
+
+# === PERFORMANCE ANALYSIS SECTION ===
+performance:
+  overall_score: 55
+  breakdown:
+    yield_score: 58
+    activity_score: 55
+    credibility_score: 52
+  weights:
+    yield: 40
+    activity: 30
+    credibility: 30
+  risk_assessment:
+    level: "medium"
+    factors:
+      - "new_subnet_uncertainty"
+      - "limited_historical_data"
+      - "developing_validator_network"
+      - "unproven_long_term_stability"
+    confidence: 0.65
+  current_yield: 7.8
+  yield_change_24h: 0.2
+  validator_efficiency: 52.1
+
+# === AI ANALYSIS SECTION ===
+ai_analysis:
+  summary: "Subnet 94 is a promising new addition to the Bittensor ecosystem with potential in the audio generation space. While historical data is limited, initial metrics show reasonable performance with room for growth as the validator network matures."
+  strengths:
+    - "Innovative audio generation focus"
+    - "Growing validator network"
+    - "Active development community"
+    - "Modern technical architecture"
+    - "Clear roadmap and vision"
+  concerns:
+    - "Limited historical performance data"
+    - "Unproven long-term stability"
+    - "Relatively low network participation"
+    - "Validator network still developing"
+    - "Market adoption uncertainty"
+  recommendation: "hold"
+  confidence_score: 65
+  analysis_timestamp: "2025-01-26T10:30:00Z"
+
+# === OPERATIONAL STATUS SECTION ===
+operational:
+  status: "healthy"
+  last_updated: "2025-01-26T10:30:00Z"
+  monitoring:
+    alerts:
+      - type: "performance"
+        severity: "info"
+        message: "New subnet - monitoring initial performance"
+        timestamp: "2025-01-26T08:00:00Z"
+    uptime_percentage: 92.1
+    response_time_avg: 380
+  data_sources:
+    - name: "taostats"
+      last_sync: "2025-01-26T10:25:00Z"
+      status: "active"
+    - name: "claude"
+      last_sync: "2025-01-26T10:30:00Z"
+      status: "active"
+    - name: "bittensor"
+      last_sync: "2025-01-26T10:28:00Z"
+      status: "active"
+
+# === METADATA SECTION ===
+metadata:
+  profile_version: "1.0.0"
+  created_at: "2025-01-26T10:00:00Z"
+  updated_at: "2025-01-26T10:30:00Z"
+  data_quality:
+    completeness: 75
+    freshness: 8
+    source_reliability: 88
+  calculation_details:
+    yield_calculation:
+      method: "annual_percentage_yield"
+      parameters:
+        blocks_per_day: 7200
+        emission_normalization: true
+        new_subnet_adjustment: true
+      timestamp: "2025-01-26T10:30:00Z"
+    activity_calculation:
+      method: "weighted_participation"
+      parameters:
+        validator_weight: 0.4
+        network_weight: 0.6
+        new_subnet_penalty: 0.1
+      timestamp: "2025-01-26T10:30:00Z"
+    credibility_calculation:
+      method: "multi_factor_analysis"
+      parameters:
+        stake_distribution: true
+        validator_stability: true
+        emission_consistency: true
+        new_subnet_discount: 0.15
+      timestamp: "2025-01-26T10:30:00Z" 

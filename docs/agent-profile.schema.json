@@ -1,0 +1,402 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://subnet-scout.io/schemas/agent-profile.json",
+  "title": "Subnet Scout Agent Profile",
+  "description": "Comprehensive schema for standardizing agent/subnet profiles across all system components",
+  "type": "object",
+  "required": ["identity", "metrics", "performance", "metadata"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Schema version following semantic versioning",
+      "example": "1.0.0"
+    },
+    "identity": {
+      "type": "object",
+      "description": "Core identification and descriptive information",
+      "required": ["subnet_id", "name", "type"],
+      "properties": {
+        "subnet_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 118,
+          "description": "Bittensor subnet identifier (1-118)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Human-readable subnet name",
+          "examples": ["Text Prompting", "Machine Translation", "Image Generation"]
+        },
+        "type": {
+          "type": "string",
+          "enum": ["inference", "training", "data", "storage", "compute", "hybrid"],
+          "description": "Primary subnet function category"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Detailed description of subnet purpose and capabilities"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "uniqueItems": true,
+          "description": "Categorization tags for filtering and discovery"
+        },
+        "website": {
+          "type": "string",
+          "format": "uri",
+          "description": "Official subnet website or documentation URL"
+        },
+        "github": {
+          "type": "string",
+          "format": "uri",
+          "description": "GitHub repository URL"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Raw performance and network metrics",
+      "required": ["emission_rate", "total_stake", "validator_count", "activity_score"],
+      "properties": {
+        "emission_rate": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Current emission rate per block"
+        },
+        "total_stake": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total stake across all validators"
+        },
+        "validator_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of active validators"
+        },
+        "activity_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Network activity level (0-100)"
+        },
+        "price_history": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "Historical price data points"
+        },
+        "block_number": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Latest block number for this data"
+        },
+        "network_participation": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of network participation"
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Calculated performance scores and analysis",
+      "required": ["overall_score", "breakdown", "risk_assessment"],
+      "properties": {
+        "overall_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Weighted overall performance score (0-100)"
+        },
+        "breakdown": {
+          "type": "object",
+          "required": ["yield_score", "activity_score", "credibility_score"],
+          "properties": {
+            "yield_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Yield performance score (0-100)"
+            },
+            "activity_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Network activity score (0-100)"
+            },
+            "credibility_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Validator credibility score (0-100)"
+            }
+          }
+        },
+        "weights": {
+          "type": "object",
+          "description": "Scoring weight configuration",
+          "properties": {
+            "yield": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "activity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "credibility": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "risk_assessment": {
+          "type": "object",
+          "required": ["level", "factors"],
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"],
+              "description": "Overall risk classification"
+            },
+            "factors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of identified risk factors"
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Confidence level in risk assessment (0-1)"
+            }
+          }
+        },
+        "current_yield": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Current annual yield percentage"
+        },
+        "yield_change_24h": {
+          "type": "number",
+          "description": "24-hour yield change percentage"
+        },
+        "validator_efficiency": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Validator efficiency metric"
+        }
+      }
+    },
+    "ai_analysis": {
+      "type": "object",
+      "description": "AI-powered insights and recommendations",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "AI-generated performance summary"
+        },
+        "strengths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": "Identified strengths and positive aspects"
+        },
+        "concerns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": "Identified concerns or areas for improvement"
+        },
+        "recommendation": {
+          "type": "string",
+          "enum": ["strong_buy", "buy", "hold", "caution", "avoid"],
+          "description": "Investment/monitoring recommendation"
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "AI confidence in analysis (0-100)"
+        },
+        "analysis_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When AI analysis was generated"
+        }
+      }
+    },
+    "operational": {
+      "type": "object",
+      "description": "Operational status and monitoring information",
+      "required": ["status", "last_updated"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["healthy", "warning", "critical", "offline", "maintenance"],
+          "description": "Current operational status"
+        },
+        "last_updated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last data update timestamp"
+        },
+        "monitoring": {
+          "type": "object",
+          "properties": {
+            "alerts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["performance", "security", "availability", "financial"]
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": ["info", "warning", "error", "critical"]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            },
+            "uptime_percentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Historical uptime percentage"
+            },
+            "response_time_avg": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Average response time in milliseconds"
+            }
+          }
+        },
+        "data_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "enum": ["taostats", "ionet", "bittensor", "claude", "internal"]
+              },
+              "last_sync": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["active", "stale", "error", "unavailable"]
+              }
+            }
+          },
+          "description": "Data source synchronization status"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Profile metadata and versioning",
+      "required": ["created_at", "profile_version"],
+      "properties": {
+        "profile_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Agent profile data version"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Profile creation timestamp"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last profile update timestamp"
+        },
+        "data_quality": {
+          "type": "object",
+          "properties": {
+            "completeness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Data completeness percentage"
+            },
+            "freshness": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Data age in minutes"
+            },
+            "source_reliability": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Source reliability score"
+            }
+          }
+        },
+        "calculation_details": {
+          "type": "object",
+          "description": "Detailed calculation methodologies",
+          "properties": {
+            "yield_calculation": {
+              "type": "object",
+              "properties": {
+                "method": {"type": "string"},
+                "parameters": {"type": "object"},
+                "timestamp": {"type": "string", "format": "date-time"}
+              }
+            },
+            "activity_calculation": {
+              "type": "object",
+              "properties": {
+                "method": {"type": "string"},
+                "parameters": {"type": "object"},
+                "timestamp": {"type": "string", "format": "date-time"}
+              }
+            },
+            "credibility_calculation": {
+              "type": "object",
+              "properties": {
+                "method": {"type": "string"},
+                "parameters": {"type": "object"},
+                "timestamp": {"type": "string", "format": "date-time"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} 

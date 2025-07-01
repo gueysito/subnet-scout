@@ -30,10 +30,14 @@
 - ✅ Create `ScoreAgent` component and real scoring output for subnets
 - ✅ Begin scaffolding Explore UI layout and basic agent list
 - ✅ Write comprehensive integration tests for complete API flow validation
-- ⏳ Begin drafting CoreComms documentation
-- ⏳ Begin writing Agent Profiles format (YAML/JSON mock)
-- ⏳ Wireframe live dashboard (basic design only)
-- ⏳ Write 1‑2 DAO intro posts for Discord
+- ✅ Begin drafting CoreComms documentation  
+  (comprehensive system architecture documentation with 6 layers, API contracts, environment config - complete in `docs/core-communications.md`)
+- ✅ Begin writing Agent Profiles format (YAML/JSON mock)  
+  (unified schema, 4 YAML templates, validation system, integration examples, mock database for 118 subnets - complete agent profile system)
+- ✅ Wireframe live dashboard (basic design only)  
+  (comprehensive dashboard wireframes with overview, explorer, detail views, mobile responsive design, component library specifications - complete in `docs/dashboard-wireframes.md`)
+- ✅ Write 1‑2 DAO intro posts for Discord  
+  (2 publication-ready Discord posts with project introduction, technical deep-dive, community engagement strategy, and adaptation guidelines - complete in `docs/dao-intro-posts.md`)
 
 ---
 

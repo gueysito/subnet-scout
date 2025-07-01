@@ -1,0 +1,129 @@
+# Moderate-Performing Subnet Agent Profile Template
+# This template represents a subnet with average performance metrics
+# Use this as a reference for middle-tier subnets
+
+schema_version: "1.0.0"
+
+# === IDENTITY SECTION ===
+identity:
+  subnet_id: 15
+  name: "Machine Translation"
+  type: "inference"
+  description: "Multi-language translation subnet with moderate performance and growing validator network"
+  tags:
+    - "ai"
+    - "translation"
+    - "inference"
+    - "multilingual"
+  website: "https://translation.subnet.io"
+  github: "https://github.com/bittensor-translation/subnet"
+
+# === RAW METRICS SECTION ===
+metrics:
+  emission_rate: 890.2
+  total_stake: 89000.50
+  validator_count: 145
+  activity_score: 65.8
+  price_history:
+    - 0.018
+    - 0.017
+    - 0.019
+    - 0.018
+    - 0.017
+  block_number: 5816712
+  network_participation: 58.2
+
+# === PERFORMANCE ANALYSIS SECTION ===
+performance:
+  overall_score: 68
+  breakdown:
+    yield_score: 71
+    activity_score: 66
+    credibility_score: 72
+  weights:
+    yield: 40
+    activity: 30
+    credibility: 30
+  risk_assessment:
+    level: "medium"
+    factors:
+      - "moderate_validator_count"
+      - "variable_yield"
+      - "developing_ecosystem"
+    confidence: 0.78
+  current_yield: 9.2
+  yield_change_24h: -0.5
+  validator_efficiency: 67.4
+
+# === AI ANALYSIS SECTION ===
+ai_analysis:
+  summary: "Subnet 15 shows moderate performance with room for improvement. While yield is acceptable, the network would benefit from increased validator participation and more consistent activity patterns."
+  strengths:
+    - "Stable core validator base"
+    - "Specialized translation capabilities"
+    - "Moderate yield generation"
+  concerns:
+    - "Lower validator participation than optimal"
+    - "Inconsistent activity patterns"
+    - "Recent slight yield decline"
+    - "Limited community engagement"
+  recommendation: "hold"
+  confidence_score: 78
+  analysis_timestamp: "2025-01-26T10:30:00Z"
+
+# === OPERATIONAL STATUS SECTION ===
+operational:
+  status: "warning"
+  last_updated: "2025-01-26T10:30:00Z"
+  monitoring:
+    alerts:
+      - type: "performance"
+        severity: "warning"
+        message: "Validator count below recommended threshold"
+        timestamp: "2025-01-26T09:15:00Z"
+      - type: "financial"
+        severity: "info"
+        message: "Yield decreased 0.5% in 24h"
+        timestamp: "2025-01-26T08:45:00Z"
+    uptime_percentage: 95.8
+    response_time_avg: 285
+  data_sources:
+    - name: "taostats"
+      last_sync: "2025-01-26T10:25:00Z"
+      status: "active"
+    - name: "claude"
+      last_sync: "2025-01-26T10:30:00Z"
+      status: "active"
+    - name: "bittensor"
+      last_sync: "2025-01-26T10:28:00Z"
+      status: "stale"
+
+# === METADATA SECTION ===
+metadata:
+  profile_version: "1.0.0"
+  created_at: "2025-01-26T10:00:00Z"
+  updated_at: "2025-01-26T10:30:00Z"
+  data_quality:
+    completeness: 88
+    freshness: 12
+    source_reliability: 85
+  calculation_details:
+    yield_calculation:
+      method: "annual_percentage_yield"
+      parameters:
+        blocks_per_day: 7200
+        emission_normalization: true
+      timestamp: "2025-01-26T10:30:00Z"
+    activity_calculation:
+      method: "weighted_participation"
+      parameters:
+        validator_weight: 0.4
+        network_weight: 0.6
+      timestamp: "2025-01-26T10:30:00Z"
+    credibility_calculation:
+      method: "multi_factor_analysis"
+      parameters:
+        stake_distribution: true
+        validator_stability: true
+        emission_consistency: true
+      timestamp: "2025-01-26T10:30:00Z" 

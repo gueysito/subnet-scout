@@ -1,0 +1,137 @@
+# Low-Performing Subnet Agent Profile Template
+# This template represents a subnet with concerning performance metrics
+# Use this as a reference for underperforming subnets
+
+schema_version: "1.0.0"
+
+# === IDENTITY SECTION ===
+identity:
+  subnet_id: 47
+  name: "Experimental Data Processing"
+  type: "data"
+  description: "Experimental subnet focused on distributed data processing with current performance challenges"
+  tags:
+    - "data"
+    - "experimental"
+    - "processing"
+    - "distributed"
+  website: null
+  github: "https://github.com/experimental-subnet/data-processing"
+
+# === RAW METRICS SECTION ===
+metrics:
+  emission_rate: 420.1
+  total_stake: 31000.25
+  validator_count: 45
+  activity_score: 32.5
+  price_history:
+    - 0.008
+    - 0.007
+    - 0.006
+    - 0.005
+    - 0.004
+  block_number: 5816712
+  network_participation: 18.7
+
+# === PERFORMANCE ANALYSIS SECTION ===
+performance:
+  overall_score: 28
+  breakdown:
+    yield_score: 31
+    activity_score: 33
+    credibility_score: 25
+  weights:
+    yield: 40
+    activity: 30
+    credibility: 30
+  risk_assessment:
+    level: "high"
+    factors:
+      - "low_validator_count"
+      - "declining_yield"
+      - "poor_network_participation"
+      - "unstable_validators"
+      - "limited_community_support"
+    confidence: 0.89
+  current_yield: 4.1
+  yield_change_24h: -2.3
+  validator_efficiency: 25.8
+
+# === AI ANALYSIS SECTION ===
+ai_analysis:
+  summary: "Subnet 47 faces significant performance challenges with declining yields, low validator participation, and concerning stability metrics. Immediate attention required to address fundamental issues."
+  strengths:
+    - "Innovative experimental approach"
+    - "Potential for future development"
+  concerns:
+    - "Critically low validator count"
+    - "Declining yield trend"
+    - "Poor network participation"
+    - "Unstable validator operations"
+    - "Limited community engagement"
+    - "Lack of official website"
+    - "Inconsistent data quality"
+  recommendation: "caution"
+  confidence_score: 89
+  analysis_timestamp: "2025-01-26T10:30:00Z"
+
+# === OPERATIONAL STATUS SECTION ===
+operational:
+  status: "critical"
+  last_updated: "2025-01-26T10:30:00Z"
+  monitoring:
+    alerts:
+      - type: "performance"
+        severity: "critical"
+        message: "Validator count critically low"
+        timestamp: "2025-01-26T08:30:00Z"
+      - type: "financial"
+        severity: "error"
+        message: "Yield decreased 2.3% in 24h"
+        timestamp: "2025-01-26T09:00:00Z"
+      - type: "availability"
+        severity: "warning"
+        message: "Network participation below 20%"
+        timestamp: "2025-01-26T09:30:00Z"
+    uptime_percentage: 78.5
+    response_time_avg: 1250
+  data_sources:
+    - name: "taostats"
+      last_sync: "2025-01-26T10:25:00Z"
+      status: "active"
+    - name: "claude"
+      last_sync: "2025-01-26T10:30:00Z"
+      status: "active"
+    - name: "bittensor"
+      last_sync: "2025-01-26T09:45:00Z"
+      status: "stale"
+
+# === METADATA SECTION ===
+metadata:
+  profile_version: "1.0.0"
+  created_at: "2025-01-26T10:00:00Z"
+  updated_at: "2025-01-26T10:30:00Z"
+  data_quality:
+    completeness: 65
+    freshness: 35
+    source_reliability: 72
+  calculation_details:
+    yield_calculation:
+      method: "annual_percentage_yield"
+      parameters:
+        blocks_per_day: 7200
+        emission_normalization: true
+      timestamp: "2025-01-26T10:30:00Z"
+    activity_calculation:
+      method: "weighted_participation"
+      parameters:
+        validator_weight: 0.4
+        network_weight: 0.6
+      timestamp: "2025-01-26T10:30:00Z"
+    credibility_calculation:
+      method: "multi_factor_analysis"
+      parameters:
+        stake_distribution: true
+        validator_stability: true
+        emission_consistency: true
+      timestamp: "2025-01-26T10:30:00Z" 
