@@ -1,20 +1,20 @@
 // Central API client that switches between mock and real endpoints
 const API_CONFIG = {
   // Environment flag to use mock or real APIs
-  USE_MOCK: process.env.VITE_USE_MOCK_API === 'true',
+  USE_MOCK: import.meta.env.VITE_USE_MOCK_API === 'true',
   
   // Mock endpoints (local mock server)
-  MOCK_BASE_URL: process.env.VITE_MOCK_API_URL || 'http://localhost:3001',
+  MOCK_BASE_URL: import.meta.env.VITE_MOCK_API_URL || 'http://localhost:3001',
   
   // Real API endpoints
   IONET_BASE_URL: 'https://api.io.net',
   TAOSTATS_BASE_URL: 'https://api.taostats.io',
-  BACKEND_BASE_URL: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
+  BACKEND_BASE_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
   
   // API Keys
-  IONET_API_KEY: process.env.VITE_IONET_API_KEY,
-  TAOSTATS_USERNAME: process.env.VITE_TAOSTATS_USERNAME,
-  TAOSTATS_PASSWORD: process.env.VITE_TAOSTATS_PASSWORD,
+  IONET_API_KEY: import.meta.env.VITE_IONET_API_KEY,
+  TAOSTATS_USERNAME: import.meta.env.VITE_TAOSTATS_USERNAME,
+  TAOSTATS_PASSWORD: import.meta.env.VITE_TAOSTATS_PASSWORD,
 };
 
 class ApiClient {
