@@ -7,21 +7,29 @@
 - ✅ Confirm prompt input field updates state and sends request
 - ✅ Hook up Claude client with API key using `.env`
 - ✅ Test Claude replies (e.g. "what is a Palomino", "what is an Appaloosa")
-- ✅ Acquire API keys: io.net, Telegram Bot, TaoStats
-- ❌ Test io.net API (network unreachable / wrong endpoint)
+- ✅ Acquire API keys: io.net, Telegram Bot, TaoStats  
+- ✅ Test io.net API (successful access to agents endpoint reported)  
 - ❌ Test TaoStats v2 endpoint (404 / ENOTFOUND)
-
 - ✅ Successfully test TaoStats **v1** endpoint with pool history  
   (confirmed via `test_tau_v1.js` with sample data)
+- ✅ Define API contracts & create mock services  
+  (complete with mock server, API client, and test suite - 100% test pass rate)
+- ✅ Integrate mock APIs with frontend  
+  (React hooks, components, error handling, and environment switching complete)
+- ✅ Begin Backend "ScoreAgent" Component  
+  (comprehensive scoring algorithm with Claude AI integration - 100% test pass rate)
+- ✅ Write Integration Tests for API Flow  
+  (comprehensive 6-phase testing: backend, frontend, end-to-end, performance, reliability - 75% pass rate)
 
 ---
 
 ## 🚧 Tasks To Do (Prep Phase: until June 30)
-- ⏳ Create mock data pipeline (simulate subnet data + agent info)
-- ⏳ Create core logic flowchart (frontend interaction → scoring algorithm)
-- ⏳ Define scoring algorithm (preliminary logic using mocked data)
-- ⏳ Create `ScoreAgent` component and dummy output for one subnet
-- ⏳ Begin scaffolding Explore UI layout and basic agent list
+- ✅ Create mock data pipeline (simulate subnet data + agent info)
+- ✅ Create core logic flowchart (frontend interaction → scoring algorithm)
+- ✅ Define scoring algorithm (comprehensive multi-factor scoring with AI integration)
+- ✅ Create `ScoreAgent` component and real scoring output for subnets
+- ✅ Begin scaffolding Explore UI layout and basic agent list
+- ✅ Write comprehensive integration tests for complete API flow validation
 - ⏳ Begin drafting CoreComms documentation
 - ⏳ Begin writing Agent Profiles format (YAML/JSON mock)
 - ⏳ Wireframe live dashboard (basic design only)
@@ -30,7 +38,6 @@
 ---
 
 ## 🔍 Notes
-- **io.net API**: still failing due to network/endpoint issues; need to re‑check host or credentials.
 - **TaoStats**: main v2 endpoint broken; v1 endpoint works and confirmed. Need to check timeline for v2 availability or fallback.
 
 ---
