@@ -132,6 +132,21 @@ class HealthMonitor {
         }
       })());
 
+      // Add Ethos check
+      checkPromises.push((async () => {
+        try {
+          const result = await this.checkEthosNetwork();
+          results['ethos_network'] = result;
+        } catch (error) {
+          results['ethos_network'] = {
+            name: 'ethos_network',
+            status: 'error',
+            error: error.message,
+            last_check: new Date().toISOString()
+          };
+        }
+      })());
+
       await Promise.allSettled(checkPromises);
 
       const totalTime = Date.now() - startTime;
@@ -462,6 +477,70 @@ class HealthMonitor {
     }
 
     return summary;
+  }
+
+  // Add Ethos Network service health check
+  async checkEthosNetwork() {
+    const start = Date.now();
+    try {
+      // Import dynamically to avoid circular dependencies
+      const { default: ethosService } = await import('./ethosService.js');
+      
+      const healthStatus = ethosService.getHealthStatus();
+      const usageStats = ethosService.getUsageStats();
+      
+      const responseTime = Date.now() - start;
+      
+      // Determine status based on token usage and service health
+      let status = 'up';
+      let details = {
+        token_usage: usageStats.token_usage.totalUsers,
+        token_limit: usageStats.limit,
+        token_remaining: usageStats.remaining,
+        privy_configured: healthStatus.privy_configured,
+        cache_enabled: healthStatus.cache_enabled
+      };
+      
+      // Mark as degraded if approaching token limit
+      if (usageStats.remaining < 10) {
+        status = 'degraded';
+        details.warning = 'Approaching token usage limit';
+      }
+      
+      // Mark as down if token limit exceeded
+      if (usageStats.remaining <= 0) {
+        status = 'down';
+        details.error = 'Token usage limit exceeded';
+      }
+      
+      // Mark as disabled if Privy not configured
+      if (!healthStatus.privy_configured) {
+        status = 'disabled';
+        details.error = 'Privy authentication not configured';
+      }
+      
+      logger.healthCheck('ethos_network', status, responseTime, details);
+      
+      return {
+        name: 'ethos_network',
+        status: status,
+        response_time: `${responseTime}ms`,
+        details: details,
+        last_check: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      const responseTime = Date.now() - start;
+      logger.healthCheck('ethos_network', 'down', responseTime, { error: error.message });
+      
+      return {
+        name: 'ethos_network',
+        status: 'down',
+        error: error.message,
+        response_time: `${responseTime}ms`,
+        last_check: new Date().toISOString()
+      };
+    }
   }
 
   // Add Kaito Yaps service health check

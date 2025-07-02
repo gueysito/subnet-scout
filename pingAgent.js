@@ -19,6 +19,7 @@ import logger from './src/utils/logger.js';
 import healthMonitor from './src/utils/healthMonitor.js';
 import database from './src/utils/database.js';
 import kaitoYapsService from './src/utils/kaitoYapsService.js';
+import ethosService from './src/utils/ethosService.js';
 
 // Load .env variables
 dotenv.config();
@@ -1408,6 +1409,216 @@ app.get('/api/mindshare/health', (req, res) => {
   }
 });
 
+// ==============================================
+// 🪪 ETHOS IDENTITY & REPUTATION ENDPOINTS
+// ==============================================
+
+// Ethos health check endpoint
+app.get('/api/identity/health', async (req, res) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const startTime = Date.now();
+  
+  try {
+    logger.info('Ethos identity health check', {
+      service: 'subnet-scout',
+      request_id: requestId
+    });
+
+    const healthStatus = ethosService.getHealthStatus();
+    const responseTime = Date.now() - startTime;
+
+    logger.aiOperation('ethos_health', 'ethos_network', null, responseTime, true);
+    
+    logger.info('API Request Success', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 200,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(true, responseTime);
+    res.json(healthStatus);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    
+    logger.error('Ethos identity health check failed', {
+      service: 'subnet-scout',
+      error: error.message,
+      request_id: requestId
+    });
+
+    logger.error('API Request Failed', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 500,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(false, responseTime);
+    res.status(500).json({ 
+      error: 'Ethos identity health check failed',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Get user profile by userkey
+app.get('/api/identity/profile/:userkey', async (req, res) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const startTime = Date.now();
+  const { userkey } = req.params;
+  const token = req.get('Authorization')?.replace('Bearer ', '');
+  
+  try {
+    if (!token) {
+      return res.status(401).json({ error: 'Authorization token required' });
+    }
+
+    logger.info('Ethos profile request', {
+      service: 'subnet-scout',
+      userkey,
+      request_id: requestId
+    });
+
+    const profileData = await ethosService.getUserProfile(userkey, token);
+    const responseTime = Date.now() - startTime;
+
+    logger.aiOperation('ethos_profile', 'ethos_network', userkey, responseTime, true);
+
+    logger.info('API Request Success', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 200,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(true, responseTime);
+    res.json({
+      userkey,
+      profile: profileData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    
+    logger.error('Ethos profile request failed', {
+      service: 'subnet-scout',
+      userkey,
+      error: error.message,
+      request_id: requestId
+    });
+
+    logger.error('API Request Failed', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 500,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(false, responseTime);
+    res.status(500).json({ 
+      error: 'Failed to retrieve Ethos profile',
+      details: error.message,
+      userkey,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Get comprehensive identity data
+app.get('/api/identity/comprehensive/:userkey', computeIntensiveLimiter, async (req, res) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const startTime = Date.now();
+  const { userkey } = req.params;
+  const token = req.get('Authorization')?.replace('Bearer ', '');
+  
+  try {
+    if (!token) {
+      return res.status(401).json({ error: 'Authorization token required' });
+    }
+
+    logger.info('Ethos comprehensive identity request', {
+      service: 'subnet-scout',
+      userkey,
+      request_id: requestId
+    });
+
+    const identityData = await ethosService.getComprehensiveIdentity(userkey, token);
+    const responseTime = Date.now() - startTime;
+
+    logger.aiOperation('ethos_comprehensive', 'ethos_network', userkey, responseTime, true);
+
+    logger.info('API Request Success', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 200,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(true, responseTime);
+    res.json(identityData);
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    
+    logger.error('Ethos comprehensive identity failed', {
+      service: 'subnet-scout',
+      userkey,
+      error: error.message,
+      request_id: requestId
+    });
+
+    logger.error('API Request Failed', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 500,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(false, responseTime);
+    res.status(500).json({ 
+      error: 'Failed to retrieve comprehensive identity data',
+      details: error.message,
+      userkey,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// ==============================================
+// 🤖 KAITO YAPS MINDSHARE ENDPOINTS
+// ==============================================
+
 // Kaito Yaps mindshare endpoints
 app.get('/api/mindshare/:username', async (req, res) => {
   const start = Date.now();
@@ -1609,6 +1820,13 @@ const server = app.listen(PORT, () => {
       'GET /api/mindshare/:username - Kaito Yaps mindshare data',
       'POST /api/mindshare/batch - Batch Kaito Yaps mindshare data',
       'GET /api/mindshare/health - Kaito Yaps service health status'
+    ],
+    ethos_identity: [
+      'GET /api/identity/profile/:userkey - Ethos user profile 🪪',
+      'GET /api/identity/score/:userkey - Ethos reputation score 🌟',
+      'GET /api/identity/reviews/:userkey - Ethos user reviews 📝',
+      'GET /api/identity/comprehensive/:userkey - Complete identity data 🎯',
+      'GET /api/identity/health - Ethos service health status'
     ]
   });
   
@@ -1620,7 +1838,8 @@ const server = app.listen(PORT, () => {
     cacheService: `💾 Redis caching: ${cacheService.isConnected ? 'CONNECTED' : 'FALLBACK MODE'}`,
     database: `🗄️ PostgreSQL: ${database.isConnected ? 'CONNECTED' : 'DISABLED'}`,
     costAdvantage: '💰 83% cheaper than traditional cloud ($150 vs $900/mo)',
-    kaito_yaps: '🤖 Kaito Yaps service integration ready'
+    kaito_yaps: '🤖 Kaito Yaps service integration ready',
+    ethos_identity: '🪪 Ethos Network identity service ready'
   });
 
   // Initial system health check
