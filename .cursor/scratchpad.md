@@ -824,3 +824,36 @@ io.net API ────→ Enhanced Analysis
 ---
 
 *Last Updated: July 5, 2025 - Advanced Filters & Search Implementation Completed Successfully*
+
+## 🚨 **CRITICAL: PRE-SUBMISSION CHECKLIST**
+
+### **🎯 SWITCH TO LIVE ETHOS DATA BEFORE FINAL DEMO**
+
+**Current Status:**
+- ✅ **Kaito Yaps**: Already using live data from public API
+- ⚠️ **Ethos Network**: Currently using mock tokens in testing (conservative approach)
+
+**Pre-Submission Action Required:**
+- [ ] **Configure Real Privy Credentials** in `.env` file:
+  ```
+  PRIVY_APP_ID=cmcmkl9c600mvl80nk0tnv1ri
+  PRIVY_CLIENT_ID=client-WY6N4nSV41TBQ4JpMZ5NdVzyoukgfJfUgurxb5o44rJSn
+  PRIVY_APP_SECRET=3ngmexA8iP4rj9TkcqKRUjwVw9WmHYRka32FvnMFbW9GhfBs4gSTNdJJPUjyEciCdoxeT1HSYBpM66dGcuumD14x
+  ```
+- [ ] **Test Real Authentication** with actual Ethos profiles
+- [ ] **Verify Token Usage** stays within 150 user limit
+- [ ] **Update Test Suite** to use real tokens for final validation
+
+**Why We're Conservative Now:**
+- **150 User Limit**: Preserving API calls for actual hackathon demonstration
+- **Testing Safety**: Mock tokens verify auth logic without consuming real usage
+- **Production Readiness**: Want full token availability for judges' testing
+
+**Hackathon Demo Impact:**
+- **Real Identity Verification**: Show actual Ethos profiles and reputation scores
+- **Live Authentication**: Demonstrate real Privy integration working
+- **Full Platform Demo**: Both Kaito (live) + Ethos (live) operational
+
+**⚠️ REMINDER**: Switch to live Ethos credentials **24-48 hours before submission** to ensure full functionality during judging period.
+
+---
