@@ -1,24 +1,36 @@
 // Environment configuration for API client
+// Support both browser (import.meta.env) and Node.js (process.env) environments
+const getEnvVar = (name) => {
+  // Try import.meta.env first (browser/Vite), then process.env (Node.js)
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[name];
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[name];
+  }
+  return undefined;
+};
+
 export const ENV_CONFIG = {
   // API Mode Configuration
-  USE_MOCK_API: import.meta.env.VITE_USE_MOCK_API === 'true' || true, // Default to mock for development
+  USE_MOCK_API: getEnvVar('VITE_USE_MOCK_API') === 'true' || false, // Default to REAL data (no more shortcuts!)
   
   // API Endpoints
-  MOCK_API_URL: import.meta.env.VITE_MOCK_API_URL || 'http://localhost:3001',
-  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
+  MOCK_API_URL: getEnvVar('VITE_MOCK_API_URL') || 'http://localhost:3001',
+  BACKEND_URL: getEnvVar('VITE_BACKEND_URL') || 'http://localhost:8080',
   
   // External API Keys
-  IONET_API_KEY: import.meta.env.VITE_IONET_API_KEY,
-  TAOSTATS_USERNAME: import.meta.env.VITE_TAOSTATS_USERNAME,
-  TAOSTATS_PASSWORD: import.meta.env.VITE_TAOSTATS_PASSWORD,
+  IONET_API_KEY: getEnvVar('VITE_IONET_API_KEY') || getEnvVar('IONET_API_KEY'),
+  TAOSTATS_USERNAME: getEnvVar('VITE_TAOSTATS_USERNAME') || getEnvVar('TAOSTATS_API_USERNAME'),
+  TAOSTATS_PASSWORD: getEnvVar('VITE_TAOSTATS_PASSWORD') || getEnvVar('TAOSTATS_API_SECRET'),
   
   // Development Settings
-  NODE_ENV: import.meta.env.NODE_ENV || 'development',
-  DEV_MODE: import.meta.env.NODE_ENV === 'development',
+  NODE_ENV: getEnvVar('NODE_ENV') || 'development',
+  DEV_MODE: getEnvVar('NODE_ENV') === 'development',
   
   // Feature Flags
-  ENABLE_DEBUG_LOGS: import.meta.env.VITE_ENABLE_DEBUG_LOGS === 'true' || false,
-  ENABLE_ERROR_SIMULATION: import.meta.env.VITE_ENABLE_ERROR_SIMULATION === 'true' || false,
+  ENABLE_DEBUG_LOGS: getEnvVar('VITE_ENABLE_DEBUG_LOGS') === 'true' || false,
+  ENABLE_ERROR_SIMULATION: getEnvVar('VITE_ENABLE_ERROR_SIMULATION') === 'true' || false,
 };
 
 // Validation function to check required environment variables

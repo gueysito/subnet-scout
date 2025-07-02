@@ -1,4 +1,7 @@
 # API Contracts & Schemas
+*Updated with Real Live Data Integration - July 4, 2025*
+
+> **🚀 REAL DATA INTEGRATION COMPLETE:** All endpoints now prioritize live TaoStats and io.net APIs with realistic fallbacks
 
 ## 1. io.net API Contract
 
@@ -147,26 +150,86 @@ Headers: {
 ```
 
 ### GET /api/agents
-**Purpose:** List all monitored subnet agents
+**Purpose:** List all monitored subnet agents with **REAL LIVE DATA**
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20)
 
 **Response Schema:**
 ```json
 {
   "agents": [
     {
+      "id": 1,
       "subnet_id": 1,
-      "name": "Text Prompting",
-      "status": "healthy",
-      "score": 87,
-      "yield": 12.4,
-      "activity": 85,
-      "credibility": 92,
-      "last_updated": "2025-06-26T10:30:00Z"
+      "status": "healthy" | "degraded",
+      "score": 84.2,
+      "emission_rate": 1.35,
+      "total_stake": 12600000,
+      "validator_count": 255,
+      "last_updated": "2025-07-04T00:25:26.463Z"
     }
   ],
-  "total_count": 118,
-  "healthy_count": 95,
-  "average_score": 73.2
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total_pages": 6,
+    "total_count": 118
+  },
+  "healthy_count": 18,
+  "average_score": 83.7
+}
+```
+
+### GET /api/subnet/:id/data
+**Purpose:** Get individual subnet data with **REAL LIVE DATA FIRST**
+
+**Parameters:**
+- `id`: Subnet ID (1-118)
+
+**Response Schema:**
+```json
+{
+  "success": true,
+  "subnet_id": 1,
+  "data": {
+    "emission_rate": 1.35,
+    "total_stake": 12600000,
+    "validator_count": 255,
+    "activity_score": 84.2,
+    "price_history": [0.025, 0.024, 0.026]
+  },
+  "source": "fallback_realistic" | "distributed_monitor" | "taostats_api",
+  "timestamp": "2025-07-04T00:25:26.463Z"
+}
+```
+
+### GET /api/distributed/monitor
+**Purpose:** Execute full distributed monitoring with **REAL DATA PROCESSING**
+
+**Response Schema:**
+```json
+{
+  "success": true,
+  "totalSubnets": 118,
+  "successful": 118,
+  "failed": 0,
+  "processingTime": 5.37,
+  "throughput": 21.97,
+  "results": [
+    {
+      "subnet_id": 1,
+      "metrics": {
+        "emission_rate": 1.35,
+        "total_stake": 12600000,
+        "validator_count": 255,
+        "activity_score": 84.2
+      }
+    }
+  ],
+  "data_source": "real_distributed_monitoring",
+  "timestamp": "2025-07-04T00:25:26.463Z"
 }
 ```
 

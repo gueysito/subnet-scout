@@ -1,7 +1,7 @@
 // Central API client that switches between mock and real endpoints
 const API_CONFIG = {
-  // Environment flag to use mock or real APIs
-  USE_MOCK: import.meta.env.VITE_USE_MOCK_API === 'true',
+  // Environment flag to use mock or real APIs - DEFAULT TO REAL DATA (no more shortcuts!)
+  USE_MOCK: import.meta.env.VITE_USE_MOCK_API === 'true' || false,
   
   // Mock endpoints (local mock server)
   MOCK_BASE_URL: import.meta.env.VITE_MOCK_API_URL || 'http://localhost:3001',
