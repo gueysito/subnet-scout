@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import compression from "compression";
 import { Anthropic } from "@anthropic-ai/sdk";
 import ScoreAgent from "./src/scoring/ScoreAgent.js";
 import EnhancedScoreAgent from "./src/scoring/EnhancedScoreAgent.js";
@@ -12,11 +14,61 @@ import HistoricalDataGenerator from "./src/utils/historicalDataGenerator.js";
 import RiskAssessmentEngine from './src/scoring/RiskAssessmentEngine.js';
 import AnomalyDetectionEngine from './src/scoring/AnomalyDetectionEngine.js';
 import InvestmentRecommendationEngine from './src/scoring/InvestmentRecommendationEngine.js';
+import cacheService from './src/utils/cacheService.js';
+import logger from './src/utils/logger.js';
+import healthMonitor from './src/utils/healthMonitor.js';
+import database from './src/utils/database.js';
 
 // Load .env variables
 dotenv.config();
 
 const app = express();
+
+// Security: Helmet middleware for security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.anthropic.com", "https://api.io.net"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Enable compression for API responses
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  level: 6, // Compression level (1-9)
+  threshold: 1024, // Only compress responses larger than 1KB
+}));
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware
+app.use(logger.getMorganMiddleware());
 
 // Security: Rate limiting middleware
 const apiLimiter = rateLimit({
@@ -32,6 +84,14 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  handler: (req, res, next, options) => {
+    healthMonitor.recordSecurityEvent('rate_limit_exceeded', 'medium', {
+      ip: req.ip,
+      url: req.url,
+      user_agent: req.get('User-Agent')
+    });
+    res.status(options.statusCode).json(options.message);
+  }
 });
 
 // More restrictive rate limiting for compute-intensive endpoints
@@ -48,10 +108,15 @@ const computeIntensiveLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    healthMonitor.recordSecurityEvent('compute_rate_limit_exceeded', 'high', {
+      ip: req.ip,
+      url: req.url,
+      user_agent: req.get('User-Agent')
+    });
+    res.status(options.statusCode).json(options.message);
+  }
 });
-
-app.use(cors());
-app.use(express.json());
 
 // Apply rate limiting to all API routes
 app.use('/api/', apiLimiter);
@@ -93,14 +158,103 @@ const anomalyEngine = new AnomalyDetectionEngine(process.env.IONET_API_KEY);
 // Initialize Investment Recommendation Engine
 const investmentEngine = new InvestmentRecommendationEngine(process.env.IONET_API_KEY);
 
+// Log system startup
+logger.info('🚀 Subnet Scout Agent - Server Starting', {
+  node_version: process.version,
+  environment: process.env.NODE_ENV || 'development',
+  port: process.env.PORT || 8080,
+  services: {
+    redis: cacheService ? 'enabled' : 'disabled',
+    database: database ? 'enabled' : 'disabled',
+    github: process.env.GITHUB_TOKEN ? 'enabled' : 'disabled',
+    anthropic: process.env.ANTHROPIC_API_KEY ? 'enabled' : 'disabled',
+    ionet: process.env.IONET_API_KEY ? 'enabled' : 'disabled'
+  }
+});
+
+// Health monitoring and system status endpoints
+app.get('/health', async (req, res) => {
+  try {
+    const start = Date.now();
+    const healthData = await healthMonitor.runAllChecks();
+    const responseTime = Date.now() - start;
+    
+    // Record health check metrics
+    healthMonitor.recordRequest(true, responseTime);
+    
+    res.status(healthData.overall_status === 'healthy' ? 200 : 503).json({
+      ...healthData,
+      api_version: '1.0.0',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    healthMonitor.recordRequest(false, 0);
+    logger.error('Health check failed', { error: error.message });
+    res.status(500).json({
+      overall_status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Simplified health check for load balancers
+app.get('/ping', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: healthMonitor.getUptime()
+  });
+});
+
+// Comprehensive system metrics endpoint
+app.get('/api/metrics', async (req, res) => {
+  try {
+    const metrics = {
+      health: healthMonitor.generateSummary(),
+      cache: cacheService.getStats(),
+      database: await database.getStats(),
+      logger: logger.getStats(),
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(metrics);
+  } catch (error) {
+    logger.error('Metrics endpoint error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cache management endpoints
+app.post('/api/cache/clear', async (req, res) => {
+  try {
+    const { pattern } = req.body;
+    const result = await cacheService.clear(pattern);
+    
+    logger.info('Cache cleared', { pattern, result });
+    res.json({ 
+      success: result, 
+      message: result ? 'Cache cleared successfully' : 'Cache clear failed',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Cache clear error', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Claude endpoint — properly uses input
-app.post("/ping", async (req, res) => {
+app.post("/api/claude", async (req, res) => {
+  const start = Date.now();
   try {
     const userInput = req.body.input?.trim();
 
     if (!userInput) {
+      healthMonitor.recordRequest(false, Date.now() - start);
       return res.status(400).json({ error: "No input provided" });
     }
+
+    logger.info('Claude API request', { input_length: userInput.length });
 
     const response = await client.messages.create({
       model: "claude-3-haiku-20240307",
@@ -109,9 +263,17 @@ app.post("/ping", async (req, res) => {
     });
 
     const reply = response.content?.[0]?.text || "No response";
+    const responseTime = Date.now() - start;
+    
+    healthMonitor.recordRequest(true, responseTime);
+    logger.aiOperation('claude_chat', 'claude-3-haiku', null, responseTime, true);
+    
     res.json({ reply });
   } catch (err) {
-    console.error("Claude error:", err.message);
+    const responseTime = Date.now() - start;
+    healthMonitor.recordRequest(false, responseTime);
+    logger.aiOperation('claude_chat', 'claude-3-haiku', null, responseTime, false, err.message);
+    logger.error("Claude error:", { error: err.message });
     res.status(500).json({ error: err.message });
   }
 });
@@ -185,6 +347,7 @@ app.post("/api/score/batch", computeIntensiveLimiter, async (req, res) => {
 
 // Enhanced scoring endpoint - IO.net powered analysis
 app.post("/api/score/enhanced", computeIntensiveLimiter, async (req, res) => {
+  const start = Date.now();
   try {
     const { 
       subnet_id, 
@@ -194,6 +357,22 @@ app.post("/api/score/enhanced", computeIntensiveLimiter, async (req, res) => {
       historical_data = null,
       network_context = {}
     } = req.body;
+
+    // Check cache first
+    const cacheKey = `enhanced_score_${subnet_id}_${timeframe}_${JSON.stringify(enhancement_options)}`;
+    const cachedResult = await cacheService.getAIAnalysis(subnet_id, 'enhanced_score');
+    
+    if (cachedResult) {
+      const responseTime = Date.now() - start;
+      healthMonitor.recordRequest(true, responseTime);
+      logger.cacheOperation('get', cacheKey, true, responseTime);
+      logger.info('Enhanced scoring cache hit', { subnet_id, cache_key: cacheKey });
+      return res.json({
+        ...cachedResult,
+        cached: true,
+        cache_timestamp: new Date().toISOString()
+      });
+    }
 
     // Validate required fields
     if (!subnet_id || !metrics) {
@@ -220,11 +399,37 @@ app.post("/api/score/enhanced", computeIntensiveLimiter, async (req, res) => {
       enhancedOptions
     );
     
+    const responseTime = Date.now() - start;
+    
+    // Cache the result for future requests (30 minutes TTL)
+    await cacheService.setAIAnalysis(subnet_id, 'enhanced_score', enhancedResult, 1800);
+    logger.cacheOperation('set', cacheKey, false, responseTime);
+    
+    // Store metrics in database if available
+    if (database.isConnected) {
+      await database.storeSubnetMetric(subnet_id, {
+        score: enhancedResult.overall_score,
+        ...metrics,
+        metadata: { enhancement_level: enhancedResult.enhancement_status?.enhancement_level }
+      });
+    }
+    
+    // Record performance metrics
+    healthMonitor.recordRequest(true, responseTime);
+    logger.aiOperation('enhanced_score', 'ionet', subnet_id, responseTime, true);
+    
     console.log(`🤖 Enhanced score calculated for subnet ${subnet_id}: ${enhancedResult.overall_score}/100 (Level: ${enhancedResult.enhancement_status?.enhancement_level})`);
-    res.json(enhancedResult);
+    res.json({
+      ...enhancedResult,
+      cached: false,
+      response_time: `${responseTime}ms`
+    });
 
   } catch (err) {
-    console.error("Enhanced scoring error:", err.message);
+    const responseTime = Date.now() - start;
+    healthMonitor.recordRequest(false, responseTime);
+    logger.aiOperation('enhanced_score', 'ionet', subnet_id, responseTime, false, err.message);
+    logger.error("Enhanced scoring error:", { error: err.message, subnet_id });
     res.status(500).json({ 
       error: {
         code: "ENHANCED_SCORING_ERROR",
@@ -1182,31 +1387,104 @@ app.get('/api/insights/investment/:subnetId', async (req, res) => {
   }
 });
 
-// Start server
-const PORT = 8080;
-app.listen(PORT, () => {
-  console.log(`🚀 Subnet Scout Backend is live at http://localhost:${PORT}`);
-  console.log(`📋 Available endpoints:`);
-  console.log(`   POST /ping - Claude AI chat`);
-  console.log(`   POST /api/score - Basic subnet scoring`);
-  console.log(`   POST /api/score/batch - Batch scoring`);
-  console.log(`   POST /api/score/enhanced - IO.net enhanced scoring 🤖`);
-  console.log(`   POST /api/score/enhanced/batch - Enhanced batch scoring 🤖`);
-  console.log(`   POST /api/analysis/comprehensive - Full IO.net analysis suite 🎯`);
-  console.log(`   POST /api/insights/forecast - 7-day performance forecasting with AI 🔮`);
-  console.log(`   POST /api/analysis/compare - Subnet comparison with IO.net 📊`);
-  console.log(`   GET  /api/health/enhancement - IO.net integration health`);
-  console.log(`   GET  /api/subnet/:id/data - Individual subnet data (real data first) 📱`);
-  console.log(`   GET  /api/github-stats/:id - Individual subnet GitHub activity 🔍`);
-  console.log(`   POST /api/github-stats/batch - Batch GitHub activity analysis 🔍`);
-  console.log(`   GET  /api/github-stats - GitHub activity (paginated) 🔍`);
-  console.log(`   POST /api/monitor/distributed - Distributed subnet monitoring ⭐`);
-  console.log(`   GET  /api/monitor/status - Monitor status`);
-  console.log(`   GET  /api/monitor/test - Test distributed monitor`);
-  console.log(`   GET  /health - Health check`);
-  console.log(`🧠 ScoreAgent initialized with Claude integration`);
-  console.log(`🤖 Enhanced ScoreAgent with IO.net: ${process.env.IONET_API_KEY ? 'READY' : 'NEEDS API KEY'}`);
-  console.log(`🔍 GitHub Activity Monitor: ${process.env.GITHUB_TOKEN ? 'READY' : 'NEEDS TOKEN'}`);
-  console.log(`⚡ Ray Distributed Monitor ready - ALL 118 subnets in <60 seconds!`);
-  console.log(`💰 Cost advantage: 83% cheaper than traditional cloud ($150 vs $900/mo)`);
+// Graceful shutdown handling
+async function gracefulShutdown(signal) {
+  logger.info(`🛑 Received ${signal}, starting graceful shutdown...`);
+  
+  try {
+    // Close all connections gracefully
+    await Promise.all([
+      cacheService.close(),
+      database.close()
+    ]);
+    
+    logger.info('✅ Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    logger.error('❌ Error during graceful shutdown', { error: error.message });
+    process.exit(1);
+  }
+}
+
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('uncaughtException', (error) => {
+  logger.error('❌ Uncaught Exception', { error: error.message, stack: error.stack });
+  gracefulShutdown('uncaughtException');
+});
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('❌ Unhandled Promise Rejection', { reason, promise });
+  gracefulShutdown('unhandledRejection');
+});
+
+// Start server with comprehensive logging
+const PORT = process.env.PORT || 8080;
+const server = app.listen(PORT, () => {
+  logger.info(`🚀 Subnet Scout Backend started successfully`, {
+    port: PORT,
+    host: 'localhost',
+    environment: process.env.NODE_ENV || 'development',
+    process_id: process.pid
+  });
+  
+  logger.info(`📋 Available endpoints:`, {
+    health: [
+      'GET /health - Comprehensive health check',
+      'GET /ping - Simple health check',
+      'GET /api/metrics - System metrics',
+      'POST /api/cache/clear - Cache management'
+    ],
+    core: [
+      'POST /api/claude - Claude AI chat',
+      'POST /api/score - Basic subnet scoring',
+      'POST /api/score/enhanced - IO.net enhanced scoring 🤖',
+      'POST /api/score/batch - Batch scoring',
+      'POST /api/score/enhanced/batch - Enhanced batch scoring 🤖'
+    ],
+    ai_insights: [
+      'POST /api/insights/forecast - 7-day performance forecasting 🔮',
+      'GET /api/insights/risk/:id - Risk assessment',
+      'GET /api/insights/anomalies/:id - Anomaly detection',
+      'GET /api/insights/investment/:id - Investment recommendations'
+    ],
+    analysis: [
+      'POST /api/analysis/comprehensive - Full IO.net analysis suite 🎯',
+      'POST /api/analysis/compare - Subnet comparison 📊'
+    ],
+    monitoring: [
+      'POST /api/monitor/distributed - Distributed subnet monitoring ⭐',
+      'GET /api/monitor/status - Monitor status',
+      'GET /api/subnet/:id/data - Individual subnet data 📱'
+    ],
+    github: [
+      'GET /api/github-stats/:id - Individual subnet GitHub activity 🔍',
+      'POST /api/github-stats/batch - Batch GitHub activity analysis 🔍',
+      'GET /api/github-stats - GitHub activity (paginated) 🔍'
+    ]
+  });
+  
+  logger.info(`🎯 Service Status:`, {
+    scoreAgent: '🧠 Claude integration ready',
+    enhancedAgent: `🤖 IO.net integration: ${process.env.IONET_API_KEY ? 'READY' : 'NEEDS API KEY'}`,
+    githubMonitor: `🔍 GitHub monitoring: ${process.env.GITHUB_TOKEN ? 'READY' : 'NEEDS TOKEN'}`,
+    distributedMonitor: '⚡ Ray distributed monitor ready - ALL 118 subnets in <60s',
+    cacheService: `💾 Redis caching: ${cacheService.isConnected ? 'CONNECTED' : 'FALLBACK MODE'}`,
+    database: `🗄️ PostgreSQL: ${database.isConnected ? 'CONNECTED' : 'DISABLED'}`,
+    costAdvantage: '💰 83% cheaper than traditional cloud ($150 vs $900/mo)'
+  });
+
+  // Initial system health check
+  setTimeout(async () => {
+    try {
+      const healthCheck = await healthMonitor.runAllChecks();
+      logger.info(`🏥 Initial health check completed`, {
+        overall_status: healthCheck.overall_status,
+        services_up: Object.values(healthCheck.checks).filter(c => c.status === 'up').length,
+        total_services: Object.keys(healthCheck.checks).length
+      });
+    } catch (error) {
+      logger.error('❌ Initial health check failed', { error: error.message });
+    }
+  }, 2000);
 });
