@@ -8,6 +8,7 @@ import EnhancedScoreAgent from "./src/scoring/EnhancedScoreAgent.js";
 import DistributedMonitorBridge from "./src/core/monitor_bridge.js";
 import GitHubClient from "./src/utils/githubClient.js";
 import { getSubnetMetadata } from "./src/data/subnets.js";
+import HistoricalDataGenerator from "./src/utils/historicalDataGenerator.js";
 
 // Load .env variables
 dotenv.config();
@@ -75,6 +76,10 @@ const distributedMonitor = new DistributedMonitorBridge();
 // Init GitHub Client for repository analysis
 const githubClient = new GitHubClient(process.env.GITHUB_TOKEN);
 console.log(`🔍 GitHub Client initialized: ${process.env.GITHUB_TOKEN ? 'ENABLED' : 'DISABLED'}`);
+
+// Init Historical Data Generator for forecasting
+const historicalDataGenerator = new HistoricalDataGenerator();
+console.log(`📈 Historical Data Generator initialized for AI forecasting`);
 
 // Claude endpoint — properly uses input
 app.post("/ping", async (req, res) => {
@@ -300,6 +305,116 @@ app.post("/api/analysis/comprehensive", async (req, res) => {
     res.status(500).json({ 
       error: {
         code: "COMPREHENSIVE_ANALYSIS_ERROR",
+        message: err.message,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// 7-Day Performance Forecasting endpoint - AI Insights milestone
+app.post("/api/insights/forecast", computeIntensiveLimiter, async (req, res) => {
+  try {
+    const { 
+      subnet_id, 
+      current_metrics = {}, 
+      forecast_options = {},
+      include_market_context = true 
+    } = req.body;
+
+    // Validate required fields
+    if (!subnet_id) {
+      return res.status(400).json({ 
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Missing required field: subnet_id",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Validate subnet_id range
+    if (subnet_id < 1 || subnet_id > 118) {
+      return res.status(400).json({ 
+        error: {
+          code: "INVALID_SUBNET_ID",
+          message: "subnet_id must be between 1 and 118",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    console.log(`🔮 Generating 7-day forecast for subnet ${subnet_id}...`);
+
+    // Generate historical data for context
+    const historicalData = historicalDataGenerator.generate30DayHistory(subnet_id, current_metrics);
+    console.log(`📊 Generated 30-day historical context with ${historicalData.time_series.length} data points`);
+
+    // Generate market context if requested
+    let marketContext = {};
+    if (include_market_context) {
+      marketContext = historicalDataGenerator.generateMarketContext(subnet_id);
+      console.log(`🌍 Generated market context: ${marketContext.market_sentiment} sentiment, ${marketContext.competition} competition`);
+    }
+
+    // Prepare subnet data for forecasting
+    const subnetData = {
+      subnet_id: subnet_id,
+      overall_score: current_metrics.overall_score || (70 + (subnet_id % 20)),
+      metrics: {
+        current_yield: current_metrics.current_yield || (12 + (subnet_id % 5)),
+        activity_level: current_metrics.activity_level || 'Medium',
+        yield_change_24h: current_metrics.yield_change_24h || (Math.random() * 4 - 2).toFixed(1)
+      },
+      breakdown: {
+        credibility_score: current_metrics.credibility_score || (75 + (subnet_id % 15))
+      }
+    };
+
+    // Generate AI-powered 7-day forecast using io.net
+    const forecastResult = await enhancedScoreAgent.ionetClient?.generate7DayForecast(
+      subnetData,
+      historicalData.time_series,
+      marketContext
+    );
+
+    if (!forecastResult) {
+      throw new Error('IO.net forecasting service unavailable');
+    }
+
+    console.log(`✅ 7-day forecast generated with ${forecastResult.confidence_score}% confidence`);
+
+    // Prepare comprehensive response
+    const response = {
+      subnet_id: subnet_id,
+      forecast_result: forecastResult,
+      historical_context: {
+        data_points: historicalData.time_series.length,
+        statistical_summary: historicalData.statistical_summary,
+        pattern_analysis: historicalData.pattern_analysis
+      },
+      market_context: include_market_context ? marketContext : null,
+      metadata: {
+        subnet_name: getSubnetMetadata(subnet_id).name,
+        subnet_type: getSubnetMetadata(subnet_id).type,
+        generation_timestamp: new Date().toISOString(),
+        forecast_horizon: '7_days',
+        data_quality: 'synthetic_realistic'
+      },
+      confidence_metrics: {
+        overall_confidence: forecastResult.confidence_score,
+        model_used: forecastResult.model_used,
+        reasoning_available: !!forecastResult.model_reasoning
+      }
+    };
+
+    res.json(response);
+
+  } catch (err) {
+    console.error("7-day forecasting error:", err.message);
+    res.status(500).json({ 
+      error: {
+        code: "FORECASTING_ERROR",
         message: err.message,
         timestamp: new Date().toISOString()
       }
@@ -825,6 +940,7 @@ app.listen(PORT, () => {
   console.log(`   POST /api/score/enhanced - IO.net enhanced scoring 🤖`);
   console.log(`   POST /api/score/enhanced/batch - Enhanced batch scoring 🤖`);
   console.log(`   POST /api/analysis/comprehensive - Full IO.net analysis suite 🎯`);
+  console.log(`   POST /api/insights/forecast - 7-day performance forecasting with AI 🔮`);
   console.log(`   POST /api/analysis/compare - Subnet comparison with IO.net 📊`);
   console.log(`   GET  /api/health/enhancement - IO.net integration health`);
   console.log(`   GET  /api/subnet/:id/data - Individual subnet data (real data first) 📱`);
