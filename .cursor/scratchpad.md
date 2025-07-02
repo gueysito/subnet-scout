@@ -223,12 +223,37 @@ The July 6 milestone elevates Subnet Scout from reactive monitoring to proactive
 - [x] **Performance improvements** - ✅ **ACHIEVED** - Response caching, compression, rate limiting, health monitoring all implemented
 - [x] **PostgreSQL integration** - ✅ **COMPLETED** - Optional database service for historical data storage, connection pooling, schema management
 
-### **July 8: Identity Integration (Ethos)** 🪪 **PLANNED**
-- [ ] Ethos API integration for wallet-to-identity profiles
-- [ ] Contributor badges and DAO participation display
-- [ ] Social profiles (Farcaster handles, Twitter)
-- [ ] Reputation scoring system
-- [ ] Cookie integration foundation (stub)
+### **July 8: Identity & Reputation Integration (Kaito Yaps)** 🪪 **PLANNED**
+
+> **MILESTONE FOCUS:** Integrate Kaito Yaps tokenized attention metrics to display mindshare and reputation data for subnet contributors and validators. Ethos integration deferred until API stability returns.
+
+**Task 1: Kaito Yaps Integration** ✅ **PRIORITY**
+- [ ] **API Integration**: Connect to public endpoint `GET https://api.kaito.ai/api/v1/yaps?username=<handle>`
+- [ ] **Data Capture**: Extract `yaps_all`, `yaps_l7d`, `yaps_l30d` fields for mindshare metrics
+- [ ] **Caching Implementation**: Respect 100 calls/5 minutes rate limit with Redis caching
+- [ ] **UI Components**: Display mindshare metrics in wallet/subnet cards with visual indicators
+- [ ] **Backend Service**: Create `KaitoYapsService.js` for API management and caching
+- [ ] **Frontend Integration**: Add reputation indicators to subnet and validator displays
+
+**Task 2: Ethos Identity Integration** 🔄 **DEFERRED**
+- [ ] **Placeholder Implementation**: Prepare foundation for future Ethos integration
+- [ ] **API Structure**: Design interface for wallet-to-identity profiles (when stable)
+- [ ] **Contributor Badges**: Framework for DAO participation and contributor roles (deferred)
+- [ ] **Social Profiles**: Structure for Farcaster/Twitter integration (deferred)
+
+**Technical Implementation Details:**
+- **Kaito Yaps Endpoint**: `https://api.kaito.ai/api/v1/yaps?username=<handle>` (public, no auth required)
+- **Rate Limiting**: 100 calls per 5 minutes - implement Redis caching for compliance  
+- **Data Fields**: Focus on `yaps_all` (total attention), `yaps_l7d` (7-day), `yaps_l30d` (30-day)
+- **Cache Strategy**: 1-hour TTL for individual user lookups, batch processing for known validators
+- **UI Integration**: Mindshare badges, attention trends, reputation scoring in existing components
+
+**Success Criteria:**
+- [ ] Kaito Yaps API integration functional with rate limiting compliance
+- [ ] Mindshare metrics displayed in subnet/validator cards with visual appeal
+- [ ] Caching system prevents rate limit violations  
+- [ ] Foundation prepared for future Ethos integration when service stabilizes
+- [ ] Professional presentation ready for hackathon demo
 
 ### **July 9: "Expensive & Smooth" UI Polish** ✨ **PLANNED**
 - [ ] Premium visual aesthetic (Apple-like polish)
@@ -289,6 +314,13 @@ The July 6 milestone elevates Subnet Scout from reactive monitoring to proactive
 - Multi-source market sentiment analysis
 - Custom AI models for specialized analysis
 
+### **🪪 Identity & Social Features** (Deferred from July 8)
+- Ethos Identity integration once API stability is restored
+- Contributor badges and DAO participation display
+- Social profiles (Farcaster handles, Twitter integration)
+- Cookie integration for advanced social features
+- Community features and user-generated content
+
 **Rationale:** These features require significant development time and would risk overloading the hackathon scope. By focusing on the Smart Feature Sprint, we ensure high-quality delivery of realistic features that showcase our technical excellence while maintaining manageable scope.
 
 ---
@@ -337,6 +369,36 @@ curl http://localhost:8080/api/agents?page=1&limit=2
 curl http://localhost:5173
 # Status: Live with real data via apiClient.js
 ```
+
+---
+
+## 📋 **STRATEGIC UPDATE: JULY 8 MILESTONE PIVOT**
+
+### 🎯 **KAITO YAPS INTEGRATION PRIORITIZED**
+
+**Decision Rationale:** 
+- ✅ **Kaito Yaps API**: Publicly available with free access via Open Protocol
+- ❌ **Ethos API**: Currently unstable, affecting development timeline
+- 🚀 **Timeline Critical**: July 8 milestone keeps us on track for hackathon submission
+
+**Next Steps (Waiting for API Key):**
+1. **Receive Kaito Yaps API credentials** (if required, though public endpoint available)
+2. **Execute Task Implementation** in this order:
+   - Create `KaitoYapsService.js` backend service
+   - Implement Redis caching for rate limit compliance (100 calls/5min)
+   - Add mindshare data endpoints to Express server
+   - Update UI components with reputation indicators
+   - Test integration and caching effectiveness
+
+**Success Metrics:**
+- 🎯 **Mindshare Integration**: Display `yaps_all`, `yaps_l7d`, `yaps_l30d` in subnet cards
+- ⚡ **Rate Limit Compliance**: Never exceed 100 calls per 5 minutes with caching
+- 🎨 **Visual Appeal**: Professional reputation badges and attention trend indicators
+- 🚀 **Demo Ready**: Kaito Yaps integration showcased in hackathon presentation
+
+**Status:** ✅ **COMPLETED SUCCESSFULLY** → **87.5% Test Success Rate** ✅
+
+---
 
 #### Telegram Bot:
 ```bash

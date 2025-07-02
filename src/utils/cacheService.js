@@ -4,6 +4,7 @@ class CacheService {
   constructor() {
     this.client = null;
     this.isConnected = false;
+    this.fallbackMode = false;
     this.cacheStats = {
       hits: 0,
       misses: 0,
@@ -38,7 +39,10 @@ class CacheService {
       });
 
       this.client.on('error', (err) => {
-        console.error('❌ Redis error:', err.message);
+        if (!this.fallbackMode) {
+          console.log('💾 Redis not available, switching to fallback mode');
+          this.fallbackMode = true;
+        }
         this.isConnected = false;
         this.cacheStats.errors++;
       });
@@ -86,7 +90,10 @@ class CacheService {
         return null;
       }
     } catch (error) {
-      console.error('❌ Cache GET error:', error.message);
+      if (!this.fallbackMode) {
+        console.log('💾 Cache: Switching to fallback mode');
+        this.fallbackMode = true;
+      }
       this.cacheStats.errors++;
       return null;
     }

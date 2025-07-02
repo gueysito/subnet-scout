@@ -18,6 +18,7 @@ import cacheService from './src/utils/cacheService.js';
 import logger from './src/utils/logger.js';
 import healthMonitor from './src/utils/healthMonitor.js';
 import database from './src/utils/database.js';
+import kaitoYapsService from './src/utils/kaitoYapsService.js';
 
 // Load .env variables
 dotenv.config();
@@ -1387,6 +1388,148 @@ app.get('/api/insights/investment/:subnetId', async (req, res) => {
   }
 });
 
+// Kaito Yaps service health endpoint (MUST come before parameterized route)
+app.get('/api/mindshare/health', (req, res) => {
+  try {
+    const healthStatus = kaitoYapsService.getHealthStatus();
+    const rateLimitStatus = kaitoYapsService.getRateLimitStatus();
+    
+    res.json({
+      ...healthStatus,
+      rate_limit_detailed: rateLimitStatus,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Kaito health check error', { error: error.message });
+    res.status(500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Kaito Yaps mindshare endpoints
+app.get('/api/mindshare/:username', async (req, res) => {
+  const start = Date.now();
+  try {
+    const { username } = req.params;
+    
+    if (!username) {
+      return res.status(400).json({
+        error: 'Username parameter is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    logger.info('Kaito mindshare request', { username });
+
+    const mindshareData = await kaitoYapsService.getMindshareData(username);
+    const reputationScore = kaitoYapsService.calculateReputationScore(mindshareData);
+    const badge = kaitoYapsService.getReputationBadge(reputationScore.score);
+
+    const responseTime = Date.now() - start;
+    
+    const response = {
+      success: true,
+      data: {
+        ...mindshareData,
+        reputation: reputationScore,
+        badge: badge
+      },
+      response_time: `${responseTime}ms`,
+      timestamp: new Date().toISOString()
+    };
+
+    logger.aiOperation('kaito_mindshare', 'kaito_yaps', username, responseTime, true);
+    res.json(response);
+
+  } catch (error) {
+    const responseTime = Date.now() - start;
+    logger.aiOperation('kaito_mindshare', 'kaito_yaps', req.params.username, responseTime, false, error.message);
+    logger.error('Kaito mindshare error', { error: error.message, username: req.params.username });
+    
+    res.status(500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Batch mindshare endpoint
+app.post('/api/mindshare/batch', computeIntensiveLimiter, async (req, res) => {
+  const start = Date.now();
+  try {
+    const { usernames } = req.body;
+    
+    if (!usernames || !Array.isArray(usernames)) {
+      return res.status(400).json({
+        error: 'Usernames array is required in request body',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (usernames.length === 0) {
+      return res.status(400).json({
+        error: 'Usernames array cannot be empty',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (usernames.length > 50) {
+      return res.status(400).json({
+        error: 'Maximum 50 usernames allowed per batch request',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    logger.info('Kaito batch mindshare request', { count: usernames.length });
+
+    const batchResult = await kaitoYapsService.getBatchMindshareData(usernames);
+    
+    // Add reputation scores and badges to each result
+    const enrichedData = batchResult.data.map(mindshareData => {
+      const reputationScore = kaitoYapsService.calculateReputationScore(mindshareData);
+      const badge = kaitoYapsService.getReputationBadge(reputationScore.score);
+      
+      return {
+        ...mindshareData,
+        reputation: reputationScore,
+        badge: badge
+      };
+    });
+
+    const responseTime = Date.now() - start;
+    
+    const response = {
+      success: batchResult.success,
+      data: enrichedData,
+      errors: batchResult.errors,
+      stats: {
+        total: batchResult.total,
+        successful: batchResult.successful,
+        failed: batchResult.errors.length
+      },
+      response_time: `${responseTime}ms`,
+      timestamp: new Date().toISOString()
+    };
+
+    logger.aiOperation('kaito_batch_mindshare', 'kaito_yaps', null, responseTime, true);
+    res.json(response);
+
+  } catch (error) {
+    const responseTime = Date.now() - start;
+    logger.aiOperation('kaito_batch_mindshare', 'kaito_yaps', null, responseTime, false, error.message);
+    logger.error('Kaito batch mindshare error', { error: error.message });
+    
+    res.status(500).json({
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+
+
 // Graceful shutdown handling
 async function gracefulShutdown(signal) {
   logger.info(`🛑 Received ${signal}, starting graceful shutdown...`);
@@ -1461,6 +1604,11 @@ const server = app.listen(PORT, () => {
       'GET /api/github-stats/:id - Individual subnet GitHub activity 🔍',
       'POST /api/github-stats/batch - Batch GitHub activity analysis 🔍',
       'GET /api/github-stats - GitHub activity (paginated) 🔍'
+    ],
+    kaito_yaps: [
+      'GET /api/mindshare/:username - Kaito Yaps mindshare data',
+      'POST /api/mindshare/batch - Batch Kaito Yaps mindshare data',
+      'GET /api/mindshare/health - Kaito Yaps service health status'
     ]
   });
   
@@ -1471,7 +1619,8 @@ const server = app.listen(PORT, () => {
     distributedMonitor: '⚡ Ray distributed monitor ready - ALL 118 subnets in <60s',
     cacheService: `💾 Redis caching: ${cacheService.isConnected ? 'CONNECTED' : 'FALLBACK MODE'}`,
     database: `🗄️ PostgreSQL: ${database.isConnected ? 'CONNECTED' : 'DISABLED'}`,
-    costAdvantage: '💰 83% cheaper than traditional cloud ($150 vs $900/mo)'
+    costAdvantage: '💰 83% cheaper than traditional cloud ($150 vs $900/mo)',
+    kaito_yaps: '🤖 Kaito Yaps service integration ready'
   });
 
   // Initial system health check

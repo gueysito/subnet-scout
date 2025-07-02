@@ -98,51 +98,75 @@ class HealthMonitor {
 
   // Run all health checks
   async runAllChecks() {
-    const results = {};
-    const startTime = Date.now();
+    try {
+      const results = {};
+      const startTime = Date.now();
 
-    // Run all checks in parallel
-    const checkPromises = Array.from(this.checks.keys()).map(async (name) => {
-      try {
-        const result = await this.runCheck(name);
-        results[name] = result;
-      } catch (error) {
-        results[name] = {
-          name,
-          status: 'error',
-          error: error.message,
-          lastCheck: new Date().toISOString()
-        };
+      // Run all registered checks plus Kaito check
+      const checkPromises = Array.from(this.checks.keys()).map(async (name) => {
+        try {
+          const result = await this.runCheck(name);
+          results[name] = result;
+        } catch (error) {
+          results[name] = {
+            name,
+            status: 'error',
+            error: error.message,
+            last_check: new Date().toISOString()
+          };
+        }
+      });
+
+      // Add Kaito check
+      checkPromises.push((async () => {
+        try {
+          const result = await this.checkKaitoYaps();
+          results['kaito_yaps'] = result;
+        } catch (error) {
+          results['kaito_yaps'] = {
+            name: 'kaito_yaps',
+            status: 'error',
+            error: error.message,
+            last_check: new Date().toISOString()
+          };
+        }
+      })());
+
+      await Promise.allSettled(checkPromises);
+
+      const totalTime = Date.now() - startTime;
+      const services = Object.values(results);
+
+      // Calculate overall status
+      const upServices = services.filter(s => s.status === 'up').length;
+      const degradedServices = services.filter(s => s.status === 'degraded').length;
+      const downServices = services.filter(s => s.status === 'down' || s.status === 'error').length;
+
+      let overallStatus = 'healthy';
+      if (downServices > 0) {
+        overallStatus = 'unhealthy';
+      } else if (degradedServices > 0) {
+        overallStatus = 'degraded';
       }
-    });
 
-    await Promise.all(checkPromises);
-
-    const totalTime = Date.now() - startTime;
-
-    // Calculate overall health
-    const statuses = Object.values(results).map(r => r.status);
-    const downCount = statuses.filter(s => s === 'down').length;
-    const degradedCount = statuses.filter(s => s === 'degraded').length;
-    
-    let overallStatus;
-    if (downCount > 0) {
-      overallStatus = 'unhealthy';
-    } else if (degradedCount > 0) {
-      overallStatus = 'degraded';
-    } else {
-      overallStatus = 'healthy';
+      return {
+        overall_status: overallStatus,
+        services_up: upServices,
+        services_degraded: degradedServices,
+        services_down: downServices,
+        total_services: services.length,
+        services: services,
+        total_check_time: `${totalTime}ms`,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      logger.error('Health check system error', { error: error.message });
+      return {
+        overall_status: 'error',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
     }
-
-    return {
-      overall_status: overallStatus,
-      timestamp: new Date().toISOString(),
-      uptime: this.getUptime(),
-      total_check_time: `${totalTime}ms`,
-      checks: results,
-      metrics: this.getMetrics(),
-      system_info: await this.getSystemInfo()
-    };
   }
 
   // Record request metrics
@@ -438,6 +462,63 @@ class HealthMonitor {
     }
 
     return summary;
+  }
+
+  // Add Kaito Yaps service health check
+  async checkKaitoYaps() {
+    const start = Date.now();
+    try {
+      // Import dynamically to avoid circular dependencies
+      const { default: kaitoYapsService } = await import('./kaitoYapsService.js');
+      
+      const healthStatus = kaitoYapsService.getHealthStatus();
+      const rateLimitStatus = kaitoYapsService.getRateLimitStatus();
+      
+      const responseTime = Date.now() - start;
+      
+      // Determine status based on rate limit and service health
+      let status = 'up';
+      let details = {
+        rate_limit_calls: rateLimitStatus.calls,
+        rate_limit_remaining: rateLimitStatus.remaining,
+        rate_limit_reset_in: rateLimitStatus.resetIn,
+        cache_status: healthStatus.cache_status
+      };
+      
+      // Mark as degraded if approaching rate limit
+      if (rateLimitStatus.remaining < 10) {
+        status = 'degraded';
+        details.warning = 'Approaching rate limit';
+      }
+      
+      // Mark as down if rate limit exceeded
+      if (!rateLimitStatus.canMakeRequest) {
+        status = 'down';
+        details.error = 'Rate limit exceeded';
+      }
+      
+      logger.healthCheck('kaito_yaps', status, responseTime, details);
+      
+      return {
+        name: 'kaito_yaps',
+        status: status,
+        response_time: `${responseTime}ms`,
+        details: details,
+        last_check: new Date().toISOString()
+      };
+      
+    } catch (error) {
+      const responseTime = Date.now() - start;
+      logger.healthCheck('kaito_yaps', 'down', responseTime, { error: error.message });
+      
+      return {
+        name: 'kaito_yaps',
+        status: 'down',
+        error: error.message,
+        response_time: `${responseTime}ms`,
+        last_check: new Date().toISOString()
+      };
+    }
   }
 }
 
