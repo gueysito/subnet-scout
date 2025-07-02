@@ -9,6 +9,9 @@ import DistributedMonitorBridge from "./src/core/monitor_bridge.js";
 import GitHubClient from "./src/utils/githubClient.js";
 import { getSubnetMetadata } from "./src/data/subnets.js";
 import HistoricalDataGenerator from "./src/utils/historicalDataGenerator.js";
+import RiskAssessmentEngine from './src/scoring/RiskAssessmentEngine.js';
+import AnomalyDetectionEngine from './src/scoring/AnomalyDetectionEngine.js';
+import InvestmentRecommendationEngine from './src/scoring/InvestmentRecommendationEngine.js';
 
 // Load .env variables
 dotenv.config();
@@ -80,6 +83,15 @@ console.log(`🔍 GitHub Client initialized: ${process.env.GITHUB_TOKEN ? 'ENABL
 // Init Historical Data Generator for forecasting
 const historicalDataGenerator = new HistoricalDataGenerator();
 console.log(`📈 Historical Data Generator initialized for AI forecasting`);
+
+// Initialize Risk Assessment Engine
+const riskEngine = new RiskAssessmentEngine(process.env.IONET_API_KEY);
+
+// Initialize Anomaly Detection Engine
+const anomalyEngine = new AnomalyDetectionEngine(process.env.IONET_API_KEY);
+
+// Initialize Investment Recommendation Engine
+const investmentEngine = new InvestmentRecommendationEngine(process.env.IONET_API_KEY);
 
 // Claude endpoint — properly uses input
 app.post("/ping", async (req, res) => {
@@ -926,6 +938,247 @@ app.get("/api/distributed/monitor", computeIntensiveLimiter, async (req, res) =>
   } catch (error) {
     console.error("❌ Error in distributed monitoring:", error);
     res.status(500).json({ error: "Failed to execute distributed monitoring", details: error.message });
+  }
+});
+
+// Risk Assessment endpoint
+app.get('/api/insights/risk/:subnetId', async (req, res) => {
+  // Rate limiting for risk assessment
+  if (!await rateLimiter('risk_assessment', 10, 60000)) { // 10 requests per minute
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      message: 'Risk assessment rate limited to 10 requests per minute',
+      retry_after: 60
+    });
+  }
+
+  try {
+    const subnetId = parseInt(req.params.subnetId);
+    const requestId = generateRequestId();
+    
+    console.log(`🛡️ [${requestId}] Risk assessment request for subnet ${subnetId}`);
+    
+    // Validate subnet ID
+    if (!subnetId || subnetId < 1 || subnetId > 118) {
+      return res.status(400).json({
+        error: 'Invalid subnet ID',
+        message: 'Subnet ID must be between 1 and 118',
+        request_id: requestId
+      });
+    }
+
+    // Get current subnet data (simulate with enhanced metrics)
+    const subnetData = simulateSubnetData(subnetId);
+    
+    // Generate historical data with market context
+    const historicalData = generateHistoricalData(subnetId, 30);
+    const marketContext = historicalData.market_context;
+    
+    console.log(`🛡️ [${requestId}] Conducting comprehensive risk assessment...`);
+    
+    // Perform comprehensive risk assessment
+    const riskAssessment = await riskEngine.assessSubnetRisk(
+      subnetId, 
+      subnetData, 
+      historicalData, 
+      marketContext
+    );
+    
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ [${requestId}] Risk assessment completed in ${executionTime}ms`);
+    
+    // Return comprehensive risk assessment
+    res.json({
+      success: true,
+      data: riskAssessment,
+      metadata: {
+        request_id: requestId,
+        subnet_id: subnetId,
+        execution_time_ms: executionTime,
+        timestamp: new Date().toISOString(),
+        api_version: '1.0.0'
+      }
+    });
+
+  } catch (error) {
+    console.error(`❌ Risk assessment failed:`, error);
+    res.status(500).json({
+      error: 'Risk assessment failed',
+      message: error.message,
+      request_id: req.requestId || 'unknown'
+    });
+  }
+});
+
+// Anomaly Detection endpoint
+app.get('/api/insights/anomalies/:subnetId', async (req, res) => {
+  // Rate limiting for anomaly detection  
+  if (!await rateLimiter('anomaly_detection', 15, 60000)) { // 15 requests per minute
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      message: 'Anomaly detection rate limited to 15 requests per minute',
+      retry_after: 60
+    });
+  }
+
+  try {
+    const subnetId = parseInt(req.params.subnetId);
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+    
+    console.log(`🔍 [${requestId}] Anomaly detection request for subnet ${subnetId}`);
+    
+    // Validate subnet ID
+    if (!subnetId || subnetId < 1 || subnetId > 118) {
+      return res.status(400).json({
+        error: 'Invalid subnet ID',
+        message: 'Subnet ID must be between 1 and 118',
+        request_id: requestId
+      });
+    }
+
+    // Get current subnet data with enhanced metrics
+    const currentData = simulateSubnetData(subnetId);
+    
+    // Generate historical data for baseline comparison
+    const historicalData = generateHistoricalData(subnetId, 30);
+    
+    console.log(`🔍 [${requestId}] Running comprehensive anomaly detection...`);
+    
+    // Perform anomaly detection
+    const anomalyResult = await anomalyEngine.detectAnomalies(
+      subnetId, 
+      currentData, 
+      historicalData
+    );
+    
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ [${requestId}] Anomaly detection completed in ${executionTime}ms - ${anomalyResult.detection_summary.total_anomalies} anomalies found`);
+    
+    // Return comprehensive anomaly detection results
+    res.json({
+      success: true,
+      data: anomalyResult,
+      metadata: {
+        request_id: requestId,
+        subnet_id: subnetId,
+        execution_time_ms: executionTime,
+        timestamp: new Date().toISOString(),
+        api_version: '1.0.0'
+      }
+    });
+
+  } catch (error) {
+    console.error(`❌ Anomaly detection failed:`, error);
+    res.status(500).json({
+      error: 'Anomaly detection failed',
+      message: error.message,
+      request_id: req.requestId || 'unknown'
+    });
+  }
+});
+
+// Investment Recommendation endpoint (combines all AI insights)
+app.get('/api/insights/investment/:subnetId', async (req, res) => {
+  // Rate limiting for investment recommendations
+  if (!await rateLimiter('investment_recommendation', 8, 60000)) { // 8 requests per minute
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      message: 'Investment recommendations rate limited to 8 requests per minute',
+      retry_after: 60
+    });
+  }
+
+  try {
+    const subnetId = parseInt(req.params.subnetId);
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+    
+    console.log(`💰 [${requestId}] Investment recommendation request for subnet ${subnetId}`);
+    
+    // Validate subnet ID
+    if (!subnetId || subnetId < 1 || subnetId > 118) {
+      return res.status(400).json({
+        error: 'Invalid subnet ID',
+        message: 'Subnet ID must be between 1 and 118',
+        request_id: requestId
+      });
+    }
+
+    // Generate all required data in parallel for comprehensive analysis
+    console.log(`💰 [${requestId}] Gathering comprehensive AI insights...`);
+    
+    const subnetData = simulateSubnetData(subnetId);
+    const historicalData = generateHistoricalData(subnetId, 30);
+    const marketContext = historicalData.market_context;
+
+    // Run all AI engines in parallel for maximum efficiency
+    const [forecastResult, riskResult, anomalyResult] = await Promise.all([
+      // 7-day performance forecast
+      ionetClient.generate7DayForecast(subnetId, subnetData, historicalData, marketContext),
+      
+      // Comprehensive risk assessment  
+      riskEngine.assessSubnetRisk(subnetId, subnetData, historicalData, marketContext),
+      
+      // Anomaly detection
+      anomalyEngine.detectAnomalies(subnetId, subnetData, historicalData)
+    ]);
+
+    console.log(`💰 [${requestId}] Generating investment recommendation with AI analysis...`);
+
+    // Generate comprehensive investment recommendation
+    const investmentRecommendation = await investmentEngine.generateRecommendation(
+      subnetId,
+      { forecast: forecastResult, current_metrics: subnetData },
+      riskResult,
+      anomalyResult,
+      marketContext
+    );
+    
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ [${requestId}] Investment recommendation completed in ${executionTime}ms - ${investmentRecommendation.investment_recommendation.recommendation} (${investmentRecommendation.investment_recommendation.confidence_level}% confidence)`);
+    
+    // Return comprehensive investment analysis
+    res.json({
+      success: true,
+      data: investmentRecommendation,
+      supporting_analysis: {
+        forecast_summary: {
+          confidence: forecastResult.confidence_level,
+          expected_return: forecastResult.expected_return,
+          key_insights: forecastResult.key_insights?.slice(0, 3) || []
+        },
+        risk_summary: {
+          composite_risk: riskResult.risk_assessment.composite_risk.risk_score,
+          risk_level: riskResult.risk_assessment.composite_risk.risk_level,
+          key_concerns: [
+            ...(riskResult.risk_assessment.technical_risk.key_concerns || []),
+            ...(riskResult.risk_assessment.economic_risk.key_concerns || [])
+          ].slice(0, 3)
+        },
+        anomaly_summary: {
+          anomaly_score: anomalyResult.detection_summary.anomaly_score,
+          total_anomalies: anomalyResult.detection_summary.total_anomalies,
+          critical_alerts: anomalyResult.alerts.filter(a => a.severity === 'critical').length
+        }
+      },
+      metadata: {
+        request_id: requestId,
+        subnet_id: subnetId,
+        execution_time_ms: executionTime,
+        timestamp: new Date().toISOString(),
+        api_version: '1.0.0',
+        analysis_engines: ['forecast', 'risk_assessment', 'anomaly_detection', 'investment_recommendation']
+      }
+    });
+
+  } catch (error) {
+    console.error(`❌ Investment recommendation failed:`, error);
+    res.status(500).json({
+      error: 'Investment recommendation failed',
+      message: error.message,
+      request_id: req.requestId || 'unknown'
+    });
   }
 });
 
