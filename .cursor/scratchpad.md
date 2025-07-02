@@ -3,11 +3,56 @@
 
 ---
 
-## 🎯 **Current Status: JULY 5 COMPLETED + SECURITY HARDENED!**
+## 🎯 **Current Status: JULY 6 AI INSIGHTS & RISK SCORES - PLANNING PHASE**
 
-> **STRATEGIC UPDATE - July 5th:** Advanced Filters & Search milestone **COMPLETED** with bonus security hardening and io.net priority enforcement. Ready for July 6 AI Insights implementation.
+> **STRATEGIC UPDATE - July 6th:** Starting AI Insights & Risk Scores milestone implementation. Building on excellent foundation with IONetClient and EnhancedScoreAgent already in place. Moving from basic scoring to predictive analytics and advanced risk assessment.
 
-**Status:** ✅ **JULY 5 COMPLETED** - Advanced filtering system deployed + security hardened + io.net intelligence priority enforced
+**Status:** 🧠 **JULY 6 IN PROGRESS** - Planner analyzing requirements for AI Insights & Risk Scores implementation
+
+### **🎯 Background and Motivation**
+
+The July 6 milestone elevates Subnet Scout from reactive monitoring to proactive intelligence. With our excellent foundation of IONetClient (DeepSeek-R1, Llama-3.3-70B) and EnhancedScoreAgent already operational, we're positioned to build enterprise-grade predictive analytics.
+
+**Key Business Value:**
+- **Predictive Edge**: 7-day performance forecasting gives validators competitive advantage
+- **Risk Intelligence**: Multi-factor risk assessment prevents losses and identifies opportunities  
+- **AI-Powered Insights**: Anomaly detection catches critical network events early
+- **Investment Guidance**: Clear buy/hold/sell recommendations with confidence levels
+- **Professional Presentation**: Advanced analytics dashboard showcases technical sophistication
+
+**Technical Foundation Strengths:**
+- ✅ **IO.net Integration**: DeepSeek-R1 and Llama models already operational
+- ✅ **Enhanced Scoring**: Multi-factor scoring algorithm with AI summaries working
+- ✅ **Real Data Pipeline**: Live TaoStats and GitHub integration
+- ✅ **Security Hardened**: Rate limiting and input validation in place
+- ✅ **Feature Branch Workflow**: Professional development practices established
+
+### **🔍 Key Challenges and Analysis**
+
+**Challenge 1: Historical Data Requirements**
+- **Issue**: Forecasting needs historical trends, but we currently use real-time data
+- **Solution**: Create synthetic historical data generator + integrate TaoStats historical API
+- **Risk**: Low - Can use statistical models to generate realistic trends
+
+**Challenge 2: Risk Assessment Complexity** 
+- **Issue**: Technical/governance/economic risk requires domain expertise
+- **Solution**: Leverage io.net models' reasoning capabilities with structured prompts
+- **Risk**: Medium - Quality depends on prompt engineering and model responses
+
+**Challenge 3: Anomaly Detection Baseline**
+- **Issue**: Need established "normal" behavior patterns for comparison
+- **Solution**: Use statistical methods (rolling averages, standard deviations) + AI pattern recognition
+- **Risk**: Low - Mathematical baselines provide reliable foundation
+
+**Challenge 4: Performance vs Accuracy Trade-offs**
+- **Issue**: Complex AI analysis might slow response times
+- **Solution**: Implement caching layer and batch processing for computationally intensive insights
+- **Risk**: Low - Can optimize iteratively
+
+**Challenge 5: User Experience Integration**
+- **Issue**: Advanced analytics must remain intuitive and actionable
+- **Solution**: Progressive disclosure - simple views with drill-down capabilities
+- **Risk**: Low - Build on existing successful UI patterns
 
 ---
 
@@ -97,12 +142,47 @@
 
 **Status:** ✅ **COMPLETED** + **SECURITY HARDENED** + **IO.NET PRIORITY ENFORCED**
 
-### **July 6: AI Insights & Risk Scores** 🧠 **PLANNED**
-- [ ] 7-day performance forecasting using io.net DeepSeek-R1
-- [ ] Multi-factor risk scoring (technical, governance, economic)
-- [ ] AI-powered anomaly detection with alerts
-- [ ] Investment recommendations with confidence levels
-- [ ] Predictive analytics dashboard
+### **July 6: AI Insights & Risk Scores** 🧠 **IN PROGRESS**
+
+> **Planner Analysis:** Building advanced AI capabilities on top of existing IONetClient and EnhancedScoreAgent infrastructure. Focus on predictive analytics, comprehensive risk assessment, and intelligent investment guidance.
+
+#### **🎯 High-Level Task Breakdown**
+
+**Task 1: 7-Day Performance Forecasting Engine** 
+- [ ] Enhance IONetClient with forecasting prompts for DeepSeek-R1
+- [ ] Create new `/api/insights/forecast` endpoint 
+- [ ] Build historical data aggregation pipeline
+- [ ] Implement confidence scoring for predictions
+- **Success Criteria:** 7-day forecasts with 70%+ confidence levels, API endpoint functional
+
+**Task 2: Multi-Factor Risk Assessment System**
+- [ ] Extend EnhancedScoreAgent with advanced risk categories
+- [ ] Technical risk (code quality, security, architecture)
+- [ ] Governance risk (decentralization, voting participation)  
+- [ ] Economic risk (tokenomics, yield sustainability, market exposure)
+- [ ] Create unified risk scoring algorithm (0-100 scale)
+- **Success Criteria:** Comprehensive risk scores with detailed breakdowns
+
+**Task 3: AI-Powered Anomaly Detection**
+- [ ] Implement statistical baseline detection for subnet metrics
+- [ ] Create AI-powered pattern recognition using io.net models
+- [ ] Build alerting system for significant deviations
+- [ ] Add anomaly context analysis (what caused the anomaly)
+- **Success Criteria:** Real-time anomaly detection with contextual explanations
+
+**Task 4: Investment Recommendation Engine**
+- [ ] Create AI investment advisor using enhanced scoring + risk data
+- [ ] Generate Buy/Hold/Sell recommendations with confidence levels
+- [ ] Include risk-adjusted returns analysis
+- [ ] Provide reasoning and key factors for each recommendation
+- **Success Criteria:** Clear investment guidance with 80%+ confidence scores
+
+**Task 5: Predictive Analytics Dashboard**
+- [ ] Create new `PredictiveAnalytics.jsx` component
+- [ ] Implement trend visualization with forecast bands
+- [ ] Add risk radar charts and anomaly timeline
+- [ ] Build investment recommendation cards with detailed analysis
+- **Success Criteria:** Interactive dashboard with all AI insights integrated
 
 ### **July 7: Caching, Security & Optimization** ⚡ **PLANNED**
 - [ ] Redis caching layer for subnet data, GitHub stats, AI analysis
