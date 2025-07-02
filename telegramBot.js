@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
 import fetch from 'node-fetch';
+import { getSubnetMetadata } from './src/data/subnets.js';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 const BACKEND_URL = 'http://localhost:8080';
@@ -66,7 +67,9 @@ async function getRealSubnetData(subnetId) {
 // Helper function to format subnet data for display
 function formatSubnetInfo(subnet) {
   const emoji = subnet.overall_score >= 80 ? '🟢' : subnet.overall_score >= 60 ? '🟡' : '🔴';
-  return `${emoji} **Subnet ${subnet.subnet_id}**
+  const metadata = getSubnetMetadata(subnet.subnet_id);
+  return `${emoji} **${metadata.name}** (#${subnet.subnet_id})
+📝 ${metadata.description}
 📊 Score: ${subnet.overall_score}/100
 💰 Yield: ${subnet.metrics?.current_yield || 'N/A'}%
 ⚡ Activity: ${subnet.breakdown?.activity_score || 'N/A'}/100
@@ -142,8 +145,8 @@ bot.help((ctx) => {
 • All data updates in real-time from our distributed monitoring system
 
 **Examples:**
-\`/analyze 21\` - Analyze Omniscia subnet
-\`/compare 1 32\` - Compare Text Prompting vs Brainstorm`);
+\`/analyze 21\` - Analyze FileTAO storage subnet
+\`/compare 1 8\` - Compare Text Prompting vs Taoshi`);
 });
 
 // Command: /top - Get top 3 subnets ranked by performance
@@ -190,7 +193,8 @@ bot.command('analyze', async (ctx) => {
       return;
     }
     
-    ctx.reply(`🤖 Analyzing subnet ${subnetId} with io.net AI models...`);
+    const metadata = getSubnetMetadata(subnetId);
+    ctx.reply(`🤖 Analyzing ${metadata.name} (#${subnetId}) with io.net AI models...`);
     
     // Get real subnet data (with fallback to realistic values)
     const subnetMetrics = await getRealSubnetData(subnetId);
@@ -207,7 +211,7 @@ bot.command('analyze', async (ctx) => {
       }
     });
     
-    let response = `🔍 **Subnet ${subnetId} Analysis**\n\n`;
+    let response = `🔍 **${metadata.name} Analysis**\n\n`;
     response += formatSubnetInfo(analysisResult);
     response += '\n\n';
     
@@ -257,7 +261,9 @@ bot.command('compare', async (ctx) => {
       return;
     }
     
-    ctx.reply(`⚖️ Comparing subnets ${subnet1} vs ${subnet2} with AI analysis...`);
+    const metadata1 = getSubnetMetadata(subnet1);
+    const metadata2 = getSubnetMetadata(subnet2);
+    ctx.reply(`⚖️ Comparing ${metadata1.name} vs ${metadata2.name} with AI analysis...`);
     
     // Get real data for both subnets (with fallback to realistic values)
     const [subnetMetrics1, subnetMetrics2] = await Promise.all([
@@ -265,39 +271,49 @@ bot.command('compare', async (ctx) => {
       getRealSubnetData(subnet2)
     ]);
     
-    // Get analysis for both subnets with real data
+    // Get analysis for both subnets with io.net enhanced scoring
     const [analysis1, analysis2] = await Promise.all([
-      callBackendAPI('/api/score', 'POST', {
+      callBackendAPI('/api/score/enhanced', 'POST', {
         subnet_id: subnet1,
-        metrics: subnetMetrics1
+        metrics: subnetMetrics1,
+        timeframe: '24h',
+        enhancement_options: {
+          include_ai_insights: true,
+          risk_assessment: true
+        }
       }),
-      callBackendAPI('/api/score', 'POST', {
+      callBackendAPI('/api/score/enhanced', 'POST', {
         subnet_id: subnet2,
-        metrics: subnetMetrics2
+        metrics: subnetMetrics2,
+        timeframe: '24h',
+        enhancement_options: {
+          include_ai_insights: true,
+          risk_assessment: true
+        }
       })
     ]);
     
-    let response = `⚖️ **Subnet Comparison: ${subnet1} vs ${subnet2}**\n\n`;
+    let response = `⚖️ **${metadata1.name} vs ${metadata2.name}**\n\n`;
     
     // Side-by-side comparison
     response += `**📊 Performance Scores:**\n`;
-    response += `• Subnet ${subnet1}: ${analysis1.overall_score}/100\n`;
-    response += `• Subnet ${subnet2}: ${analysis2.overall_score}/100\n`;
-    const winner = analysis1.overall_score > analysis2.overall_score ? subnet1 : subnet2;
-    response += `🏆 **Winner:** Subnet ${winner}\n\n`;
+    response += `• ${metadata1.name}: ${analysis1.overall_score}/100\n`;
+    response += `• ${metadata2.name}: ${analysis2.overall_score}/100\n`;
+    const winner = analysis1.overall_score > analysis2.overall_score ? metadata1.name : metadata2.name;
+    response += `🏆 **Winner:** ${winner}\n\n`;
     
     response += `**💰 Yield Comparison:**\n`;
-    response += `• Subnet ${subnet1}: ${analysis1.metrics?.current_yield || 'N/A'}%\n`;
-    response += `• Subnet ${subnet2}: ${analysis2.metrics?.current_yield || 'N/A'}%\n\n`;
+    response += `• ${metadata1.name}: ${analysis1.metrics?.current_yield || 'N/A'}%\n`;
+    response += `• ${metadata2.name}: ${analysis2.metrics?.current_yield || 'N/A'}%\n\n`;
     
     response += `**⚡ Activity Levels:**\n`;
-    response += `• Subnet ${subnet1}: ${analysis1.breakdown?.activity_score || 'N/A'}/100\n`;
-    response += `• Subnet ${subnet2}: ${analysis2.breakdown?.activity_score || 'N/A'}/100\n\n`;
+    response += `• ${metadata1.name}: ${analysis1.breakdown?.activity_score || 'N/A'}/100\n`;
+    response += `• ${metadata2.name}: ${analysis2.breakdown?.activity_score || 'N/A'}/100\n\n`;
     
     response += `🤖 **Recommendation:**\n`;
     const recommendation = analysis1.overall_score > analysis2.overall_score 
-      ? `Subnet ${subnet1} shows stronger overall performance with higher scores across key metrics.`
-      : `Subnet ${subnet2} demonstrates better performance with superior activity and yield metrics.`;
+      ? `${metadata1.name} shows stronger overall performance with higher scores across key metrics.`
+      : `${metadata2.name} demonstrates better performance with superior activity and yield metrics.`;
     response += recommendation;
     
     response += `\n\n⚡ *Analysis powered by io.net distributed computing*`;

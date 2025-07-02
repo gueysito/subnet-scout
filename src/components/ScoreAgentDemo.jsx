@@ -25,7 +25,7 @@ const ScoreAgentDemo = () => {
     setScoreResult(null);
 
     try {
-      const response = await fetch('http://localhost:8080/api/score', {
+      const response = await fetch('http://localhost:8080/api/score/enhanced', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

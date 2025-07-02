@@ -1,17 +1,57 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 import { Anthropic } from "@anthropic-ai/sdk";
 import ScoreAgent from "./src/scoring/ScoreAgent.js";
 import EnhancedScoreAgent from "./src/scoring/EnhancedScoreAgent.js";
 import DistributedMonitorBridge from "./src/core/monitor_bridge.js";
+import GitHubClient from "./src/utils/githubClient.js";
+import { getSubnetMetadata } from "./src/data/subnets.js";
 
 // Load .env variables
 dotenv.config();
 
 const app = express();
+
+// Security: Rate limiting middleware
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: {
+      code: "RATE_LIMIT_EXCEEDED",
+      message: "Too many requests from this IP, please try again later.",
+      timestamp: new Date().toISOString(),
+      retry_after: "60 seconds"
+    }
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// More restrictive rate limiting for compute-intensive endpoints
+const computeIntensiveLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 20, // Limit each IP to 20 requests per 5 minutes for heavy operations
+  message: {
+    error: {
+      code: "RATE_LIMIT_EXCEEDED_COMPUTE",
+      message: "Too many compute-intensive requests, please try again later.",
+      timestamp: new Date().toISOString(),
+      retry_after: "300 seconds"
+    }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(cors());
 app.use(express.json());
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+app.use('/ping', apiLimiter);
 
 // Init Claude client
 const client = new Anthropic({
@@ -31,6 +71,10 @@ console.log(`🤖 Enhanced ScoreAgent initialized with IO.net: ${process.env.ION
 
 // Init Distributed Monitor Bridge  
 const distributedMonitor = new DistributedMonitorBridge();
+
+// Init GitHub Client for repository analysis
+const githubClient = new GitHubClient(process.env.GITHUB_TOKEN);
+console.log(`🔍 GitHub Client initialized: ${process.env.GITHUB_TOKEN ? 'ENABLED' : 'DISABLED'}`);
 
 // Claude endpoint — properly uses input
 app.post("/ping", async (req, res) => {
@@ -90,7 +134,7 @@ app.post("/api/score", async (req, res) => {
 });
 
 // Batch scoring endpoint - Calculate scores for multiple subnets
-app.post("/api/score/batch", async (req, res) => {
+app.post("/api/score/batch", computeIntensiveLimiter, async (req, res) => {
   try {
     const { subnet_metrics, timeframe = '24h' } = req.body;
 
@@ -123,7 +167,7 @@ app.post("/api/score/batch", async (req, res) => {
 });
 
 // Enhanced scoring endpoint - IO.net powered analysis
-app.post("/api/score/enhanced", async (req, res) => {
+app.post("/api/score/enhanced", computeIntensiveLimiter, async (req, res) => {
   try {
     const { 
       subnet_id, 
@@ -175,7 +219,7 @@ app.post("/api/score/enhanced", async (req, res) => {
 });
 
 // Batch enhanced scoring endpoint - IO.net powered batch analysis
-app.post("/api/score/enhanced/batch", async (req, res) => {
+app.post("/api/score/enhanced/batch", computeIntensiveLimiter, async (req, res) => {
   try {
     const { 
       subnet_metrics, 
@@ -325,7 +369,7 @@ app.get("/api/health/enhancement", async (req, res) => {
 });
 
 // Distributed monitoring endpoint - THE KEY DIFFERENTIATOR!
-app.post("/api/monitor/distributed", async (req, res) => {
+app.post("/api/monitor/distributed", computeIntensiveLimiter, async (req, res) => {
   try {
     const { subnet_count = 118, workers = 8, mock_mode = true } = req.body;
 
@@ -419,9 +463,17 @@ app.get("/api/subnet/:id/data", async (req, res) => {
       const subnetData = distributedResult.results?.find(r => r.subnet_id === subnetId);
       
       if (subnetData) {
+        const metadata = getSubnetMetadata(subnetId);
+        
         res.json({
           success: true,
           subnet_id: subnetId,
+          metadata: {
+            name: metadata.name,
+            description: metadata.description,
+            type: metadata.type,
+            github_url: metadata.github
+          },
           data: {
             emission_rate: subnetData.metrics?.emission_rate || (1.25 + (subnetId * 0.1)),
             total_stake: subnetData.metrics?.total_stake || (12500000 + (subnetId * 100000)),
@@ -439,9 +491,17 @@ app.get("/api/subnet/:id/data", async (req, res) => {
       console.log(`Real data unavailable for subnet ${subnetId}, using fallback: ${error.message}`);
       
       // Fallback to realistic mock data
+      const metadata = getSubnetMetadata(subnetId);
+      
       res.json({
         success: true,
         subnet_id: subnetId,
+        metadata: {
+          name: metadata.name,
+          description: metadata.description,
+          type: metadata.type,
+          github_url: metadata.github
+        },
         data: {
           emission_rate: 1.25 + (subnetId * 0.1),
           total_stake: 12500000 + (subnetId * 100000),
@@ -459,6 +519,190 @@ app.get("/api/subnet/:id/data", async (req, res) => {
     res.status(500).json({
       error: {
         code: "SUBNET_DATA_ERROR",
+        message: error.message,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// GitHub Activity Monitoring Endpoints
+// Get GitHub statistics for individual subnet
+app.get("/api/github-stats/:id", async (req, res) => {
+  try {
+    const subnetId = parseInt(req.params.id);
+    
+    if (isNaN(subnetId) || subnetId < 1 || subnetId > 118) {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_SUBNET_ID",
+          message: "Subnet ID must be between 1-118",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    if (!githubClient.apiToken) {
+      return res.status(503).json({
+        error: {
+          code: "GITHUB_API_UNAVAILABLE",
+          message: "GitHub API token not configured",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    console.log(`🔍 Fetching GitHub stats for subnet ${subnetId}...`);
+    
+    const batchResult = await githubClient.getBatchSubnetActivity([subnetId], 1);
+    const githubStats = batchResult.results[subnetId];
+    
+    if (githubStats) {
+      console.log(`✅ GitHub stats retrieved for subnet ${subnetId}: ${githubStats.commits_last_30_days} commits (Activity: ${githubStats.activity_score}/100)`);
+      
+      res.json({
+        success: true,
+        subnet_id: subnetId,
+        github_stats: githubStats,
+        rate_limit: githubClient.getRateLimitStatus(),
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      throw new Error("Failed to retrieve GitHub statistics");
+    }
+
+  } catch (error) {
+    console.error(`GitHub stats error for subnet ${req.params.id}:`, error.message);
+    res.status(500).json({
+      error: {
+        code: "GITHUB_STATS_ERROR",
+        message: error.message,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Get GitHub statistics for multiple subnets (batch)
+app.post("/api/github-stats/batch", computeIntensiveLimiter, async (req, res) => {
+  try {
+    const { subnet_ids, max_concurrent = 5 } = req.body;
+
+    if (!Array.isArray(subnet_ids) || subnet_ids.length === 0) {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_REQUEST",
+          message: "subnet_ids must be a non-empty array",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Validate subnet IDs
+    const invalidIds = subnet_ids.filter(id => isNaN(id) || id < 1 || id > 118);
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        error: {
+          code: "INVALID_SUBNET_IDS",
+          message: `Invalid subnet IDs: ${invalidIds.join(', ')}. Must be between 1-118`,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    if (!githubClient.apiToken) {
+      return res.status(503).json({
+        error: {
+          code: "GITHUB_API_UNAVAILABLE", 
+          message: "GitHub API token not configured",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    console.log(`🔍 Batch fetching GitHub stats for ${subnet_ids.length} subnets...`);
+    
+    const batchResult = await githubClient.getBatchSubnetActivity(subnet_ids, max_concurrent);
+    
+    console.log(`✅ GitHub batch analysis complete: ${batchResult.summary.successful}/${batchResult.summary.total_analyzed} successful`);
+    
+    res.json({
+      success: true,
+      results: batchResult.results,
+      summary: batchResult.summary,
+      rate_limit: githubClient.getRateLimitStatus(),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("GitHub batch stats error:", error.message);
+    res.status(500).json({
+      error: {
+        code: "GITHUB_BATCH_ERROR",
+        message: error.message,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// Get GitHub statistics for all subnets (default top 20 for performance)
+app.get("/api/github-stats", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50); // Max 50 for rate limiting
+    const offset = parseInt(req.query.offset) || 0;
+    
+    if (!githubClient.apiToken) {
+      return res.status(503).json({
+        error: {
+          code: "GITHUB_API_UNAVAILABLE",
+          message: "GitHub API token not configured", 
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Generate subnet IDs to analyze
+    const subnetIds = [];
+    for (let i = offset + 1; i <= Math.min(offset + limit, 118); i++) {
+      subnetIds.push(i);
+    }
+
+    if (subnetIds.length === 0) {
+      return res.json({
+        success: true,
+        results: {},
+        summary: { total_analyzed: 0, successful: 0, failed: 0 },
+        rate_limit: githubClient.getRateLimitStatus(),
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    console.log(`🔍 Fetching GitHub stats for subnets ${subnetIds[0]}-${subnetIds[subnetIds.length-1]} (${subnetIds.length} total)...`);
+    
+    const batchResult = await githubClient.getBatchSubnetActivity(subnetIds, 3); // Conservative rate limiting
+    
+    console.log(`✅ GitHub analysis complete: ${batchResult.summary.successful}/${batchResult.summary.total_analyzed} successful (Avg activity: ${batchResult.summary.average_activity_score}/100)`);
+    
+    res.json({
+      success: true,
+      results: batchResult.results,
+      summary: batchResult.summary,
+      pagination: {
+        limit,
+        offset,
+        total_available: 118,
+        returned: subnetIds.length
+      },
+      rate_limit: githubClient.getRateLimitStatus(),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("GitHub stats error:", error.message);
+    res.status(500).json({
+      error: {
+        code: "GITHUB_STATS_ERROR",
         message: error.message,
         timestamp: new Date().toISOString()
       }
@@ -498,11 +742,25 @@ app.get("/api/agents", async (req, res) => {
       
       if (subnetData.success) {
         const data = subnetData.data;
+        const metadata = getSubnetMetadata(i);
+        
+        // Calculate derived metrics for filtering and display
+        const yieldPercentage = ((data.emission_rate / 24) * 100) || Math.random() * 50 + 10; // Realistic yield 10-60%
+        const activityLevel = Math.min(100, data.activity_score + Math.random() * 10); // Activity based on score
+        const credibilityScore = Math.min(100, (data.validator_count / 500 * 50) + (data.total_stake / 50000000 * 50)); // Based on validators and stake
+
         agents.push({
           id: i,
           subnet_id: i,
-          status: data.activity_score > 70 ? 'healthy' : 'degraded',
-          score: data.activity_score,
+          name: metadata.name,
+          description: metadata.description,
+          type: metadata.type,
+          github_url: metadata.github,
+          status: data.activity_score > 70 ? 'healthy' : data.activity_score > 40 ? 'warning' : 'critical',
+          score: Math.round(data.activity_score * 10) / 10,
+          yield: Math.round(yieldPercentage * 10) / 10,
+          activity: Math.round(activityLevel),
+          credibility: Math.round(credibilityScore),
           emission_rate: data.emission_rate,
           total_stake: data.total_stake,
           validator_count: data.validator_count,
@@ -533,7 +791,7 @@ app.get("/api/agents", async (req, res) => {
 });
 
 // Get distributed monitoring results for frontend
-app.get("/api/distributed/monitor", async (req, res) => {
+app.get("/api/distributed/monitor", computeIntensiveLimiter, async (req, res) => {
   try {
     console.log("🎯 Frontend requesting distributed monitor - using REAL DATA");
     
@@ -570,12 +828,16 @@ app.listen(PORT, () => {
   console.log(`   POST /api/analysis/compare - Subnet comparison with IO.net 📊`);
   console.log(`   GET  /api/health/enhancement - IO.net integration health`);
   console.log(`   GET  /api/subnet/:id/data - Individual subnet data (real data first) 📱`);
+  console.log(`   GET  /api/github-stats/:id - Individual subnet GitHub activity 🔍`);
+  console.log(`   POST /api/github-stats/batch - Batch GitHub activity analysis 🔍`);
+  console.log(`   GET  /api/github-stats - GitHub activity (paginated) 🔍`);
   console.log(`   POST /api/monitor/distributed - Distributed subnet monitoring ⭐`);
   console.log(`   GET  /api/monitor/status - Monitor status`);
   console.log(`   GET  /api/monitor/test - Test distributed monitor`);
   console.log(`   GET  /health - Health check`);
   console.log(`🧠 ScoreAgent initialized with Claude integration`);
-  console.log(`🤖 Enhanced ScoreAgent with IO.net: ${process.env.IOINTELLIGENCE_API_KEY ? 'READY' : 'NEEDS API KEY'}`);
+  console.log(`🤖 Enhanced ScoreAgent with IO.net: ${process.env.IONET_API_KEY ? 'READY' : 'NEEDS API KEY'}`);
+  console.log(`🔍 GitHub Activity Monitor: ${process.env.GITHUB_TOKEN ? 'READY' : 'NEEDS TOKEN'}`);
   console.log(`⚡ Ray Distributed Monitor ready - ALL 118 subnets in <60 seconds!`);
   console.log(`💰 Cost advantage: 83% cheaper than traditional cloud ($150 vs $900/mo)`);
 });

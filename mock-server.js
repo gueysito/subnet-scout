@@ -129,6 +129,50 @@ app.post('/webhook/telegram', (req, res) => {
 });
 
 // 4. Mock Internal Scoring API
+// Enhanced scoring endpoint (io.net primary)
+app.post('/api/score/enhanced', (req, res) => {
+  const { subnet_id, metrics, timeframe = '24h', enhancement_options = {} } = req.body;
+  
+  if (!subnet_id || !metrics) {
+    return res.status(400).json({
+      error: { code: "INVALID_REQUEST", message: "Missing subnet_id or metrics" }
+    });
+  }
+
+  const mockScore = 75 + (subnet_id % 20);
+  res.json({
+    subnet_id,
+    overall_score: mockScore,
+    breakdown: {
+      yield_score: mockScore + 5,
+      activity_score: mockScore - 3,
+      credibility_score: mockScore + 2
+    },
+    metrics: {
+      current_yield: ((subnet_id % 10) + 15).toFixed(1),
+      yield_change_24h: (Math.random() * 4 - 2).toFixed(1)
+    },
+    ai_summary: `Enhanced AI analysis for subnet ${subnet_id}: This subnet shows ${mockScore > 80 ? 'strong' : 'moderate'} performance with io.net intelligence providing deeper insights.`,
+    enhancement_data: {
+      risk_assessment: {
+        overall_risk: mockScore > 80 ? 'low' : 'medium',
+        risk_score: 100 - mockScore
+      },
+      market_sentiment: {
+        recommendation: mockScore > 80 ? 'buy' : 'hold',
+        confidence_level: Math.floor(mockScore * 0.9)
+      }
+    },
+    enhancement_status: {
+      enhancement_level: 'full_analysis',
+      models_used: ['io.net-DeepSeek-R1', 'Claude-3-Haiku'],
+      processing_time: '2.1s'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Basic scoring endpoint (fallback)
 app.post('/api/score', (req, res) => {
   const { subnet_id, metrics, timeframe = '24h' } = req.body;
   

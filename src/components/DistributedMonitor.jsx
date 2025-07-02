@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getSubnetMetadata } from '../data/subnets.js';
 
 const DistributedMonitor = () => {
   const [monitoringResults, setMonitoringResults] = useState(null);
@@ -141,21 +142,24 @@ const DistributedMonitor = () => {
         <div className="bg-gray-800 rounded-lg p-6">
           <h3 className="text-lg font-bold text-white mb-4">🏆 Top Performing Subnets</h3>
           <div className="space-y-2">
-            {monitorData.topPerformers.slice(0, 5).map((subnet, index) => (
-              <div key={subnet.subnetId} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅'}</div>
-                  <div>
-                    <div className="font-medium text-white">Subnet {subnet.subnetId}</div>
-                    <div className="text-sm text-gray-400">High Performance</div>
+            {monitorData.topPerformers.slice(0, 5).map((subnet, index) => {
+              const metadata = getSubnetMetadata(subnet.subnetId);
+              return (
+                <div key={subnet.subnetId} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅'}</div>
+                    <div>
+                      <div className="font-medium text-white">{metadata.name}</div>
+                      <div className="text-sm text-gray-400">{metadata.type} • #{subnet.subnetId}</div>
+                    </div>
                   </div>
-                </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-green-400">{subnet.score}/100</div>
                   <div className="text-sm text-gray-400">Score</div>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         </div>
       </div>

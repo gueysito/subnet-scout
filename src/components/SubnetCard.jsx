@@ -26,9 +26,16 @@ const SubnetCard = ({ agent, onScoreClick }) => {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="text-lg font-semibold text-white">
-            Subnet {agent.subnet_id}
+            {agent.name || `Subnet ${agent.subnet_id}`}
           </h3>
-          <p className="text-gray-400 text-sm">{agent.name}</p>
+          <p className="text-gray-400 text-sm">
+            {agent.description || `Subnet ${agent.subnet_id}`}
+          </p>
+          {agent.type && (
+            <span className="inline-block mt-1 px-2 py-1 bg-blue-600 text-xs font-medium rounded-full">
+              {agent.type}
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <div className={`w-3 h-3 rounded-full ${getStatusColor(agent.status)}`}></div>
@@ -72,9 +79,20 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         >
           View Details
         </button>
-        <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded text-sm transition-colors">
-          Monitor
-        </button>
+        {agent.github_url ? (
+          <a
+            href={agent.github_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded text-sm transition-colors text-center"
+          >
+            GitHub
+          </a>
+        ) : (
+          <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded text-sm transition-colors">
+            Monitor
+          </button>
+        )}
       </div>
 
       {/* Footer */}

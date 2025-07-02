@@ -95,16 +95,21 @@ class ApiClient {
     return this.fetchWithErrorHandling(url, { headers });
   }
 
-  // 3. Internal scoring API calls
+  // 3. Internal scoring API calls - io.net enhanced scoring (primary), Anthropic fallback
   async calculateScore(subnetId, metrics, timeframe = '24h') {
     const url = this.useMock
-      ? `${API_CONFIG.MOCK_BASE_URL}/api/score`
-      : `${API_CONFIG.BACKEND_BASE_URL}/api/score`;
+      ? `${API_CONFIG.MOCK_BASE_URL}/api/score/enhanced`
+      : `${API_CONFIG.BACKEND_BASE_URL}/api/score/enhanced`;
 
     const body = {
       subnet_id: subnetId,
       metrics,
-      timeframe
+      timeframe,
+      enhancement_options: {
+        include_ai_insights: true,
+        risk_assessment: true,
+        market_analysis: true
+      }
     };
 
     return this.fetchWithErrorHandling(url, {

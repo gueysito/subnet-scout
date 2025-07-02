@@ -1,5 +1,6 @@
 // VisualizationsComplete.jsx - Enhanced professional visualizations with more visual charts
 import React, { useState, useMemo } from 'react';
+import { getSubnetMetadata } from '../data/subnets.js';
 
 const VisualizationsComplete = () => {
   const [selectedSubnet, setSelectedSubnet] = useState(null);
@@ -15,10 +16,12 @@ const VisualizationsComplete = () => {
 
     for (let i = 1; i <= 118; i++) {
       const basePerformance = Math.random();
+      const metadata = getSubnetMetadata(i);
       subnets.push({
         id: i,
-        name: `Subnet ${i}`,
-        category: categories[i % categories.length],
+        name: metadata.name,
+        category: metadata.type,
+        description: metadata.description,
         performance: Math.floor(30 + basePerformance * 65 + Math.random() * 5),
         status: basePerformance > 0.7 ? 'excellent' : basePerformance > 0.4 ? 'good' : 'needs-attention'
       });
@@ -208,7 +211,7 @@ const VisualizationsComplete = () => {
                     className="aspect-square rounded cursor-pointer transition-all duration-200 hover:scale-110 hover:z-10 relative"
                     style={{ backgroundColor: getHeatmapColor(subnet.performance) }}
                     onClick={() => setSelectedSubnet(subnet)}
-                    title={`Subnet ${subnet.id}: ${subnet.performance}%`}
+                    title={`${subnet.name} (#${subnet.id}): ${subnet.performance}%`}
                   >
                     <div className="w-full h-full flex flex-col items-center justify-center text-white text-xs font-bold">
                       <div>{subnet.id}</div>
@@ -243,9 +246,12 @@ const VisualizationsComplete = () => {
             {selectedSubnet && (
               <div className="bg-gray-700 rounded-xl p-6 border border-gray-600">
                 <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-xl font-bold text-white">
-                    {selectedSubnet.name} Details
-                  </h4>
+                  <div>
+                    <h4 className="text-xl font-bold text-white">
+                      {selectedSubnet.name}
+                    </h4>
+                    <p className="text-gray-400 text-sm mt-1">{selectedSubnet.description}</p>
+                  </div>
                   <button
                     onClick={() => setSelectedSubnet(null)}
                     className="text-gray-400 hover:text-white transition-colors text-xl"
@@ -256,8 +262,8 @@ const VisualizationsComplete = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <div className="text-gray-400 text-sm mb-2">Category</div>
-                    <div className="text-white font-semibold text-lg">{selectedSubnet.category}</div>
+                    <div className="text-gray-400 text-sm mb-2">Type</div>
+                    <div className="text-white font-semibold text-lg capitalize">{selectedSubnet.category}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-gray-400 text-sm mb-2">Performance</div>
