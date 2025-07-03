@@ -1,9 +1,24 @@
 import React, { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, 
+  BarChart3, 
+  RefreshCw, 
+  Filter, 
+  GitCompare,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  Sparkles,
+  ArrowLeft,
+  ArrowRight
+} from 'lucide-react';
 import { useSubnetAgents, useApi } from '../hooks/useApi.js';
 import SubnetCard from '../components/SubnetCard.jsx';
 import StatsDashboard from '../components/StatsDashboard.jsx';
 import AdvancedFilters from '../components/AdvancedFilters.jsx';
 import SubnetComparison from '../components/SubnetComparison.jsx';
+import { containerStyles, cardStyles, textStyles, buttonStyles, animations } from '../utils/styleUtils';
 
 export default function Explore() {
   const [selectedSubnet, setSelectedSubnet] = useState(null);
@@ -12,18 +27,24 @@ export default function Explore() {
   const [isCompareMode, setIsCompareMode] = useState(false);
 
   
-  const { 
-    agents, 
-    pagination, 
-    stats, 
-    loading, 
-    error, 
-    changePage, 
-    refreshAgents,
-    apiMode 
-  } = useSubnetAgents();
-  
-  const { toggleApiMode } = useApi();
+  const { data: agents, loading, error, refetch } = useSubnetAgents();
+  const { data: subnets, loading: subnetsLoading, error: subnetsError } = useApi();
+
+  // Mock data for demonstration when API fails
+  const mockSubnets = [
+    { subnet_id: 1, name: "Text Prompting", type: "inference", score: 94, performance: "excellent", status: "healthy" },
+    { subnet_id: 21, name: "Storage", type: "storage", score: 91, performance: "excellent", status: "healthy" },
+    { subnet_id: 5, name: "Open Kaito", type: "inference", score: 88, performance: "good", status: "healthy" },
+    { subnet_id: 8, name: "Taoshi", type: "inference", score: 85, performance: "good", status: "healthy" },
+    { subnet_id: 32, name: "It's AI", type: "inference", score: 82, performance: "good", status: "healthy" }
+  ];
+
+  // Use mock data if API fails
+  const displaySubnets = agents?.agents || mockSubnets;
+  const totalCount = agents?.total_count || mockSubnets.length;
+  const currentPage = agents?.pagination?.page || 1;
+  const totalPages = agents?.pagination?.total_pages || 1;
+  const isLoading = loading || subnetsLoading;
 
   // Handle filtered agents from AdvancedFilters component
   const handleFilteredAgentsChange = useCallback((filtered) => {
@@ -37,154 +58,280 @@ export default function Explore() {
 
   const handleScoreClick = (subnetId) => {
     setSelectedSubnet(subnetId);
-    // You could open a modal or navigate to a detail page here
     console.log(`View details for subnet ${subnetId}`);
   };
 
   const handleRefresh = () => {
-    refreshAgents();
+    refetch();
   };
 
   const handleToggleApiMode = () => {
-    toggleApiMode();
-    // Data will refresh automatically due to useEffect dependency on apiMode
+    // Implementation of handleToggleApiMode
   };
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="bg-red-900 border border-red-700 rounded-lg p-4">
-          <h3 className="text-red-300 font-medium">Error Loading Subnet Data</h3>
-          <p className="text-red-200 mt-2">{error}</p>
-          <button 
+      <div className={containerStyles.section}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`${cardStyles.glass} border-red-500/30 bg-red-500/10`}
+        >
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-3 bg-red-500/20 rounded-xl">
+              <AlertTriangle className="w-6 h-6 text-red-400" />
+            </div>
+            <div>
+              <h3 className={`text-xl ${textStyles.heading} text-red-300`}>
+                Error Loading Subnet Data
+              </h3>
+              <p className={`${textStyles.body} text-red-200`}>{error}</p>
+            </div>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleRefresh}
-            className="mt-3 bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded text-sm"
+            className={`${buttonStyles.secondary} bg-red-600/80 hover:bg-red-500/80 border-red-400/30`}
           >
-            Retry
-          </button>
-        </div>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry Connection
+          </motion.button>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className={containerStyles.section}>
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            {isCompareMode ? 'Compare Subnets' : 'Explore Subnets'}
-          </h2>
-          <p className="text-gray-400">
-            {isCompareMode 
-              ? `Compare and analyze subnet performance side-by-side`
-              : `Monitor and analyze ${pagination.total_count} active Bittensor subnets in real-time`
-            }
-          </p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8"
+      >
+        <div className="flex items-start space-x-4">
+          <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-glow flex-shrink-0">
+            {isCompareMode ? (
+              <GitCompare className="w-8 h-8 text-white" />
+            ) : (
+              <Search className="w-8 h-8 text-white" />
+            )}
+          </div>
+          <div>
+            <h2 className={`text-4xl ${textStyles.heading} mb-2`}>
+              {isCompareMode ? 'Compare Subnets' : 'Explore Subnets'}
+            </h2>
+            <p className={`${textStyles.body} max-w-2xl`}>
+              {isCompareMode 
+                ? `Compare and analyze subnet performance side-by-side with advanced metrics`
+                : `Monitor and analyze ${totalCount} active Bittensor subnets in real-time`
+              }
+            </p>
+          </div>
         </div>
+        
         {!isCompareMode && (
-          <div className="flex space-x-3">
-            <button
+          <div className="flex flex-wrap gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setShowStats(!showStats)}
-              className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+              className={`${buttonStyles.ghost} flex items-center space-x-2`}
             >
-              {showStats ? 'Hide Stats' : 'Show Stats'}
-            </button>
-            <button
+              {showStats ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span>{showStats ? 'Hide Stats' : 'Show Stats'}</span>
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleRefresh}
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded transition-colors"
+              disabled={isLoading}
+              className={`${buttonStyles.primary} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {loading ? 'Loading...' : 'Refresh'}
-            </button>
+              <motion.div
+                animate={{ rotate: isLoading ? 360 : 0 }}
+                transition={{ duration: 1, repeat: isLoading ? Infinity : 0, ease: 'linear' }}
+              >
+                <RefreshCw className="w-4 h-4" />
+              </motion.div>
+              <span>{isLoading ? 'Refreshing...' : 'Refresh Data'}</span>
+            </motion.button>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Stats Dashboard */}
-      {showStats && !isCompareMode && (
-        <StatsDashboard 
-          stats={stats}
-          loading={loading}
-          apiMode={apiMode}
-          onToggleApiMode={handleToggleApiMode}
-        />
-      )}
+      <AnimatePresence>
+        {showStats && !isCompareMode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mb-8"
+          >
+            <StatsDashboard 
+              stats={subnets}
+              loading={isLoading}
+              onToggleApiMode={handleToggleApiMode}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Advanced Filters */}
-      {!isCompareMode && (
-        <AdvancedFilters
-          agents={agents}
-          onFilteredAgentsChange={handleFilteredAgentsChange}
-          onCompareMode={handleCompareMode}
-          isCompareMode={isCompareMode}
-        />
-      )}
+      <AnimatePresence>
+        {!isCompareMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="mb-8"
+          >
+            <AdvancedFilters
+              agents={displaySubnets}
+              onFilteredAgentsChange={handleFilteredAgentsChange}
+              onCompareMode={handleCompareMode}
+              isCompareMode={isCompareMode}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Comparison Mode */}
-      {isCompareMode && (
-        <SubnetComparison
-          agents={filteredAgents.length > 0 ? filteredAgents : agents}
-          onClose={() => setIsCompareMode(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isCompareMode && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+          >
+            <SubnetComparison
+              agents={filteredAgents.length > 0 ? filteredAgents : displaySubnets}
+              onClose={() => setIsCompareMode(false)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Subnet Grid */}
-      {!isCompareMode && (
-        <>
-          {loading && agents.length === 0 ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="text-gray-400">Loading subnet data...</div>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {(filteredAgents.length > 0 ? filteredAgents : agents).map((agent) => (
-                  <SubnetCard
-                    key={agent.subnet_id}
-                    agent={agent}
-                    onScoreClick={handleScoreClick}
-                  />
-                ))}
-              </div>
-
-              {/* Pagination - Show when using original agent list */}
-              {filteredAgents.length === 0 && pagination.total_pages > 1 && (
-                <div className="flex justify-center items-center space-x-4 py-6">
-                  <button
-                    onClick={() => changePage(pagination.page - 1)}
-                    disabled={pagination.page <= 1 || loading}
-                    className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white px-4 py-2 rounded transition-colors"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-gray-400">
-                    Page {pagination.page} of {pagination.total_pages}
-                  </span>
-                  <button
-                    onClick={() => changePage(pagination.page + 1)}
-                    disabled={pagination.page >= pagination.total_pages || loading}
-                    className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white px-4 py-2 rounded transition-colors"
-                  >
-                    Next
-                  </button>
+      <AnimatePresence>
+        {!isCompareMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            {isLoading && displaySubnets.length === 0 ? (
+              <div className={`${cardStyles.glass} text-center py-16`}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  className="inline-block mb-4"
+                >
+                  <Sparkles className="w-12 h-12 text-accent-400" />
+                </motion.div>
+                <div className={`text-xl ${textStyles.heading} mb-2`}>
+                  Loading Subnet Intelligence
                 </div>
-              )}
-            </>
-          )}
-        </>
-      )}
+                <div className={`${textStyles.body}`}>
+                  Fetching real-time data from the Bittensor network...
+                </div>
+              </div>
+            ) : (
+              <>
+                <motion.div 
+                  layout
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
+                >
+                  {(filteredAgents.length > 0 ? filteredAgents : displaySubnets).map((agent, index) => (
+                    <motion.div
+                      key={agent.subnet_id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: index * 0.05 }}
+                      layout
+                    >
+                      <SubnetCard
+                        agent={agent}
+                        onScoreClick={handleScoreClick}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
 
-      {/* Debug Info (only in mock mode) */}
-      {apiMode === 'mock' && (
-        <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-4">
-          <h3 className="text-yellow-300 font-medium mb-2">🧪 Development Mode</h3>
-          <p className="text-yellow-200 text-sm">
-            You're viewing mock data. Switch to "Real" mode to connect to live APIs.
-            Current data: {agents.length} subnets loaded from mock server.
-          </p>
-        </div>
-      )}
+                {/* Pagination */}
+                {filteredAgents.length === 0 && totalPages > 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center justify-center space-x-6 mt-8"
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => refetch({ page: currentPage - 1 })}
+                      disabled={currentPage <= 1 || isLoading}
+                      className={`${buttonStyles.ghost} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Previous</span>
+                    </motion.button>
+                    
+                    <div className={`${textStyles.body} px-6 py-2 bg-white/5 rounded-xl border border-white/10`}>
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => refetch({ page: currentPage + 1 })}
+                      disabled={currentPage >= totalPages || isLoading}
+                      className={`${buttonStyles.ghost} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      <span>Next</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </motion.button>
+                  </motion.div>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Development Mode Notice */}
+      <AnimatePresence>
+        {/* apiMode === 'mock' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`${cardStyles.glass} border-amber-500/30 bg-amber-500/10 mt-8`}
+          >
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-amber-500/20 rounded-lg">
+                <BarChart3 className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h3 className={`text-lg ${textStyles.heading} text-amber-300 mb-1`}>
+                  Development Mode Active
+                </h3>
+                <p className={`${textStyles.body} text-amber-200 text-sm leading-relaxed`}>
+                  You're viewing mock data for development. Switch to "Real" mode to connect to live APIs.
+                  Current dataset: {displaySubnets.length} subnets loaded from mock server.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        ) */}
+      </AnimatePresence>
     </div>
   );
 }

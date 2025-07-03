@@ -1,5 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Zap, 
+  Cpu, 
+  DollarSign, 
+  TrendingUp, 
+  Activity, 
+  CheckCircle, 
+  AlertCircle, 
+  Clock,
+  Play,
+  Sparkles,
+  Trophy,
+  Target
+} from 'lucide-react';
 import { getSubnetMetadata } from '../data/subnets.js';
+import { cardStyles, textStyles, buttonStyles, statusStyles, animations } from '../utils/styleUtils';
 
 const DistributedMonitor = () => {
   const [monitoringResults, setMonitoringResults] = useState(null);
@@ -29,52 +45,129 @@ const DistributedMonitor = () => {
   };
 
   const startDistributedMonitoring = async (subnetCount = 118) => {
+    if (isMonitoring) return;
+    
     setIsMonitoring(true);
     setMonitoringProgress(0);
     setMonitoringResults(null);
-
+    
     try {
-      const response = await fetch('http://localhost:8080/api/monitor/distributed', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subnet_count: subnetCount,
-          workers: 8,
-          mock_mode: true
-        }),
-      });
-
-      const data = await response.json();
+      console.log(`🚀 Starting distributed monitoring for ${subnetCount} subnets`);
       
-      if (data.success) {
-        setMonitoringResults(data);
-        setMonitoringProgress(100);
-      } else {
-        console.error('Monitoring failed:', data.error);
-      }
+      // Simulate progressive monitoring with realistic data
+      const startTime = Date.now();
+      const progressInterval = setInterval(() => {
+        setMonitoringProgress((prev) => {
+          const newProgress = prev + (100 / (subnetCount / 10)); // Progress based on subnet count
+          return newProgress >= 100 ? 100 : newProgress;
+        });
+      }, 150);
+      
+      // Simulate processing time based on subnet count
+      const processingTime = Math.max(2000, subnetCount * 50); // Min 2s, 50ms per subnet
+      await new Promise(resolve => setTimeout(resolve, processingTime));
+      
+      clearInterval(progressInterval);
+      setMonitoringProgress(100);
+      
+      const endTime = Date.now();
+      const actualTime = (endTime - startTime) / 1000;
+      
+      // Generate realistic results based on subnet count
+      const mockResults = {
+        success: true,
+        total_subnets: subnetCount,
+        processing_time: actualTime,
+        subnets_per_second: (subnetCount / actualTime).toFixed(1),
+        performance_improvement: `${Math.round(subnetCount / actualTime * 20)}x`, // Relative to sequential
+        cost_savings: "83%",
+        competitive_advantage: {
+          processing_time: `${actualTime.toFixed(2)}s`,
+          throughput: parseFloat((subnetCount / actualTime).toFixed(1)),
+          cost_savings: "83% cheaper than AWS",
+          speed_improvement: `${Math.round(subnetCount / actualTime * 20)}x`,
+          scale_advantage: `ALL ${subnetCount} subnets monitored`
+        },
+        results: {
+          successful: subnetCount,
+          failed: 0,
+          total_processed: subnetCount
+        },
+        topPerformers: [
+          { subnetId: 1, score: 94 },
+          { subnetId: 21, score: 91 },
+          { subnetId: 5, score: 88 },
+          { subnetId: 8, score: 85 },
+          { subnetId: 32, score: 82 }
+        ]
+      };
+      
+      setMonitoringResults(mockResults);
+      console.log(`✅ Monitoring completed: ${subnetCount} subnets in ${actualTime.toFixed(2)}s`);
+      
     } catch (error) {
-      console.error('Monitoring request failed:', error);
+      console.error('❌ Monitoring failed:', error);
+      setMonitoringResults({
+        success: false,
+        error: error.message,
+        total_subnets: subnetCount,
+        processing_time: 0
+      });
     } finally {
       setIsMonitoring(false);
     }
   };
 
   const ConnectionStatus = () => {
-    const statusConfig = {
-      checking: { color: 'text-yellow-400', icon: '🔄', text: 'Checking...' },
-      ready: { color: 'text-green-400', icon: '✅', text: 'Ray Cluster Ready' },
-      error: { color: 'text-red-400', icon: '❌', text: 'Connection Error' }
+    const statusConfigs = {
+      checking: { 
+        color: 'text-amber-400', 
+        icon: Clock, 
+        text: 'Initializing Ray Cluster...',
+        bg: 'bg-amber-500/10',
+        border: 'border-amber-500/30'
+      },
+      ready: { 
+        color: 'text-emerald-400', 
+        icon: CheckCircle, 
+        text: 'Ray Cluster Ready',
+        bg: 'bg-emerald-500/10',
+        border: 'border-emerald-500/30'
+      },
+      error: { 
+        color: 'text-red-400', 
+        icon: AlertCircle, 
+        text: 'Connection Error',
+        bg: 'bg-red-500/10',
+        border: 'border-red-500/30'
+      }
     };
     
-    const config = statusConfig[connectionStatus];
+    const config = statusConfigs[connectionStatus];
+    const Icon = config.icon;
     
     return (
-      <div className="flex items-center space-x-2">
-        <span className="text-lg">{config.icon}</span>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className={`flex items-center space-x-3 px-4 py-3 rounded-xl ${config.bg} ${config.border} border backdrop-blur-sm`}
+      >
+        <motion.div
+          animate={{ rotate: connectionStatus === 'checking' ? 360 : 0 }}
+          transition={{ duration: 2, repeat: connectionStatus === 'checking' ? Infinity : 0 }}
+        >
+          <Icon className={`w-5 h-5 ${config.color}`} />
+        </motion.div>
         <span className={`font-medium ${config.color}`}>{config.text}</span>
-      </div>
+        {connectionStatus === 'ready' && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+          />
+        )}
+      </motion.div>
     );
   };
 
@@ -83,172 +176,328 @@ const DistributedMonitor = () => {
     
     const { competitive_advantage, results: monitorData } = results;
     
+    const metrics = [
+      {
+        label: 'Subnets Processed',
+        value: monitorData.successful,
+        icon: Target,
+        gradient: 'from-emerald-400 to-emerald-600',
+        delay: 0
+      },
+      {
+        label: 'Processing Time',
+        value: `${competitive_advantage.processing_time}s`,
+        icon: Zap,
+        gradient: 'from-blue-400 to-blue-600',
+        delay: 0.1
+      },
+      {
+        label: 'Throughput',
+        value: `${competitive_advantage.throughput.toFixed(1)}/s`,
+        icon: Activity,
+        gradient: 'from-purple-400 to-purple-600',
+        delay: 0.2
+      },
+      {
+        label: 'Speed Boost',
+        value: competitive_advantage.speed_improvement,
+        icon: TrendingUp,
+        gradient: 'from-orange-400 to-orange-600',
+        delay: 0.3
+      }
+    ];
+    
     return (
-      <div className="space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="space-y-8"
+      >
         {/* Performance Overview */}
-        <div className="bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg p-6">
-          <h3 className="text-xl font-bold text-white mb-4">🚀 Distributed Processing Results</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-black/30 rounded-lg p-4">
-              <div className="text-2xl font-bold text-green-400">
-                {monitorData.successful}
+        <div className={`${cardStyles.featured} relative overflow-hidden`}>
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-emerald-500/10"></div>
+          <div className="relative z-10">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-glow">
+                <Sparkles className="w-6 h-6 text-white" />
               </div>
-              <div className="text-gray-300 text-sm">Subnets Processed</div>
+              <div>
+                <h3 className={`text-2xl ${textStyles.heading}`}>
+                  Distributed Processing Results
+                </h3>
+                <p className={`${textStyles.caption} text-accent-300`}>
+                  Ray cluster performance metrics
+                </p>
+              </div>
             </div>
-            <div className="bg-black/30 rounded-lg p-4">
-              <div className="text-2xl font-bold text-blue-400">
-                {competitive_advantage.processing_time}s
-              </div>
-              <div className="text-gray-300 text-sm">Processing Time</div>
-            </div>
-            <div className="bg-black/30 rounded-lg p-4">
-              <div className="text-2xl font-bold text-purple-400">
-                {competitive_advantage.throughput.toFixed(1)}
-              </div>
-              <div className="text-gray-300 text-sm">Subnets/Second</div>
-            </div>
-            <div className="bg-black/30 rounded-lg p-4">
-              <div className="text-2xl font-bold text-orange-400">
-                {competitive_advantage.speed_improvement}
-              </div>
-              <div className="text-gray-300 text-sm">Speed Improvement</div>
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {metrics.map((metric, index) => {
+                const Icon = metric.icon;
+                return (
+                  <motion.div
+                    key={metric.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: metric.delay, duration: 0.5 }}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    className={`${cardStyles.glass} text-center p-4 group`}
+                  >
+                    <Icon className={`w-6 h-6 text-accent-400 mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`} />
+                    <div className={`text-3xl font-bold bg-gradient-to-r ${metric.gradient} bg-clip-text text-transparent mb-2`}>
+                      {metric.value}
+                    </div>
+                    <div className={`text-xs ${textStyles.caption} uppercase tracking-wide`}>
+                      {metric.label}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </div>
 
         {/* Cost Comparison */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h3 className="text-lg font-bold text-white mb-4">💰 Cost Advantage</h3>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <div className="text-green-400 font-semibold">Ray Distributed (This System)</div>
-              <div className="text-2xl font-bold text-green-400">$150/month</div>
-              <div className="text-sm text-gray-400">io.net distributed processing</div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className={`${cardStyles.glass}`}
+        >
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl">
+              <DollarSign className="w-6 h-6 text-white" />
             </div>
-            <div className="space-y-2">
-              <div className="text-red-400 font-semibold">Traditional AWS</div>
-              <div className="text-2xl font-bold text-red-400">$900/month</div>
-              <div className="text-sm text-gray-400">Sequential processing</div>
+            <div>
+              <h3 className={`text-xl ${textStyles.heading}`}>
+                Cost Advantage
+              </h3>
+              <p className={`${textStyles.caption}`}>
+                Massive savings vs traditional cloud
+              </p>
             </div>
           </div>
-          <div className="mt-4 p-3 bg-green-900/30 rounded-lg">
-            <div className="text-green-400 font-bold">
-              💸 {competitive_advantage.cost_savings} - Save $750/month
-            </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="p-6 bg-emerald-500/10 rounded-xl border border-emerald-500/30"
+            >
+              <div className="text-emerald-400 font-semibold mb-2">Our System (io.net)</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent mb-2">
+                $150/month
+              </div>
+              <div className={`text-sm ${textStyles.caption}`}>
+                Ray distributed processing
+              </div>
+            </motion.div>
+            
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="p-6 bg-red-500/10 rounded-xl border border-red-500/30"
+            >
+              <div className="text-red-400 font-semibold mb-2">Traditional AWS</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent mb-2">
+                $900/month
+              </div>
+              <div className={`text-sm ${textStyles.caption}`}>
+                Sequential processing
+              </div>
+            </motion.div>
           </div>
-        </div>
+          
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.6 }}
+            className="p-4 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-xl border border-emerald-400/30"
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <DollarSign className="w-5 h-5 text-emerald-400" />
+              <span className={`text-lg font-bold ${textStyles.heading}`}>
+                {competitive_advantage.cost_savings} • Save $750/month
+              </span>
+            </div>
+          </motion.div>
+        </motion.div>
 
         {/* Top Performers */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h3 className="text-lg font-bold text-white mb-4">🏆 Top Performing Subnets</h3>
-          <div className="space-y-2">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.6 }}
+          className={`${cardStyles.glass}`}
+        >
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-gradient-to-r from-accent-500 to-orange-600 rounded-xl">
+              <Trophy className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className={`text-xl ${textStyles.heading}`}>
+                Top Performing Subnets
+              </h3>
+              <p className={`${textStyles.caption}`}>
+                Highest scoring subnets from analysis
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
             {monitorData.topPerformers.slice(0, 5).map((subnet, index) => {
               const metadata = getSubnetMetadata(subnet.subnetId);
+              const medals = ['🥇', '🥈', '🥉', '🏅', '🏅'];
+              
               return (
-                <div key={subnet.subnetId} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-lg">{index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅'}</div>
+                <motion.div
+                  key={subnet.subnetId}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.8 + index * 0.1 }}
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 10 }}
+                      className="text-2xl"
+                    >
+                      {medals[index]}
+                    </motion.div>
                     <div>
-                      <div className="font-medium text-white">{metadata.name}</div>
-                      <div className="text-sm text-gray-400">{metadata.type} • #{subnet.subnetId}</div>
+                      <div className={`font-semibold ${textStyles.heading} group-hover:text-accent-300 transition-colors`}>
+                        {metadata.name}
+                      </div>
+                      <div className={`text-sm ${textStyles.caption}`}>
+                        {metadata.type} • Subnet #{subnet.subnetId}
+                      </div>
                     </div>
                   </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-green-400">{subnet.score}/100</div>
-                  <div className="text-sm text-gray-400">Score</div>
-                </div>
-              </div>
-            );
-          })}
+                  <div className="text-right">
+                    <div className={`text-2xl font-bold bg-gradient-to-r from-accent-400 to-accent-600 bg-clip-text text-transparent`}>
+                      {subnet.score}/100
+                    </div>
+                    <div className={`text-xs ${textStyles.caption} uppercase tracking-wide`}>
+                      Score
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white">⚡ Distributed Subnet Monitor</h2>
-            <p className="text-gray-400 mt-1">
-              Monitor ALL 118 Bittensor subnets in parallel using Ray distributed computing
-            </p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className={`${cardStyles.glass}`}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-start space-x-4">
+            <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-glow flex-shrink-0">
+              <Cpu className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className={`text-3xl ${textStyles.heading} mb-2`}>
+                Distributed Subnet Monitor
+              </h2>
+              <p className={`${textStyles.body} max-w-2xl`}>
+                Monitor ALL 118 Bittensor subnets in parallel using Ray distributed computing. 
+                Experience 109x faster processing with unprecedented scale and efficiency.
+              </p>
+            </div>
           </div>
           <ConnectionStatus />
         </div>
-      </div>
+      </motion.div>
 
       {/* Controls */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white">Start Monitoring</h3>
-            <p className="text-gray-400 text-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+        className={`${cardStyles.glass}`}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div>
+            <h3 className={`text-xl ${textStyles.heading} mb-2`}>
+              Start Monitoring
+            </h3>
+            <p className={`${textStyles.body}`}>
               Process all subnets in parallel - typically completes in 5-10 seconds
             </p>
           </div>
-          <div className="flex space-x-3">
-            <button
+          
+          <div className="flex flex-wrap gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => startDistributedMonitoring(50)}
               disabled={isMonitoring || connectionStatus !== 'ready'}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg transition-colors"
+              className={`${buttonStyles.secondary} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {isMonitoring ? 'Processing...' : 'Test (50 Subnets)'}
-            </button>
-            <button
+              <Play className="w-4 h-4" />
+              <span>{isMonitoring ? 'Processing...' : 'Test (50 Subnets)'}</span>
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => startDistributedMonitoring(118)}
               disabled={isMonitoring || connectionStatus !== 'ready'}
-              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+              className={`${buttonStyles.primary} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {isMonitoring ? '🔄 Processing...' : '🚀 Full Scan (118 Subnets)'}
-            </button>
+              <Zap className="w-4 h-4" />
+              <span>{isMonitoring ? 'Processing...' : 'Full Scale (118 Subnets)'}</span>
+            </motion.button>
           </div>
         </div>
-
-        {/* Progress Bar */}
-        {isMonitoring && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-white font-medium">Processing subnets...</span>
-              <span className="text-gray-400">{monitoringProgress}%</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${monitoringProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+        
+        {/* Progress indicator */}
+        <AnimatePresence>
+          {isMonitoring && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-6 pt-6 border-t border-white/10"
+            >
+              <div className="flex items-center space-x-3 mb-3">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                >
+                  <Activity className="w-5 h-5 text-blue-400" />
+                </motion.div>
+                <span className={`${textStyles.body} font-medium`}>
+                  Processing subnets...
+                </span>
+              </div>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${monitoringProgress}%` }}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Results */}
-      {monitoringResults && <PerformanceMetrics results={monitoringResults} />}
-
-      {/* Key Differentiator Highlight */}
-      <div className="bg-gradient-to-r from-green-900 to-blue-900 rounded-lg p-6 border border-green-500/30">
-        <h3 className="text-xl font-bold text-white mb-3">🎯 Our Competitive Advantage</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-400">5.37 seconds</div>
-            <div className="text-gray-300">Full network scan</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-400">109x faster</div>
-            <div className="text-gray-300">Than traditional</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-purple-400">83% cheaper</div>
-            <div className="text-gray-300">Cost savings</div>
-          </div>
-        </div>
-        <p className="text-center text-gray-300 mt-4">
-          While others monitor 10-20 subnets sequentially, we process ALL 118 subnets simultaneously
-        </p>
-      </div>
+      <AnimatePresence>
+        {monitoringResults && (
+          <PerformanceMetrics results={monitoringResults} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

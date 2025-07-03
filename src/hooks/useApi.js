@@ -3,137 +3,135 @@ import apiClient from '../utils/apiClient.js';
 
 // Custom hook for API data management
 export const useApi = () => {
-  const [loading, setLoading] = useState(false);
+  const [apiMode, setApiMode] = useState('mock');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [apiMode, setApiMode] = useState(apiClient.getCurrentMode());
 
-  // Generic API call wrapper
-  const apiCall = useCallback(async (apiFunction, ...args) => {
-    setLoading(true);
-    setError(null);
-    
+  const toggleApiMode = () => {
+    const newMode = apiMode === 'mock' ? 'real' : 'mock';
+    setApiMode(newMode);
+    apiClient.toggleMockMode();
+  };
+
+  const healthCheck = async () => {
     try {
-      const result = await apiFunction(...args);
-      setLoading(false);
-      return result;
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.healthCheck();
+      return response;
     } catch (err) {
       setError(err.message);
-      setLoading(false);
       throw err;
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  };
 
-  // Toggle between mock and real APIs
-  const toggleApiMode = useCallback(() => {
-    apiClient.toggleMockMode();
-    setApiMode(apiClient.getCurrentMode());
-  }, []);
+  const getIoNetAgents = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.getIoNetAgents();
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Specific API methods
-  const getAgentsList = useCallback((page = 1, limit = 20) => {
-    return apiCall(apiClient.getAgentsList.bind(apiClient), page, limit);
-  }, [apiCall]);
+  const getTaoStatsData = async (netuid = 1, options = {}) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.getTaoStatsData(netuid, options);
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const getIoNetAgents = useCallback(() => {
-    return apiCall(apiClient.getIoNetAgents.bind(apiClient));
-  }, [apiCall]);
+  const calculateScore = async (subnetId, metrics, timeframe = '24h') => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.calculateScore(subnetId, metrics, timeframe);
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const getTaoStatsData = useCallback((netuid = 1, options = {}) => {
-    return apiCall(apiClient.getTaoStatsData.bind(apiClient), netuid, options);
-  }, [apiCall]);
-
-  const calculateScore = useCallback((subnetId, metrics, timeframe = '24h') => {
-    return apiCall(apiClient.calculateScore.bind(apiClient), subnetId, metrics, timeframe);
-  }, [apiCall]);
-
-  const sendTelegramMessage = useCallback((message) => {
-    return apiCall(apiClient.sendTelegramMessage.bind(apiClient), message);
-  }, [apiCall]);
-
-  const healthCheck = useCallback(() => {
-    return apiCall(apiClient.healthCheck.bind(apiClient));
-  }, [apiCall]);
+  const sendTelegramMessage = async (message) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.sendTelegramMessage(message);
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return {
-    // State
-    loading,
-    error,
     apiMode,
-    
-    // Actions
+    isLoading,
+    error,
     toggleApiMode,
-    clearError: () => setError(null),
-    
-    // API Methods
-    getAgentsList,
+    healthCheck,
     getIoNetAgents,
     getTaoStatsData,
     calculateScore,
     sendTelegramMessage,
-    healthCheck,
-    
-    // Generic API call
-    apiCall
+    getCurrentMode: () => apiClient.getCurrentMode()
   };
 };
 
 // Hook for managing subnet agents data
-export const useSubnetAgents = (autoFetch = true) => {
-  const [agents, setAgents] = useState([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total_pages: 1,
-    total_count: 0
-  });
-  const [stats, setStats] = useState({
-    healthy_count: 0,
-    average_score: 0
-  });
-  
-  const { loading, error, getAgentsList, apiMode } = useApi();
+export const useSubnetAgents = (page = 1, limit = 20) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const fetchAgents = useCallback(async (page = 1, limit = 20) => {
+  const fetchData = async (pageNum = page, limitNum = limit) => {
     try {
-      const data = await getAgentsList(page, limit);
-      setAgents(data.agents || []);
-      setPagination(data.pagination || { page, limit, total_pages: 1, total_count: 0 });
-      setStats({
-        healthy_count: data.healthy_count || 0,
-        average_score: data.average_score || 0
-      });
-      return data;
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.getAgentsList(pageNum, limitNum);
+      setData(response);
     } catch (err) {
-      console.error('Failed to fetch agents:', err);
-      setAgents([]);
+      setError(err.message);
+      console.error('Failed to fetch subnet agents:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [getAgentsList]);
+  };
 
-  const refreshAgents = useCallback(() => {
-    return fetchAgents(pagination.page, pagination.limit);
-  }, [fetchAgents, pagination.page, pagination.limit]);
-
-  const changePage = useCallback((newPage) => {
-    return fetchAgents(newPage, pagination.limit);
-  }, [fetchAgents, pagination.limit]);
-
-  // Auto-fetch on mount
   useEffect(() => {
-    if (autoFetch) {
-      fetchAgents();
-    }
-  }, [autoFetch, fetchAgents, apiMode]); // Re-fetch when API mode changes
+    fetchData(page, limit);
+  }, [page, limit]);
+
+  const refetch = (options = {}) => {
+    const newPage = options.page || page;
+    const newLimit = options.limit || limit;
+    fetchData(newPage, newLimit);
+  };
 
   return {
-    agents,
-    pagination,
-    stats,
+    data,
     loading,
     error,
-    fetchAgents,
-    refreshAgents,
-    changePage,
-    apiMode
+    refetch
   };
 };
 

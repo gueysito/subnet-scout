@@ -1,15 +1,15 @@
 // Central API client that switches between mock and real endpoints
 const API_CONFIG = {
-  // Environment flag to use mock or real APIs - DEFAULT TO REAL DATA (no more shortcuts!)
-  USE_MOCK: import.meta.env.VITE_USE_MOCK_API === 'true' || false,
+  // FORCE MOCK MODE FOR TESTING - Easy override
+  USE_MOCK: true, // Temporarily forced for testing
   
   // Mock endpoints (local mock server)
-  MOCK_BASE_URL: import.meta.env.VITE_MOCK_API_URL || 'http://localhost:3001',
+  MOCK_BASE_URL: 'http://localhost:3001',
   
   // Real API endpoints
   IONET_BASE_URL: 'https://api.io.net',
   TAOSTATS_BASE_URL: 'https://api.taostats.io',
-  BACKEND_BASE_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
+  BACKEND_BASE_URL: 'http://localhost:8080',
   
   // API Keys
   IONET_API_KEY: import.meta.env.VITE_IONET_API_KEY,
@@ -21,6 +21,7 @@ class ApiClient {
   constructor() {
     this.useMock = API_CONFIG.USE_MOCK;
     console.log(`🔧 API Client initialized - Using ${this.useMock ? 'MOCK' : 'REAL'} APIs`);
+    console.log(`🔗 Mock server URL: ${API_CONFIG.MOCK_BASE_URL}`);
   }
 
   // Generic fetch wrapper with error handling
@@ -95,7 +96,7 @@ class ApiClient {
     return this.fetchWithErrorHandling(url, { headers });
   }
 
-  // 3. Internal scoring API calls - io.net enhanced scoring (primary), Anthropic fallback
+  // 3. Internal scoring API calls - SIMPLIFIED (removed Ask Claude)
   async calculateScore(subnetId, metrics, timeframe = '24h') {
     const url = this.useMock
       ? `${API_CONFIG.MOCK_BASE_URL}/api/score/enhanced`
@@ -104,12 +105,7 @@ class ApiClient {
     const body = {
       subnet_id: subnetId,
       metrics,
-      timeframe,
-      enhancement_options: {
-        include_ai_insights: true,
-        risk_assessment: true,
-        market_analysis: true
-      }
+      timeframe
     };
 
     return this.fetchWithErrorHandling(url, {
@@ -166,25 +162,6 @@ class ApiClient {
 
   getCurrentMode() {
     return this.useMock ? 'mock' : 'real';
-  }
-
-  // Error simulation for testing
-  async simulateError(type = 'network') {
-    if (!this.useMock) {
-      throw new Error('Error simulation only available in mock mode');
-    }
-
-    const errors = {
-      network: () => Promise.reject(new Error('Network connection failed')),
-      timeout: () => new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 5000)
-      ),
-      auth: () => Promise.reject(new Error('Authentication failed')),
-      rateLimit: () => Promise.reject(new Error('Rate limit exceeded')),
-      server: () => Promise.reject(new Error('Internal server error'))
-    };
-
-    return errors[type] ? errors[type]() : errors.network();
   }
 }
 

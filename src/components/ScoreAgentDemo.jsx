@@ -1,5 +1,22 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Brain, 
+  Calculator, 
+  TrendingUp, 
+  AlertTriangle, 
+  Target, 
+  Zap,
+  Activity,
+  DollarSign,
+  Users,
+  BarChart3,
+  CheckCircle,
+  Clock,
+  Sparkles
+} from 'lucide-react';
 import { useApi } from '../hooks/useApi.js';
+import { cardStyles, textStyles, buttonStyles, inputStyles } from '../utils/styleUtils';
 
 const ScoreAgentDemo = () => {
   const [subnetId, setSubnetId] = useState(1);
@@ -67,6 +84,12 @@ const ScoreAgentDemo = () => {
     return 'text-red-400';
   };
 
+  const getScoreGradient = (score) => {
+    if (score >= 80) return 'from-green-500 to-emerald-600';
+    if (score >= 60) return 'from-yellow-500 to-orange-600';
+    return 'from-red-500 to-rose-600';
+  };
+
   const getRiskColor = (risk) => {
     switch (risk) {
       case 'low': return 'text-green-400';
@@ -76,187 +99,253 @@ const ScoreAgentDemo = () => {
     }
   };
 
+  const getRiskBadgeStyle = (risk) => {
+    switch (risk) {
+      case 'low': return 'bg-green-500/20 border-green-500/30 text-green-400';
+      case 'medium': return 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400';
+      case 'high': return 'bg-red-500/20 border-red-500/30 text-red-400';
+      default: return 'bg-gray-500/20 border-gray-500/30 text-gray-400';
+    }
+  };
+
   return (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-white">ScoreAgent Demo</h3>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-400">Backend Mode:</span>
-          <span className="text-white font-medium">Real API</span>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cardStyles.glass}
+    >
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl shadow-glow">
+            <Brain className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className={`text-xl ${textStyles.heading}`}>AI Score Agent Demo</h3>
+            <p className={`text-sm ${textStyles.body}`}>Advanced subnet analysis with AI insights</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
+            <Activity className="w-4 h-4 text-gray-400" />
+            <span className={`text-sm ${textStyles.body}`}>Backend:</span>
+            <span className="text-sm font-medium text-blue-400">Real API</span>
+          </div>
         </div>
       </div>
 
       {/* Input Section */}
-      <div className="mb-6">
-        <div className="flex items-center space-x-4 mb-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Subnet ID</label>
-            <input
-              type="number"
-              value={subnetId}
-              onChange={(e) => setSubnetId(parseInt(e.target.value))}
-              min="1"
-              max="118"
-              className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white w-20 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm text-gray-400 mb-1">Sample Metrics</label>
-            <div className="bg-gray-700 rounded px-3 py-2 text-sm text-gray-300">
-              Emission: {formatNumber(sampleMetrics.emission_rate)} | 
-              Stake: {formatNumber(sampleMetrics.total_stake)} | 
-              Validators: {sampleMetrics.validator_count} | 
-              Activity: {sampleMetrics.activity_score}
+      <div className={`${cardStyles.default} bg-white/5 mb-6`}>
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+          <div className="flex-shrink-0">
+            <label className={`block text-sm ${textStyles.body} mb-2`}>Subnet ID</label>
+            <div className="relative">
+              <input
+                type="number"
+                value={subnetId}
+                onChange={(e) => setSubnetId(parseInt(e.target.value))}
+                min="1"
+                max="118"
+                className={`${inputStyles.default} w-24 text-center`}
+              />
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <Target className="w-4 h-4 text-gray-500" />
+              </div>
             </div>
           </div>
+          
+          <div className="flex-1">
+            <label className={`block text-sm ${textStyles.body} mb-2`}>Sample Metrics</label>
+            <div className={`${cardStyles.default} bg-gray-800/50 p-3`}>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div className="flex items-center space-x-2">
+                  <Zap className="w-3 h-3 text-blue-400" />
+                  <span className="text-gray-400">Emission:</span>
+                  <span className="text-blue-400 font-medium">{formatNumber(sampleMetrics.emission_rate)}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="w-3 h-3 text-green-400" />
+                  <span className="text-gray-400">Stake:</span>
+                  <span className="text-green-400 font-medium">{formatNumber(sampleMetrics.total_stake)}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Users className="w-3 h-3 text-purple-400" />
+                  <span className="text-gray-400">Validators:</span>
+                  <span className="text-purple-400 font-medium">{sampleMetrics.validator_count}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Activity className="w-3 h-3 text-amber-400" />
+                  <span className="text-gray-400">Activity:</span>
+                  <span className="text-amber-400 font-medium">{sampleMetrics.activity_score}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={calculateScore}
+            disabled={loading}
+            className={`${buttonStyles.accent} flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <motion.div
+              animate={{ rotate: loading ? 360 : 0 }}
+              transition={{ duration: 1, repeat: loading ? Infinity : 0, ease: 'linear' }}
+            >
+              <Calculator className="w-4 h-4" />
+            </motion.div>
+            <span>{loading ? 'Analyzing...' : 'Calculate Score'}</span>
+          </motion.button>
         </div>
-
-        <button
-          onClick={calculateScore}
-          disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded font-medium transition-colors"
-        >
-          {loading ? 'Calculating Score...' : 'Calculate Score'}
-        </button>
       </div>
 
       {/* Error Display */}
-      {error && (
-        <div className="mb-6 bg-red-900 border border-red-700 rounded p-4">
-          <h4 className="text-red-300 font-medium mb-2">Calculation Error</h4>
-          <p className="text-red-200 text-sm">{error}</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`${cardStyles.glass} border-red-500/30 bg-red-500/10 mb-6`}
+          >
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h4 className={`text-lg ${textStyles.heading} text-red-300 mb-1`}>
+                  Calculation Error
+                </h4>
+                <p className={`${textStyles.body} text-red-200 text-sm`}>{error}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Results Display */}
-      {scoreResult && (
-        <div className="space-y-6">
-          {/* Overall Score */}
-          <div className="bg-gray-700 rounded-lg p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-white font-medium">Overall Score</h4>
-              <div className={`text-3xl font-bold ${getScoreColor(scoreResult.overall_score)}`}>
-                {scoreResult.overall_score}/100
-              </div>
-            </div>
-            
-            {/* Score Breakdown */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className={`text-xl font-bold ${getScoreColor(scoreResult.breakdown.yield_score)}`}>
-                  {scoreResult.breakdown.yield_score}
-                </div>
-                <div className="text-xs text-gray-400">Yield ({scoreResult.weights?.yield || 40}%)</div>
-              </div>
-              <div className="text-center">
-                <div className={`text-xl font-bold ${getScoreColor(scoreResult.breakdown.activity_score)}`}>
-                  {scoreResult.breakdown.activity_score}
-                </div>
-                <div className="text-xs text-gray-400">Activity ({scoreResult.weights?.activity || 30}%)</div>
-              </div>
-              <div className="text-center">
-                <div className={`text-xl font-bold ${getScoreColor(scoreResult.breakdown.credibility_score)}`}>
-                  {scoreResult.breakdown.credibility_score}
-                </div>
-                <div className="text-xs text-gray-400">Credibility ({scoreResult.weights?.credibility || 30}%)</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Key Metrics */}
-          <div className="bg-gray-700 rounded-lg p-4">
-            <h4 className="text-white font-medium mb-3">Key Metrics</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <div className="text-gray-400">Current Yield</div>
-                <div className="text-blue-400 font-medium">{formatPercentage(scoreResult.metrics.current_yield)}</div>
-              </div>
-              <div>
-                <div className="text-gray-400">24h Change</div>
-                <div className={`font-medium ${scoreResult.metrics.yield_change_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {scoreResult.metrics.yield_change_24h >= 0 ? '+' : ''}{formatPercentage(scoreResult.metrics.yield_change_24h)}
-                </div>
-              </div>
-              <div>
-                <div className="text-gray-400">Activity Level</div>
-                <div className="text-purple-400 font-medium capitalize">{scoreResult.metrics.activity_level}</div>
-              </div>
-              <div>
-                <div className="text-gray-400">Risk Level</div>
-                <div className={`font-medium capitalize ${getRiskColor(scoreResult.metrics.risk_level)}`}>
-                  {scoreResult.metrics.risk_level}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Summary */}
-          <div className="bg-gray-700 rounded-lg p-4">
-            <h4 className="text-white font-medium mb-3">AI Analysis</h4>
-            <p className="text-gray-300 text-sm leading-relaxed">{scoreResult.ai_summary}</p>
-          </div>
-
-          {/* Detailed Information Toggle */}
-          <div>
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-            >
-              {showDetails ? 'Hide' : 'Show'} Calculation Details
-            </button>
-
-            {showDetails && scoreResult.calculation_details && (
-              <div className="mt-4 bg-gray-700 rounded-lg p-4">
-                <h5 className="text-white font-medium mb-3">Calculation Details</h5>
-                
-                {/* Yield Calculation */}
-                {scoreResult.calculation_details.yield_calculation && (
-                  <div className="mb-4">
-                    <h6 className="text-gray-300 font-medium text-sm mb-2">Yield Calculation</h6>
-                    <div className="text-xs text-gray-400 space-y-1">
-                      <div>Daily Emission: {formatNumber(scoreResult.calculation_details.yield_calculation.daily_emission)}</div>
-                      <div>Annual Emission: {formatNumber(scoreResult.calculation_details.yield_calculation.annual_emission)}</div>
-                      <div>Yield Percentage: {formatPercentage(scoreResult.calculation_details.yield_calculation.yield_percentage)}</div>
-                    </div>
+      <AnimatePresence>
+        {scoreResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            {/* Overall Score */}
+            <div className={`${cardStyles.featured} relative overflow-hidden`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className={`p-3 bg-gradient-to-r ${getScoreGradient(scoreResult.overall_score)} rounded-xl shadow-glow`}>
+                    <Sparkles className="w-6 h-6 text-white" />
                   </div>
-                )}
-
-                {/* Activity Calculation */}
-                {scoreResult.calculation_details.activity_calculation && (
-                  <div className="mb-4">
-                    <h6 className="text-gray-300 font-medium text-sm mb-2">Activity Calculation</h6>
-                    <div className="text-xs text-gray-400 space-y-1">
-                      <div>Base Activity: {scoreResult.calculation_details.activity_calculation.base_activity}</div>
-                      <div>Validator Count: {scoreResult.calculation_details.activity_calculation.validator_participation}</div>
-                      <div>Normalized Participation: {formatPercentage(scoreResult.calculation_details.activity_calculation.normalized_participation)}</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Credibility Calculation */}
-                {scoreResult.calculation_details.credibility_calculation && (
                   <div>
-                    <h6 className="text-gray-300 font-medium text-sm mb-2">Credibility Calculation</h6>
-                    <div className="text-xs text-gray-400 space-y-1">
-                      <div>Validator Count: {scoreResult.calculation_details.credibility_calculation.validator_count}</div>
-                      <div>Avg Stake/Validator: {formatNumber(scoreResult.calculation_details.credibility_calculation.average_stake_per_validator)}</div>
-                      <div>Emission Consistency: {scoreResult.calculation_details.credibility_calculation.emission_consistency}</div>
-                    </div>
+                    <h4 className={`text-lg ${textStyles.heading}`}>Overall Score</h4>
+                    <p className={`text-sm ${textStyles.body}`}>AI-powered comprehensive analysis</p>
                   </div>
-                )}
+                </div>
+                <div className={`text-5xl font-bold ${getScoreColor(scoreResult.overall_score)}`}>
+                  {scoreResult.overall_score}
+                  <span className="text-2xl text-gray-500">/100</span>
+                </div>
               </div>
-            )}
-          </div>
+              
+              {/* Score Breakdown */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${getScoreColor(scoreResult.breakdown.yield_score)} mb-1`}>
+                    {scoreResult.breakdown.yield_score}
+                  </div>
+                  <div className={`text-xs ${textStyles.body} mb-1`}>
+                    Yield Performance
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Weight: {scoreResult.weights?.yield || 40}%
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${getScoreColor(scoreResult.breakdown.activity_score)} mb-1`}>
+                    {scoreResult.breakdown.activity_score}
+                  </div>
+                  <div className={`text-xs ${textStyles.body} mb-1`}>
+                    Network Activity
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Weight: {scoreResult.weights?.activity || 30}%
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${getScoreColor(scoreResult.breakdown.credibility_score)} mb-1`}>
+                    {scoreResult.breakdown.credibility_score}
+                  </div>
+                  <div className={`text-xs ${textStyles.body} mb-1`}>
+                    Credibility
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Weight: {scoreResult.weights?.credibility || 30}%
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          {/* Metadata */}
-          <div className="text-xs text-gray-500 border-t border-gray-600 pt-4">
-            <div>Calculated: {new Date(scoreResult.timestamp).toLocaleString()}</div>
-            <div>Timeframe: {scoreResult.timeframe}</div>
-            <div>Subnet ID: {scoreResult.subnet_id}</div>
-          </div>
-        </div>
-      )}
-    </div>
+            {/* Key Metrics */}
+            <div className={cardStyles.glass}>
+              <div className="flex items-center space-x-3 mb-4">
+                <BarChart3 className="w-5 h-5 text-blue-400" />
+                <h4 className={`text-lg ${textStyles.heading}`}>Key Performance Metrics</h4>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className={`${cardStyles.default} bg-blue-500/10 border-blue-500/30 text-center p-4`}>
+                  <TrendingUp className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+                  <div className={`text-xs ${textStyles.body} mb-1`}>Current Yield</div>
+                  <div className="text-xl font-bold text-blue-400">
+                    {formatPercentage(scoreResult.metrics.current_yield)}
+                  </div>
+                </div>
+                <div className={`${cardStyles.default} ${scoreResult.metrics.yield_change_24h >= 0 ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'} text-center p-4`}>
+                  <Activity className={`w-6 h-6 ${scoreResult.metrics.yield_change_24h >= 0 ? 'text-green-400' : 'text-red-400'} mx-auto mb-2`} />
+                  <div className={`text-xs ${textStyles.body} mb-1`}>24h Change</div>
+                  <div className={`text-xl font-bold ${scoreResult.metrics.yield_change_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {scoreResult.metrics.yield_change_24h >= 0 ? '+' : ''}{formatPercentage(scoreResult.metrics.yield_change_24h)}
+                  </div>
+                </div>
+                <div className={`${cardStyles.default} bg-purple-500/10 border-purple-500/30 text-center p-4`}>
+                  <Zap className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+                  <div className={`text-xs ${textStyles.body} mb-1`}>Activity Level</div>
+                  <div className="text-xl font-bold text-purple-400 capitalize">
+                    {scoreResult.metrics.activity_level}
+                  </div>
+                </div>
+                <div className={`${cardStyles.default} text-center p-4`}>
+                  <AlertTriangle className={`w-6 h-6 ${getRiskColor(scoreResult.metrics.risk_level)} mx-auto mb-2`} />
+                  <div className={`text-xs ${textStyles.body} mb-1`}>Risk Level</div>
+                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getRiskBadgeStyle(scoreResult.metrics.risk_level)}`}>
+                    {scoreResult.metrics.risk_level?.toUpperCase() || 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Summary */}
+            <div className={cardStyles.featured}>
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg">
+                  <Brain className="w-5 h-5 text-white" />
+                </div>
+                <h4 className={`text-lg ${textStyles.heading}`}>AI Intelligence Summary</h4>
+              </div>
+              <div className={`${cardStyles.default} bg-indigo-500/5 border-indigo-500/20`}>
+                <p className={`${textStyles.body} leading-relaxed`}>
+                  {scoreResult.ai_summary}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
