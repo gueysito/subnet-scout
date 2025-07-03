@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const KEY = process.env.TAOSTATS_API_KEY;
+const KEY = process.env.TAOSTATS_API_SECRET;
 
 async function testTauStats() {
   try {

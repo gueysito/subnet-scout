@@ -87,11 +87,11 @@ async function testIONetClient() {
 async function testEnhancedScoreAgent() {
   console.log('\n🚀 Testing Enhanced ScoreAgent...');
   
-  const claudeKey = process.env.VITE_ANTHROPIC_API_KEY;
+  const claudeKey = process.env.ANTHROPIC_API_KEY;
   const ionetKey = process.env.IONET_API_KEY;
   
   if (!claudeKey) {
-    console.log('❌ VITE_ANTHROPIC_API_KEY not found - cannot test Enhanced ScoreAgent');
+    console.log('❌ ANTHROPIC_API_KEY not found - cannot test Enhanced ScoreAgent');
     return false;
   }
   
@@ -163,11 +163,11 @@ async function testEnhancedScoreAgent() {
 async function testBatchEnhancedScoring() {
   console.log('\n📦 Testing Batch Enhanced Scoring...');
   
-  const claudeKey = process.env.VITE_ANTHROPIC_API_KEY;
+  const claudeKey = process.env.ANTHROPIC_API_KEY;
   const ionetKey = process.env.IONET_API_KEY;
   
   if (!claudeKey) {
-    console.log('❌ VITE_ANTHROPIC_API_KEY not found - skipping batch test');
+    console.log('❌ ANTHROPIC_API_KEY not found - skipping batch test');
     return false;
   }
   

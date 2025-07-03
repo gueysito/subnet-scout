@@ -134,7 +134,7 @@ const scoreAgent = new ScoreAgent(process.env.ANTHROPIC_API_KEY);
 
 // Init Enhanced ScoreAgent with IO.net integration
 const enhancedScoreAgent = new EnhancedScoreAgent(
-  process.env.VITE_ANTHROPIC_API_KEY,
+  process.env.ANTHROPIC_API_KEY,
   process.env.IONET_API_KEY
 );
 

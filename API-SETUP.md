@@ -33,7 +33,7 @@ TAOSTATS_API_SECRET=92a1cf8a
 IONET_API_KEY=io-v2-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # Telegram Bot
-TELEGRAM_BOT_TOKEN=8098490645:AAHq-2F8w18x_25FouALpQRE6p7ISyw7IeQ
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 
 # Optional - Claude API for Enhanced Analysis
 CLAUDE_API_KEY=your_claude_api_key_here
@@ -108,7 +108,7 @@ curl -X POST "https://api.io.net/v1/inference" \
 ### **Bot Creation**
 1. Message @BotFather on Telegram
 2. Use `/newbot` command
-3. Get bot token: `8098490645:AAHq-2F8w18x_25FouALpQRE6p7ISyw7IeQ`
+3. Get bot token: `your_telegram_bot_token_here`
 
 ### **Webhook Configuration**
 ```bash
