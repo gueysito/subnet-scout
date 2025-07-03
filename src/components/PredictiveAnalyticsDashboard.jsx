@@ -7,7 +7,7 @@ import {
   ReferenceLine, RadialBarChart, RadialBar
 } from 'recharts';
 import {
-  TrendingUpIcon, TrendingDownIcon, ShieldExclamationIcon, 
+  ArrowTrendingUpIcon, ArrowTrendingDownIcon, ShieldExclamationIcon, 
   ExclamationTriangleIcon, ChartBarIcon, CurrencyDollarIcon,
   ArrowUpIcon, ArrowDownIcon, ClockIcon, CheckCircleIcon
 } from '@heroicons/react/24/outline';
@@ -103,7 +103,7 @@ const PredictiveAnalyticsDashboard = ({ subnetId = 1 }) => {
 
   const tabs = [
     { id: 'overview', name: 'AI Overview', icon: ChartBarIcon },
-    { id: 'forecast', name: '7-Day Forecast', icon: TrendingUpIcon },
+    { id: 'forecast', name: '7-Day Forecast', icon: ArrowTrendingUpIcon },
     { id: 'risk', name: 'Risk Analysis', icon: ShieldExclamationIcon },
     { id: 'anomalies', name: 'Anomaly Detection', icon: ExclamationTriangleIcon },
     { id: 'investment', name: 'Investment Insights', icon: CurrencyDollarIcon }
@@ -196,7 +196,7 @@ const QuickStatsCards = ({ data }) => {
     {
       name: '7-Day Forecast',
       value: data.forecast.forecast.expected_return > 0 ? 'Positive' : 'Negative',
-      icon: TrendingUpIcon,
+      icon: ArrowTrendingUpIcon,
       color: data.forecast.forecast.expected_return > 0 ? 'text-green-600' : 'text-red-600',
       change: `${(data.forecast.forecast.expected_return * 100).toFixed(1)}% expected`
     }

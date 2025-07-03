@@ -4,10 +4,16 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+console.log('🚀 Initializing Subnet Scout with all features...');
+
+const root = document.getElementById('root');
+if (root) {
+  ReactDOM.createRoot(root).render(
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>
-)
+  );
+  console.log('✅ Subnet Scout loaded with React Router!');
+} else {
+  console.error('❌ Root element not found!');
+}

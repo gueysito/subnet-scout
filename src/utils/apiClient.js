@@ -154,6 +154,17 @@ class ApiClient {
     return this.fetchWithErrorHandling(url);
   }
 
+  // Generic GET method for any endpoint
+  async get(endpoint) {
+    // If endpoint starts with slash, treat as relative to mock server
+    // Otherwise, treat as absolute URL
+    const url = endpoint.startsWith('/') 
+      ? `${API_CONFIG.MOCK_BASE_URL}${endpoint}`
+      : endpoint;
+
+    return this.fetchWithErrorHandling(url);
+  }
+
   // Utility methods
   toggleMockMode() {
     this.useMock = !this.useMock;

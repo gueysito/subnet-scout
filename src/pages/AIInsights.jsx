@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, TrendingUp, ShieldAlert, ExclamationTriangle, DollarSign } from 'lucide-react';
+import { Brain, TrendingUp, ShieldAlert, AlertTriangle, DollarSign } from 'lucide-react';
 import PredictiveAnalyticsDashboard from '../components/PredictiveAnalyticsDashboard';
 
 const AIInsights = () => {
@@ -64,7 +64,7 @@ const AIInsights = () => {
               {[
                 { icon: TrendingUp, label: '7-Day Forecasting', color: 'text-green-400' },
                 { icon: ShieldAlert, label: 'Risk Assessment', color: 'text-yellow-400' },
-                { icon: ExclamationTriangle, label: 'Anomaly Detection', color: 'text-red-400' },
+                { icon: AlertTriangle, label: 'Anomaly Detection', color: 'text-red-400' },
                 { icon: DollarSign, label: 'Investment Insights', color: 'text-blue-400' }
               ].map((feature, index) => (
                 <div key={index} className="flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg">

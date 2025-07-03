@@ -83,6 +83,21 @@ export const useApi = () => {
     }
   };
 
+  // Generic GET method for API calls
+  const get = async (endpoint) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await apiClient.get(endpoint);
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     apiMode,
     isLoading,
@@ -93,6 +108,7 @@ export const useApi = () => {
     getTaoStatsData,
     calculateScore,
     sendTelegramMessage,
+    get,
     getCurrentMode: () => apiClient.getCurrentMode()
   };
 };
