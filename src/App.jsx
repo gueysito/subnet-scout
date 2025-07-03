@@ -1,11 +1,13 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Zap, TrendingUp, Info } from 'lucide-react';
+import { Sparkles, Zap, TrendingUp, Info, Brain, Activity } from 'lucide-react';
 import Home from './pages/Home';
 import About from './pages/About';
 import Explore from './pages/Explore';
 import VisualizationsComplete from './pages/VisualizationsComplete';
+import AIInsights from './pages/AIInsights';
+import HealthDashboard from './pages/HealthDashboard';
 import { containerStyles, navStyles, textStyles, backgroundPatterns, animations } from './utils/styleUtils';
 
 const App = () => {
@@ -29,6 +31,18 @@ const App = () => {
       label: 'Analytics', 
       icon: TrendingUp,
       gradient: 'from-violet-500 to-purple-600'
+    },
+    { 
+      path: '/ai-insights', 
+      label: 'AI Insights', 
+      icon: Brain,
+      gradient: 'from-indigo-500 to-purple-600'
+    },
+    { 
+      path: '/health', 
+      label: 'Health', 
+      icon: Activity,
+      gradient: 'from-green-500 to-emerald-600'
     },
     { 
       path: '/about', 
@@ -129,12 +143,14 @@ const App = () => {
             transition={{ duration: 0.4, ease: 'easeOut' }}
             className="w-full"
           >
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/explore" element={<Explore />} />
-              <Route path="/visualizations" element={<VisualizationsComplete />} />
-              <Route path="/about" element={<About />} />
-            </Routes>
+                      <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/visualizations" element={<VisualizationsComplete />} />
+            <Route path="/ai-insights" element={<AIInsights />} />
+            <Route path="/health" element={<HealthDashboard />} />
+            <Route path="/about" element={<About />} />
+          </Routes>
           </motion.div>
         </AnimatePresence>
       </main>

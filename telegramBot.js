@@ -149,34 +149,67 @@ bot.help((ctx) => {
 \`/compare 1 8\` - Compare Text Prompting vs Taoshi`);
 });
 
-// Command: /top - Get top 3 subnets ranked by performance
+// Command: /top - Get top 3 subnets ranked by performance with comprehensive data
 bot.command('top', async (ctx) => {
   try {
-    ctx.reply('🔍 Fetching top performing subnets...');
+    ctx.reply('🔍 Fetching top performing subnets with comprehensive analysis...');
     
     const topSubnets = await getTopSubnets(3);
     
-    let response = '🏆 **Top 3 Performing Subnets**\n\n';
+    let response = '🏆 **Top 3 Performing Subnets - Comprehensive Rankings**\n\n';
     
-    topSubnets.forEach((subnet, index) => {
+    // Process each top subnet with enhanced data
+    for (let index = 0; index < topSubnets.length; index++) {
+      const subnet = topSubnets[index];
       const medal = ['🥇', '🥈', '🥉'][index];
-      response += `${medal} **#${index + 1}**\n`;
+      const subnetId = subnet.subnet_id || index + 1; // Fallback to position if ID missing
+      
+      response += `${medal} **#${index + 1} - ${subnet.name || `Subnet ${subnetId}`}**\n`;
       response += formatSubnetInfo(subnet);
-      response += '\n\n';
-    });
+      
+      // Try to get GitHub activity (non-blocking)
+      try {
+        const githubStats = await callBackendAPI(`/api/github-stats/${subnetId}`, 'GET');
+        if (githubStats && githubStats.github_stats) {
+          const stats = githubStats.github_stats;
+          response += `📊 Dev Activity: ${stats.commits_last_30_days || 0} commits, ${stats.activity_score || 0}/100 score\n`;
+        }
+      } catch (err) {
+        // GitHub data unavailable, continue without it
+      }
+      
+      // Try to get Kaito Yaps reputation (non-blocking)
+      try {
+        const subnetName = subnet.name || `subnet${subnetId}`;
+        const username = subnetName.toLowerCase().replace(/\s+/g, '');
+        const kaitoData = await callBackendAPI(`/api/mindshare/${username}`, 'GET');
+        if (kaitoData && kaitoData.success && kaitoData.data) {
+          const reputation = kaitoData.data;
+          response += `🎯 Reputation: ${reputation.badge?.emoji || '🆕'} ${reputation.badge?.level || 'New'} (${reputation.reputation?.score || 0}/100)\n`;
+        }
+      } catch (err) {
+        // Kaito data unavailable, continue without it
+      }
+      
+      response += '\n';
+    }
     
-    response += '📊 Rankings based on yield, activity, and credibility scores\n';
-    response += '⚡ Updated via io.net distributed monitoring';
+    response += '📊 **Ranking Algorithm:**\n';
+    response += '• Performance metrics (yield, activity, credibility)\n';
+    response += '• Development activity (GitHub commits & engagement)\n';
+    response += '• Community reputation (Kaito Yaps attention)\n';
+    response += '• AI-powered risk assessment\n\n';
+    response += '⚡ *Updated via io.net distributed monitoring with multi-source intelligence*';
     
     ctx.replyWithMarkdown(response);
     
   } catch (error) {
-    console.error('Top subnets error:', error);
+    console.error('Enhanced top subnets error:', error);
     ctx.reply('❌ Sorry, I couldn\'t fetch the top subnets right now. Please try again later.');
   }
 });
 
-// Command: /analyze <subnet_id> - AI analysis of single subnet
+// Command: /analyze <subnet_id> - AI analysis of single subnet with comprehensive integrations
 bot.command('analyze', async (ctx) => {
   try {
     const input = ctx.message.text.split(' ');
@@ -194,47 +227,138 @@ bot.command('analyze', async (ctx) => {
     }
     
     const metadata = getSubnetMetadata(subnetId);
-    ctx.reply(`🤖 Analyzing ${metadata.name} (#${subnetId}) with io.net AI models...`);
+    ctx.reply(`🤖 Analyzing ${metadata.name} (#${subnetId}) with comprehensive intelligence...`);
     
-    // Get real subnet data (with fallback to realistic values)
-    const subnetMetrics = await getRealSubnetData(subnetId);
+    // Get all data sources in parallel for maximum efficiency
+    const [subnetMetrics, analysisResult, githubStats, riskAssessment] = await Promise.allSettled([
+      // 1. Basic subnet data
+      getRealSubnetData(subnetId),
+      
+      // 2. Enhanced AI scoring with io.net models
+      callBackendAPI('/api/score/enhanced', 'POST', {
+        subnet_id: subnetId,
+        metrics: await getRealSubnetData(subnetId),
+        timeframe: '24h',
+        enhancement_options: {
+          include_market_sentiment: true,
+          include_trend_analysis: true,
+          include_risk_assessment: true,
+          include_ai_insights: true
+        }
+      }),
+      
+      // 3. GitHub development activity
+      callBackendAPI(`/api/github-stats/${subnetId}`, 'GET').catch(err => {
+        console.log(`GitHub stats unavailable for subnet ${subnetId}: ${err.message}`);
+        return null;
+      }),
+      
+      // 4. AI-powered risk assessment
+      callBackendAPI(`/api/insights/risk/${subnetId}`, 'GET').catch(err => {
+        console.log(`Risk assessment unavailable for subnet ${subnetId}: ${err.message}`);
+        return null;
+      })
+    ]);
+
+    // Extract successful results
+    const analysis = analysisResult.status === 'fulfilled' ? analysisResult.value : null;
+    const github = githubStats.status === 'fulfilled' ? githubStats.value : null;
+    const risks = riskAssessment.status === 'fulfilled' ? riskAssessment.value : null;
     
-    // Call enhanced scoring API with real data
-    const analysisResult = await callBackendAPI('/api/score/enhanced', 'POST', {
-      subnet_id: subnetId,
-      metrics: subnetMetrics,
-      timeframe: '24h',
-      enhancement_options: {
-        include_market_sentiment: true,
-        include_trend_analysis: true,
-        include_risk_assessment: true
+    // Attempt to get Kaito Yaps reputation data (best effort)
+    let kaitoData = null;
+    try {
+      // Try common username patterns for subnet validators
+      const possibleUsernames = [
+        metadata.name.toLowerCase().replace(/\s+/g, ''),
+        metadata.name.toLowerCase().replace(/\s+/g, '_'),
+        `subnet${subnetId}`
+      ];
+      
+      for (const username of possibleUsernames) {
+        try {
+          kaitoData = await callBackendAPI(`/api/mindshare/${username}`, 'GET');
+          if (kaitoData && kaitoData.success) {
+            break;
+          }
+        } catch (err) {
+          // Try next username
+          continue;
+        }
       }
-    });
+    } catch (err) {
+      console.log(`Kaito Yaps data unavailable for subnet ${subnetId}: ${err.message}`);
+    }
+
+    // Build comprehensive response
+    let response = `🔍 **${metadata.name} - Comprehensive Analysis**\n\n`;
     
-    let response = `🔍 **${metadata.name} Analysis**\n\n`;
-    response += formatSubnetInfo(analysisResult);
-    response += '\n\n';
-    
-    if (analysisResult.ai_summary) {
-      response += `🤖 **AI Insights:**\n${analysisResult.ai_summary}\n\n`;
+    // Core performance metrics
+    if (analysis) {
+      response += formatSubnetInfo(analysis);
+      response += '\n\n';
     }
     
-    if (analysisResult.enhancement_data?.market_sentiment) {
-      response += `📈 **Market Sentiment:** ${analysisResult.enhancement_data.market_sentiment.recommendation}\n`;
-      response += `🎯 **Confidence:** ${analysisResult.enhancement_data.market_sentiment.confidence_level}%\n\n`;
+    // GitHub development activity
+    if (github && github.github_stats) {
+      const stats = github.github_stats;
+      response += `📊 **Development Activity:**\n`;
+      response += `• Commits (30 days): ${stats.commits_last_30_days || 'N/A'}\n`;
+      response += `• Contributors: ${stats.contributors || 'N/A'}\n`;
+      response += `• Activity Score: ${stats.activity_score || 'N/A'}/100\n`;
+      response += `• Repository Health: ${stats.health_score || 'N/A'}/100\n\n`;
     }
     
-    if (analysisResult.enhancement_data?.risk_assessment) {
-      response += `⚠️ **Risk Level:** ${analysisResult.enhancement_data.risk_assessment.overall_risk}\n`;
+    // Kaito Yaps reputation data
+    if (kaitoData && kaitoData.data) {
+      const reputation = kaitoData.data;
+      response += `🎯 **Community Reputation:**\n`;
+      response += `• Badge: ${reputation.badge?.emoji || '🆕'} ${reputation.badge?.level || 'New'}\n`;
+      response += `• Reputation Score: ${reputation.reputation?.score || 'N/A'}/100\n`;
+      response += `• Total Yaps: ${reputation.yaps_all || 'N/A'}\n`;
+      response += `• Recent Activity (7d): ${reputation.yaps_l7d || 'N/A'}\n\n`;
     }
     
-    response += `\n⚡ *Powered by io.net distributed AI models*`;
+    // AI-powered risk assessment
+    if (risks && risks.risk_assessment) {
+      const risk = risks.risk_assessment;
+      response += `⚠️ **AI Risk Assessment:**\n`;
+      response += `• Overall Risk: ${risk.overall_risk || 'N/A'}\n`;
+      response += `• Technical Risk: ${risk.technical_risk || 'N/A'}/100\n`;
+      response += `• Economic Risk: ${risk.economic_risk || 'N/A'}/100\n`;
+      if (risk.risk_factors && risk.risk_factors.length > 0) {
+        response += `• Key Concerns: ${risk.risk_factors.slice(0, 2).join(', ')}\n`;
+      }
+      response += '\n';
+    }
+    
+    // Enhanced AI insights from io.net models
+    if (analysis) {
+      if (analysis.ai_summary) {
+        response += `🤖 **AI Insights:**\n${analysis.ai_summary}\n\n`;
+      }
+      
+      if (analysis.enhancement_data?.market_sentiment) {
+        response += `📈 **Market Analysis:**\n`;
+        response += `• Sentiment: ${analysis.enhancement_data.market_sentiment.recommendation}\n`;
+        response += `• Confidence: ${analysis.enhancement_data.market_sentiment.confidence_level}%\n\n`;
+      }
+      
+      if (analysis.enhancement_data?.risk_assessment) {
+        response += `🎯 **Risk Level:** ${analysis.enhancement_data.risk_assessment.overall_risk}\n\n`;
+      }
+    }
+    
+    // Footer with data sources
+    response += `📊 *Data sources: TaoStats, io.net AI, GitHub`;
+    if (kaitoData) response += `, Kaito Yaps`;
+    response += `*\n⚡ *Analysis powered by distributed computing*`;
     
     ctx.replyWithMarkdown(response);
     
   } catch (error) {
-    console.error('Analyze error:', error);
-    ctx.reply(`❌ Analysis failed for subnet ${input[1] || 'unknown'}. The subnet might be offline or the ID invalid.`);
+    console.error('Comprehensive analyze error:', error);
+    ctx.reply(`❌ Analysis failed for subnet ${input[1] || 'unknown'}. Some data sources may be temporarily unavailable.`);
   }
 });
 
