@@ -12,10 +12,17 @@
     "dev:mock": "concurrently \"npm run mock-server\" \"npm run dev\"",
     "backend": "node pingAgent.js",
     "dev:full": "concurrently \"npm run mock-server\" \"npm run backend\" \"npm run dev\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:watch": "vitest --watch",
+    "test:unit": "vitest run",
     "test:integration": "node test-integration-flow.js",
     "test:frontend": "node test-frontend-integration.js",
     "test:step4": "node test-step4-complete.js",
-    "test:all": "npm run test:integration && npm run test:frontend && npm run test:step4"
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:frontend && npm run test:step4",
+    "test:security": "npm audit && npm run lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.0",
@@ -53,9 +60,15 @@
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@tailwindcss/postcss": "^4.1.11",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^22.10.5",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.0",
     "eslint": "^9.29.0",
@@ -65,6 +78,8 @@
     "jsdom": "^25.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
-    "vite": "^7.0.0"
+    "typescript": "^5.7.3",
+    "vite": "^7.0.0",
+    "vitest": "^2.1.8"
   }
 }

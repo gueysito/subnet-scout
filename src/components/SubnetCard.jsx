@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   TrendingUp, 
@@ -19,6 +19,7 @@ import {
   Clock
 } from 'lucide-react';
 import { cardStyles, textStyles, buttonStyles, statusStyles } from '../utils/styleUtils';
+import { useIntersectionObserver, useMemoizedApi, arePropsEqual } from '../utils/performance';
 import MindshareCard from './MindshareCard';
 import ReputationBadge from './ReputationBadge';
 
@@ -27,38 +28,15 @@ const SubnetCard = ({ agent, onScoreClick }) => {
   const [aiInsights, setAiInsights] = useState(null);
   const [loadingExtended, setLoadingExtended] = useState(false);
   const [showExtended, setShowExtended] = useState(false);
+  
+  // Intersection observer for lazy loading
+  const [cardRef, isVisible] = useIntersectionObserver({
+    threshold: 0.1,
+    rootMargin: '50px'
+  });
 
-  // Load extended data when card becomes visible
-  useEffect(() => {
-    if (showExtended && !githubStats && !loadingExtended) {
-      fetchExtendedData();
-    }
-  }, [showExtended, agent.subnet_id]);
-
-  const fetchExtendedData = async () => {
-    setLoadingExtended(true);
-    try {
-      // Fetch GitHub stats
-      const githubResponse = await fetch(`http://localhost:8080/api/github-stats/${agent.subnet_id}`);
-      if (githubResponse.ok) {
-        const githubData = await githubResponse.json();
-        setGithubStats(githubData.github_stats);
-      }
-
-      // Fetch AI insights  
-      const aiResponse = await fetch(`http://localhost:8080/api/insights/risk/${agent.subnet_id}`);
-      if (aiResponse.ok) {
-        const aiData = await aiResponse.json();
-        setAiInsights(aiData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch extended data:', error);
-    } finally {
-      setLoadingExtended(false);
-    }
-  };
-
-  const getStatusConfig = (status) => {
+  // Memoized configurations to prevent unnecessary recalculations
+  const statusConfig = useMemo(() => {
     const configs = {
       healthy: { 
         color: 'text-emerald-400', 
@@ -89,16 +67,16 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         pulse: 'shadow-slate-500/30'
       }
     };
-    return configs[status] || configs.default;
-  };
+    return configs[agent.status] || configs.default;
+  }, [agent.status]);
 
-  const getScoreConfig = (score) => {
-    if (score >= 80) return { 
+  const scoreConfig = useMemo(() => {
+    if (agent.score >= 80) return { 
       color: 'text-emerald-400', 
       gradient: 'from-emerald-400 to-emerald-500',
       bg: 'bg-emerald-500/10'
     };
-    if (score >= 60) return { 
+    if (agent.score >= 60) return { 
       color: 'text-amber-400', 
       gradient: 'from-amber-400 to-amber-500',
       bg: 'bg-amber-500/10'
@@ -108,42 +86,96 @@ const SubnetCard = ({ agent, onScoreClick }) => {
       gradient: 'from-red-400 to-red-500',
       bg: 'bg-red-500/10'
     };
-  };
+  }, [agent.score]);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString();
-  };
-
-  const statusConfig = getStatusConfig(agent.status);
-  const scoreConfig = getScoreConfig(agent.score);
   const StatusIcon = statusConfig.icon;
 
-  const metrics = [
+  const metrics = useMemo(() => [
     {
       label: 'Yield',
-      value: `${agent.yield?.toFixed(1)}%`,
+      value: `${agent.yield?.toFixed(1) || 0}%`,
       icon: TrendingUp,
       color: 'text-blue-400',
       gradient: 'from-blue-400 to-blue-500'
     },
     {
       label: 'Activity',
-      value: agent.activity,
+      value: agent.activity || 0,
       icon: Activity,
       color: 'text-purple-400',
       gradient: 'from-purple-400 to-purple-500'
     },
     {
       label: 'Credibility',
-      value: agent.credibility,
+      value: agent.credibility || 0,
       icon: Star,
       color: 'text-orange-400',
       gradient: 'from-orange-400 to-orange-500'
     }
-  ];
+  ], [agent.yield, agent.activity, agent.credibility]);
+
+  // Memoized date formatting
+  const formattedDate = useMemo(() => {
+    try {
+      return new Date(agent.last_updated).toLocaleString();
+    } catch {
+      return 'Unknown';
+    }
+  }, [agent.last_updated]);
+
+  // Optimized fetch function with memoization
+  const fetchExtendedData = useCallback(async () => {
+    if (!isVisible || loadingExtended) return;
+    
+    setLoadingExtended(true);
+    try {
+      // Parallel fetch for better performance
+      const [githubResponse, aiResponse] = await Promise.allSettled([
+        fetch(`http://localhost:8080/api/github-stats/${agent.subnet_id}`),
+        fetch(`http://localhost:8080/api/insights/risk/${agent.subnet_id}`)
+      ]);
+
+      if (githubResponse.status === 'fulfilled' && githubResponse.value.ok) {
+        const githubData = await githubResponse.value.json();
+        setGithubStats(githubData.github_stats);
+      }
+
+      if (aiResponse.status === 'fulfilled' && aiResponse.value.ok) {
+        const aiData = await aiResponse.value.json();
+        setAiInsights(aiData.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch extended data:', error);
+    } finally {
+      setLoadingExtended(false);
+    }
+  }, [agent.subnet_id, isVisible, loadingExtended]);
+
+  // Optimized event handlers
+  const handleScoreClick = useCallback(() => {
+    onScoreClick?.(agent.subnet_id);
+  }, [onScoreClick, agent.subnet_id]);
+
+  const handleToggleExtended = useCallback(() => {
+    setShowExtended(prev => {
+      const newValue = !prev;
+      if (newValue && !githubStats && !aiInsights && !loadingExtended) {
+        fetchExtendedData();
+      }
+      return newValue;
+    });
+  }, [githubStats, aiInsights, loadingExtended, fetchExtendedData]);
+
+  // Load extended data when card becomes visible and extended view is requested
+  useEffect(() => {
+    if (showExtended && isVisible && !githubStats && !aiInsights && !loadingExtended) {
+      fetchExtendedData();
+    }
+  }, [showExtended, isVisible, githubStats, aiInsights, loadingExtended, fetchExtendedData]);
 
   return (
-    <motion.div
+    <motion.article
+      ref={cardRef}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ 
@@ -153,6 +185,9 @@ const SubnetCard = ({ agent, onScoreClick }) => {
       }}
       transition={{ duration: 0.4 }}
       className={`${cardStyles.glass} group cursor-pointer relative overflow-hidden`}
+      role="article"
+      aria-labelledby={`subnet-${agent.subnet_id}-title`}
+      aria-describedby={`subnet-${agent.subnet_id}-description`}
     >
       {/* Floating orbs background effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -161,12 +196,18 @@ const SubnetCard = ({ agent, onScoreClick }) => {
       </div>
 
       {/* Header with name and status */}
-      <div className="relative z-10 flex items-center justify-between mb-4">
+      <header className="relative z-10 flex items-center justify-between mb-4">
         <div className="flex-1 min-w-0">
-          <h3 className={`text-lg ${textStyles.heading} truncate group-hover:text-accent-300 transition-colors duration-300`}>
+          <h3 
+            id={`subnet-${agent.subnet_id}-title`}
+            className={`text-lg ${textStyles.heading} truncate group-hover:text-accent-300 transition-colors duration-300`}
+          >
             {agent.name || `Subnet ${agent.subnet_id}`}
           </h3>
-          <p className={`text-sm ${textStyles.caption} truncate mt-1`}>
+          <p 
+            id={`subnet-${agent.subnet_id}-description`}
+            className={`text-sm ${textStyles.caption} truncate mt-1`}
+          >
             {agent.description || agent.type || 'Bittensor Subnet'}
           </p>
         </div>
@@ -174,10 +215,12 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         <motion.div
           whileHover={{ scale: 1.1 }}
           className={`${statusConfig.bg} ${statusConfig.border} border rounded-xl p-2 ${statusConfig.pulse} animate-pulse-slow`}
+          role="status"
+          aria-label={`Subnet status: ${agent.status || 'unknown'}`}
         >
-          <StatusIcon className={`w-5 h-5 ${statusConfig.color}`} />
+          <StatusIcon className={`w-5 h-5 ${statusConfig.color}`} aria-hidden="true" />
         </motion.div>
-      </div>
+      </header>
 
       {/* Score display with enhanced visual */}
       <div className="mb-6">
@@ -198,7 +241,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
       </div>
 
       {/* Enhanced metrics grid */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <section className="grid grid-cols-3 gap-3 mb-6" aria-label="Subnet performance metrics">
         {metrics.map((metric, index) => {
           const Icon = metric.icon;
           return (
@@ -209,8 +252,10 @@ const SubnetCard = ({ agent, onScoreClick }) => {
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05, y: -2 }}
               className="text-center p-3 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm group/metric"
+              role="figure"
+              aria-label={`${metric.label}: ${metric.value}`}
             >
-              <Icon className={`w-5 h-5 ${metric.color} mx-auto mb-2 group-hover/metric:scale-110 transition-transform duration-300`} />
+              <Icon className={`w-5 h-5 ${metric.color} mx-auto mb-2 group-hover/metric:scale-110 transition-transform duration-300`} aria-hidden="true" />
               <div className={`text-lg font-bold bg-gradient-to-r ${metric.gradient} bg-clip-text text-transparent mb-1`}>
                 {metric.value}
               </div>
@@ -220,7 +265,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
             </motion.div>
           );
         })}
-      </div>
+      </section>
 
       {/* Reputation and GitHub indicators */}
       <div className="flex items-center justify-between mb-4">
@@ -371,20 +416,23 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => onScoreClick && onScoreClick(agent.subnet_id)}
-          className={`${buttonStyles.primary} flex-1 text-sm flex items-center justify-center space-x-2`}
+          onClick={handleScoreClick}
+          aria-label={`Analyze subnet ${agent.name || agent.subnet_id}`}
+          className={`${buttonStyles.primary} flex-1 text-sm flex items-center justify-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none`}
         >
-          <TrendingUp className="w-4 h-4" />
+          <TrendingUp className="w-4 h-4" aria-hidden="true" />
           <span>Analyze</span>
         </motion.button>
         
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setShowExtended(!showExtended)}
-          className={`${buttonStyles.secondary} text-sm flex items-center justify-center space-x-2`}
+          onClick={handleToggleExtended}
+          aria-label={showExtended ? 'Hide additional subnet information' : 'Show additional subnet information'}
+          aria-expanded={showExtended}
+          className={`${buttonStyles.secondary} text-sm flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:outline-none`}
         >
-          <Eye className="w-4 h-4" />
+          <Eye className="w-4 h-4" aria-hidden="true" />
           <span>{showExtended ? 'Less' : 'More'}</span>
         </motion.button>
         
@@ -395,17 +443,20 @@ const SubnetCard = ({ agent, onScoreClick }) => {
             href={agent.github_url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${buttonStyles.ghost} px-4 py-3 flex items-center justify-center`}
+            aria-label={`View ${agent.name || 'subnet'} repository on GitHub (opens in new tab)`}
+            className={`${buttonStyles.ghost} px-4 py-3 flex items-center justify-center focus:ring-2 focus:ring-gray-500 focus:outline-none`}
           >
-            <Github className="w-4 h-4" />
+            <Github className="w-4 h-4" aria-hidden="true" />
           </motion.a>
         ) : (
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`${buttonStyles.ghost} px-4 py-3 flex items-center justify-center`}
+            disabled
+            aria-label="No external link available for this subnet"
+            className={`${buttonStyles.ghost} px-4 py-3 flex items-center justify-center opacity-50 cursor-not-allowed focus:ring-2 focus:ring-gray-500 focus:outline-none`}
           >
-            <ExternalLink className="w-4 h-4" />
+            <ExternalLink className="w-4 h-4" aria-hidden="true" />
           </motion.button>
         )}
       </div>
@@ -415,8 +466,8 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         <div className="flex items-center justify-between">
           <p className={`text-xs ${textStyles.caption} flex items-center space-x-1`}>
-            <Clock className="w-3 h-3" />
-            <span>Updated {formatDate(agent.last_updated)}</span>
+            <Clock className="w-3 h-3" aria-hidden="true" />
+            <span>Updated {formattedDate}</span>
           </p>
           <div className="flex items-center space-x-2">
             {agent.emission_rate && (
@@ -430,8 +481,25 @@ const SubnetCard = ({ agent, onScoreClick }) => {
 
       {/* Hover glow effect */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-accent-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-    </motion.div>
+    </motion.article>
   );
 };
 
-export default SubnetCard; 
+// Memoize the component to prevent unnecessary re-renders
+const MemoizedSubnetCard = React.memo(SubnetCard, (prevProps, nextProps) => {
+  // Custom comparison function for optimal performance
+  return (
+    prevProps.agent.subnet_id === nextProps.agent.subnet_id &&
+    prevProps.agent.score === nextProps.agent.score &&
+    prevProps.agent.status === nextProps.agent.status &&
+    prevProps.agent.yield === nextProps.agent.yield &&
+    prevProps.agent.activity === nextProps.agent.activity &&
+    prevProps.agent.credibility === nextProps.agent.credibility &&
+    prevProps.agent.last_updated === nextProps.agent.last_updated &&
+    prevProps.onScoreClick === nextProps.onScoreClick
+  );
+});
+
+MemoizedSubnetCard.displayName = 'SubnetCard';
+
+export default MemoizedSubnetCard; 

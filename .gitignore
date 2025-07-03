@@ -24,8 +24,20 @@ build/
 
 # --- Env Files ---
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*.local
 !.env.example
+
+# --- Secrets and Keys ---
+secrets.json
+keys/
+*.key
+*.pem
+*.p12
+*.pfx
 
 # --- Editor/IDE stuff ---
 .vscode/*
@@ -48,12 +60,34 @@ coverage/
 *.lcov
 *.tgz
 .nyc_output
+.nyc_output/
+test-results/
+playwright-report/
+
+# --- TypeScript ---
+*.tsbuildinfo
+
+# --- Temporary files ---
+*.tmp
+*.temp
+temp/
+tmp/
 
 # --- Misc ---
 *.local
 *.log
 
+# --- Database ---
+*.db
+*.sqlite
+*.sqlite3
+
 # --- Optional: OS junk ---
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# --- Security sensitive files ---
+auth.json
+tokens.json
+credentials.json
