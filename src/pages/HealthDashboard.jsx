@@ -11,17 +11,18 @@ import {
   Database,
   Shield,
   Cpu,
-  Memory,
+  MemoryStick,
   HardDrive,
   Wifi,
   AlertCircle,
   TrendingUp,
   Zap,
   Globe,
-  GitHub,
+  GitBranch,
   Brain,
   Eye
 } from 'lucide-react';
+import { containerStyles, cardStyles, textStyles, buttonStyles } from '../utils/styleUtils';
 
 const HealthDashboard = () => {
   const [healthData, setHealthData] = useState(null);
@@ -122,11 +123,11 @@ const HealthDashboard = () => {
       cache: Database,
       anthropic_api: Brain,
       ionet_api: Zap,
-      github_api: GitHub,
+      github_api: GitBranch,
       kaito_yaps: Globe,
       ethos_network: Shield,
       filesystem: HardDrive,
-      memory: Memory,
+      memory: MemoryStick,
       database: Server
     };
     return icons[serviceName] || Activity;
@@ -169,67 +170,51 @@ const HealthDashboard = () => {
   const overallStatus = getOverallStatus();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
+    <div className={containerStyles.section}>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative overflow-hidden bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900"
+        className="text-center mb-8"
       >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,...')] opacity-10"></div>
-        
-        <div className="relative max-w-7xl mx-auto px-8 py-16">
-          <div className="text-center">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-full mb-6 backdrop-blur-sm"
-            >
-              <Activity className="w-10 h-10 text-white" />
-            </motion.div>
-            
-            <h1 className="text-5xl font-bold text-white mb-4">
-              System Health Dashboard
-            </h1>
-            
-            <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-              Real-time monitoring of all Subnet Scout services, infrastructure, and performance metrics
-            </p>
-
-            {/* Overall Status Banner */}
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className={`inline-flex items-center px-8 py-4 rounded-full backdrop-blur-sm border ${
-                healthData?.overall_status === 'healthy' 
-                  ? 'bg-green-500/20 border-green-400/30 text-green-100'
-                  : healthData?.overall_status === 'degraded'
-                  ? 'bg-yellow-500/20 border-yellow-400/30 text-yellow-100'
-                  : 'bg-red-500/20 border-red-400/30 text-red-100'
-              }`}
-            >
-              {healthData?.overall_status === 'healthy' && <CheckCircle className="w-6 h-6 mr-3" />}
-              {healthData?.overall_status === 'degraded' && <AlertTriangle className="w-6 h-6 mr-3" />}
-              {healthData?.overall_status === 'unhealthy' && <XCircle className="w-6 h-6 mr-3" />}
-              <span className="text-lg font-semibold">{overallStatus.status}</span>
-            </motion.div>
-          </div>
+        <div className="flex items-center justify-center space-x-3 mb-4">
+          <Activity className="w-10 h-10 text-emerald-400" />
+          <h1 className={`text-4xl ${textStyles.heading}`}>
+            System Health Dashboard
+          </h1>
         </div>
+        <p className={`text-xl ${textStyles.body} mb-6 max-w-4xl mx-auto`}>
+          Real-time monitoring of all Subnet Scout services, infrastructure, and performance metrics
+        </p>
+
+        {/* Overall Status Banner */}
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className={`inline-flex items-center px-8 py-4 rounded-xl ${cardStyles.glass} border-2 ${
+            healthData?.overall_status === 'healthy' 
+              ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-400'
+              : healthData?.overall_status === 'degraded'
+              ? 'border-amber-500/50 bg-amber-500/20 text-amber-400'
+              : 'border-red-500/50 bg-red-500/20 text-red-400'
+          }`}
+        >
+          {healthData?.overall_status === 'healthy' && <CheckCircle className="w-6 h-6 mr-3" />}
+          {healthData?.overall_status === 'degraded' && <AlertTriangle className="w-6 h-6 mr-3" />}
+          {healthData?.overall_status === 'unhealthy' && <XCircle className="w-6 h-6 mr-3" />}
+          <span className="text-lg font-semibold">{overallStatus.status}</span>
+        </motion.div>
       </motion.div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        {/* Control Panel */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200"
-        >
+      {/* Control Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className={`${cardStyles.glass} mb-8`}
+      >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2">
@@ -249,22 +234,26 @@ const HealthDashboard = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <button
+              <motion.button
                 onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
                   autoRefresh 
-                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? `${buttonStyles.primary}` 
+                    : `${buttonStyles.secondary}`
                 }`}
               >
                 <Eye className="w-4 h-4" />
                 <span>{autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}</span>
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={fetchHealthData}
                 disabled={loading}
-                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`flex items-center space-x-2 ${buttonStyles.primary} disabled:opacity-50`}
               >
                 <motion.div
                   animate={{ rotate: loading ? 360 : 0 }}
@@ -273,7 +262,7 @@ const HealthDashboard = () => {
                   <RefreshCw className="w-4 h-4" />
                 </motion.div>
                 <span>{loading ? 'Refreshing...' : 'Refresh Now'}</span>
-              </button>
+              </motion.button>
             </div>
           </div>
         </motion.div>
@@ -283,7 +272,7 @@ const HealthDashboard = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8"
+            className={`${cardStyles.glass} border-2 border-red-500/50 bg-red-500/20 mb-8`}
           >
             <div className="flex items-center">
               <AlertCircle className="w-6 h-6 text-red-500 mr-3" />
@@ -301,7 +290,7 @@ const HealthDashboard = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
           >
             {healthData.services.map((service, index) => {
@@ -312,7 +301,7 @@ const HealthDashboard = () => {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
-                  className={`p-6 rounded-xl border shadow-sm ${getStatusBg(service.status)}`}
+                  className={`${cardStyles.interactive} ${getStatusBg(service.status)}`}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
@@ -373,7 +362,7 @@ const HealthDashboard = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 1.0 }}
-              className="bg-white rounded-xl shadow-lg p-6 border border-gray-200"
+              className={cardStyles.glass}
             >
               <div className="flex items-center space-x-3 mb-6">
                 <TrendingUp className="w-6 h-6 text-blue-500" />
@@ -411,7 +400,7 @@ const HealthDashboard = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 1.2 }}
-              className="bg-white rounded-xl shadow-lg p-6 border border-gray-200"
+              className={cardStyles.glass}
             >
               <div className="flex items-center space-x-3 mb-6">
                 <Cpu className="w-6 h-6 text-green-500" />
@@ -497,7 +486,6 @@ const HealthDashboard = () => {
             </div>
           </motion.div>
         )}
-      </div>
     </div>
   );
 };

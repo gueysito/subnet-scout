@@ -1,14 +1,20 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Zap, TrendingUp, Info, Brain, Activity } from 'lucide-react';
+import { Sparkles, Zap, TrendingUp, Info, Brain, Activity, Map, GitBranch, MessageCircle, Shield } from 'lucide-react';
+import { StagewiseToolbar } from '@stagewise/toolbar-react';
+import { ReactPlugin } from '@stagewise-plugins/react';
 import Home from './pages/Home';
 import About from './pages/About';
 import Explore from './pages/Explore';
 import VisualizationsComplete from './pages/VisualizationsComplete';
 import AIInsights from './pages/AIInsights';
 import HealthDashboard from './pages/HealthDashboard';
-import { containerStyles, navStyles, textStyles, backgroundPatterns, animations } from './utils/styleUtils';
+import SubnetHeatmap from './pages/SubnetHeatmap';
+import GitHubInsights from './pages/GitHubInsights';
+import KaitoSocial from './pages/KaitoSocial';
+import EthosIdentity from './pages/EthosIdentity';
+import { containerStyles, navStyles, textStyles, backgroundPatterns } from './utils/styleUtils';
 
 const App = () => {
   const location = useLocation();
@@ -25,6 +31,30 @@ const App = () => {
       label: 'Explore', 
       icon: Zap,
       gradient: 'from-emerald-500 to-teal-600'
+    },
+    { 
+      path: '/heatmap', 
+      label: 'Heatmap', 
+      icon: Map,
+      gradient: 'from-red-500 to-pink-600'
+    },
+    { 
+      path: '/github', 
+      label: 'GitHub', 
+      icon: GitBranch,
+      gradient: 'from-gray-500 to-slate-600'
+    },
+    { 
+      path: '/social', 
+      label: 'Social', 
+      icon: MessageCircle,
+      gradient: 'from-cyan-500 to-blue-600'
+    },
+    { 
+      path: '/identity', 
+      label: 'Identity', 
+      icon: Shield,
+      gradient: 'from-amber-500 to-orange-600'
     },
     { 
       path: '/visualizations', 
@@ -54,23 +84,28 @@ const App = () => {
 
   return (
     <div className={`${containerStyles.page} ${backgroundPatterns.grid}`}>
-      {/* Premium Navigation Header */}
+      <StagewiseToolbar 
+        config={{
+          plugins: [ReactPlugin]
+        }}
+      />
+      {/* Premium Navigation Header - PROPERLY CENTERED */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="relative z-50 border-b border-white/10 bg-gradient-to-r from-primary-900/80 via-primary-800/60 to-opal-900/80 backdrop-blur-2xl"
+        className="relative z-50 border-b border-white/10 bg-gradient-to-r from-slate-900/90 via-blue-900/80 to-indigo-900/90 backdrop-blur-2xl"
       >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Premium Logo/Brand */}
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+            {/* Premium Logo/Brand - CENTERED ON MOBILE */}
             <motion.div 
               className="flex items-center space-x-4"
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
               <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-accent-400 via-accent-500 to-accent-600 rounded-2xl flex items-center justify-center shadow-glow-gold">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
                   <motion.span 
                     className="text-2xl filter drop-shadow-lg"
                     animate={{ rotate: [0, 5, -5, 0] }}
@@ -79,10 +114,10 @@ const App = () => {
                     🚀
                   </motion.span>
                 </div>
-                <div className="absolute -inset-1 bg-gradient-to-r from-accent-400 to-accent-600 rounded-2xl blur opacity-20 animate-glow-pulse"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-2xl blur opacity-20 animate-pulse"></div>
               </div>
               <div>
-                <h1 className={`text-3xl ${textStyles.heading} bg-gradient-to-r from-white via-white to-accent-200 bg-clip-text text-transparent`}>
+                <h1 className={`text-2xl sm:text-3xl ${textStyles.heading} bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent`}>
                   Subnet Scout
                 </h1>
                 <p className={`text-xs ${textStyles.caption} font-medium tracking-wide uppercase`}>
@@ -91,8 +126,8 @@ const App = () => {
               </div>
             </motion.div>
             
-            {/* Premium Navigation Links */}
-            <nav className="flex items-center space-x-2">
+            {/* Premium Navigation Links - RESPONSIVE GRID */}
+            <nav className="flex flex-wrap items-center justify-center gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -110,7 +145,8 @@ const App = () => {
                     >
                       <div className="flex items-center space-x-2">
                         <Icon className="w-4 h-4" />
-                        <span className="font-medium">{item.label}</span>
+                        <span className="font-medium hidden sm:inline">{item.label}</span>
+                        <span className="font-medium sm:hidden text-xs">{item.label.substring(0, 3)}</span>
                       </div>
                       {isActive && (
                         <motion.div
@@ -129,7 +165,7 @@ const App = () => {
         </div>
 
         {/* Subtle animated border */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-500/50 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
       </motion.header>
 
       {/* Main Content Area with Premium Animations */}
@@ -143,14 +179,18 @@ const App = () => {
             transition={{ duration: 0.4, ease: 'easeOut' }}
             className="w-full"
           >
-                      <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/visualizations" element={<VisualizationsComplete />} />
-            <Route path="/ai-insights" element={<AIInsights />} />
-            <Route path="/health" element={<HealthDashboard />} />
-            <Route path="/about" element={<About />} />
-          </Routes>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/heatmap" element={<SubnetHeatmap />} />
+              <Route path="/github" element={<GitHubInsights />} />
+              <Route path="/social" element={<KaitoSocial />} />
+              <Route path="/identity" element={<EthosIdentity />} />
+              <Route path="/visualizations" element={<VisualizationsComplete />} />
+              <Route path="/ai-insights" element={<AIInsights />} />
+              <Route path="/health" element={<HealthDashboard />} />
+              <Route path="/about" element={<About />} />
+            </Routes>
           </motion.div>
         </AnimatePresence>
       </main>

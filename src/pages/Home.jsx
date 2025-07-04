@@ -1,45 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Zap, DollarSign, Brain, BarChart3, Sparkles, Cpu, Shield, TrendingUp } from "lucide-react";
-import DistributedMonitor from "../components/DistributedMonitor.jsx";
+import SubnetChatInterface from "../components/SubnetChatInterface.jsx";
 import { containerStyles, cardStyles, textStyles, buttonStyles, animations } from "../utils/styleUtils";
 
 export default function Home() {
-
-  const features = [
-    {
-      icon: Cpu,
-      title: "Distributed Processing",
-      subtitle: "109x Faster Performance", 
-      description: "Uses Ray distributed computing to process all 118 Bittensor subnets simultaneously across multiple workers, achieving unprecedented speed.",
-      gradient: "from-blue-500 to-cyan-500",
-      delay: 0
-    },
-    {
-      icon: DollarSign,
-      title: "Cost Efficiency",
-      subtitle: "83% Cost Savings",
-      description: "Leverages io.net's 327K+ GPU network for massive savings. What costs $900/month on AWS runs for just $150/month.",
-      gradient: "from-emerald-500 to-green-500",
-      delay: 0.1
-    },
-    {
-      icon: Brain,
-      title: "AI-Powered Analysis", 
-      subtitle: "Intelligent Insights",
-      description: "Integrates multiple AI models for intelligent subnet analysis, risk assessment, and performance insights beyond simple metrics.",
-      gradient: "from-purple-500 to-violet-500",
-      delay: 0.2
-    },
-    {
-      icon: TrendingUp,
-      title: "Real-Time Intelligence",
-      subtitle: "Live Performance Data",
-      description: "Live performance metrics, top performer rankings, and competitive analysis updated in real-time with predictive forecasting.",
-      gradient: "from-orange-500 to-amber-500",
-      delay: 0.3
-    }
-  ];
 
   const stats = [
     { value: "118", label: "Subnets Monitored", icon: Shield },
@@ -78,7 +43,7 @@ export default function Home() {
             </div>
             <div className="inline-block px-4 py-2 bg-accent-500/20 rounded-full border border-accent-300/30 mb-6">
               <span className={`text-sm ${textStyles.caption} text-accent-300 font-medium tracking-wide uppercase`}>
-                Next-Generation Blockchain Intelligence
+                AI-Powered Subnet Intelligence
               </span>
             </div>
           </motion.div>
@@ -90,7 +55,7 @@ export default function Home() {
             className="mb-8"
           >
             <p className={`text-2xl ${textStyles.subheading} mb-4 max-w-4xl mx-auto leading-relaxed`}>
-              Monitor ALL 118 Bittensor subnets in parallel using Ray distributed computing
+              Ask me anything about Bittensor subnets - I have real-time data on all 118 networks
             </p>
             <div className="flex flex-wrap justify-center items-center gap-6 text-lg">
               <div className="flex items-center space-x-2">
@@ -140,66 +105,14 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* Distributed Monitor - Our Key Differentiator */}
+      {/* Chat Interface - Main Feature */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.3 }}
         className="mb-12"
       >
-        <DistributedMonitor />
-      </motion.div>
-
-      {/* Features Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
-        className="mb-12"
-      >
-        <div className="text-center mb-12">
-          <h2 className={`text-4xl ${textStyles.heading} mb-4`}>
-            How It Works
-          </h2>
-          <p className={`text-xl ${textStyles.body} max-w-2xl mx-auto`}>
-            Discover the advanced technology powering the next generation of blockchain intelligence
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.7 + feature.delay }}
-                whileHover={{ scale: 1.02, y: -5 }}
-                className={`${cardStyles.glass} group cursor-pointer`}
-              >
-                <div className="flex items-start space-x-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-r ${feature.gradient} shadow-premium flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className={`text-xl ${textStyles.heading}`}>
-                        {feature.title}
-                      </h3>
-                      <span className={`text-sm ${textStyles.caption} px-2 py-1 bg-white/10 rounded-full`}>
-                        {feature.subtitle}
-                      </span>
-                    </div>
-                    <p className={`${textStyles.body} leading-relaxed`}>
-                      {feature.description}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+        <SubnetChatInterface />
       </motion.div>
     </div>
   );

@@ -1,163 +1,140 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Brain, TrendingUp, ShieldAlert, AlertTriangle, DollarSign } from 'lucide-react';
+import { Brain, TrendingUp, ShieldAlert, AlertTriangle, DollarSign, Search, Filter } from 'lucide-react';
 import PredictiveAnalyticsDashboard from '../components/PredictiveAnalyticsDashboard';
+import { containerStyles, cardStyles, textStyles, buttonStyles } from '../utils/styleUtils';
 
 const AIInsights = () => {
   const [selectedSubnetId, setSelectedSubnetId] = useState(1);
 
   const subnetOptions = [
-    { id: 1, name: 'Text Prompting', type: 'Inference' },
-    { id: 8, name: 'Taoshi', type: 'Prediction' },
-    { id: 21, name: 'FileTAO', type: 'Storage' },
-    { id: 27, name: 'Compute Horde', type: 'Compute' },
-    { id: 32, name: 'It\'s AI', type: 'Inference' }
+    { id: 1, name: 'Text Prompting', type: 'AI/ML', description: 'Advanced text generation and NLP models' },
+    { id: 8, name: 'Taoshi', type: 'Finance', description: 'Financial intelligence and prediction models' },
+    { id: 21, name: 'FileTAO', type: 'Storage', description: 'Decentralized file storage network' },
+    { id: 18, name: 'Cortext', type: 'AI/ML', description: 'Language model training and optimization' },
+    { id: 27, name: 'Compute Horde', type: 'Compute', description: 'Distributed AI computing resources' },
+    { id: 9, name: 'Pretraining', type: 'AI/ML', description: 'Foundation model pretraining subnet' },
+    { id: 12, name: 'Data Universe', type: 'Data', description: 'Data marketplace and validation' }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30">
-      {/* Header Section */}
+    <div className={containerStyles.section}>
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative overflow-hidden bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900"
+        className="text-center mb-8"
       >
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative px-4 py-16 mx-auto max-w-7xl sm:px-6 lg:px-8">
-          <div className="text-center">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="inline-flex items-center px-4 py-2 mb-6 text-sm font-medium text-indigo-100 bg-indigo-800/30 backdrop-blur-sm rounded-full"
-            >
-              <Brain className="w-4 h-4 mr-2" />
-              Powered by io.net AI Models
-            </motion.div>
-            
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-4xl font-bold text-white sm:text-5xl lg:text-6xl"
-            >
-              🤖 AI Insights Dashboard
-            </motion.h1>
-            
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="mt-6 text-xl leading-8 text-indigo-100 max-w-3xl mx-auto"
-            >
-              Advanced AI-powered analysis with 7-day forecasting, risk assessment, anomaly detection, and investment insights
-            </motion.p>
+        <div className="flex items-center justify-center space-x-3 mb-4">
+          <Brain className="w-10 h-10 text-purple-400" />
+          <h1 className={`text-4xl ${textStyles.heading}`}>
+            AI Insights Dashboard
+          </h1>
+        </div>
+        <p className={`text-xl ${textStyles.body} mb-6 max-w-4xl mx-auto`}>
+          Advanced AI-powered analysis with 7-day forecasting, risk assessment, anomaly detection, and investment insights
+        </p>
+        
+        {/* Feature Highlights */}
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
+          {[
+            { icon: TrendingUp, label: '7-Day Forecasting', color: 'text-emerald-400' },
+            { icon: ShieldAlert, label: 'Risk Assessment', color: 'text-amber-400' },
+            { icon: AlertTriangle, label: 'Anomaly Detection', color: 'text-red-400' },
+            { icon: DollarSign, label: 'Investment Insights', color: 'text-blue-400' }
+          ].map((feature, index) => (
+            <div key={index} className={`${cardStyles.glass} flex items-center px-4 py-2`}>
+              <feature.icon className={`w-5 h-5 mr-2 ${feature.color}`} />
+              <span className={`text-sm font-medium ${textStyles.body}`}>{feature.label}</span>
+            </div>
+          ))}
+        </div>
+      </motion.div>
 
-            {/* Feature Highlights */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="flex flex-wrap justify-center gap-4 mt-8"
-            >
-              {[
-                { icon: TrendingUp, label: '7-Day Forecasting', color: 'text-green-400' },
-                { icon: ShieldAlert, label: 'Risk Assessment', color: 'text-yellow-400' },
-                { icon: AlertTriangle, label: 'Anomaly Detection', color: 'text-red-400' },
-                { icon: DollarSign, label: 'Investment Insights', color: 'text-blue-400' }
-              ].map((feature, index) => (
-                <div key={index} className="flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg">
-                  <feature.icon className={`w-5 h-5 mr-2 ${feature.color}`} />
-                  <span className="text-sm font-medium text-white">{feature.label}</span>
+      {/* Subnet Selector */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+        className={`${cardStyles.glass} mb-8`}
+      >
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <h2 className={`text-2xl ${textStyles.heading} mb-2`}>Select Subnet for Analysis</h2>
+            <p className={`${textStyles.body} opacity-80`}>Choose a subnet to view comprehensive AI insights and predictions</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {subnetOptions.map((subnet) => (
+              <motion.button
+                key={subnet.id}
+                onClick={() => setSelectedSubnetId(subnet.id)}
+                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                  selectedSubnetId === subnet.id
+                    ? 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/25'
+                    : 'border-white/20 bg-white/5 hover:border-purple-400 hover:bg-purple-400/10'
+                }`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className={`font-semibold ${textStyles.body} mb-1`}>
+                  #{subnet.id} {subnet.name}
                 </div>
-              ))}
-            </motion.div>
+                <div className={`text-xs ${textStyles.caption} mb-1`}>
+                  {subnet.type}
+                </div>
+                <div className={`text-xs ${textStyles.caption} opacity-60`}>
+                  {subnet.description}
+                </div>
+              </motion.button>
+            ))}
           </div>
         </div>
       </motion.div>
 
-      {/* Main Content */}
-      <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        {/* Subnet Selector */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="mb-8"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Select Subnet for Analysis</h2>
-              <p className="text-gray-600">Choose a subnet to view comprehensive AI insights and predictions</p>
+      {/* AI Dashboard */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        key={selectedSubnetId}
+      >
+        <PredictiveAnalyticsDashboard subnetId={selectedSubnetId} />
+      </motion.div>
+
+      {/* Footer Info */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+        className={`${cardStyles.glass} mt-8`}
+      >
+        <div className="text-center">
+          <h3 className={`text-xl ${textStyles.heading} mb-4`}>🚀 Powered by io.net AI Models</h3>
+          <p className={`${textStyles.body} mb-6 opacity-80`}>
+            This dashboard uses multiple AI models running on io.net's distributed computing network
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`${cardStyles.metric} bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30`}>
+              <div className={`font-bold ${textStyles.accent} mb-1`}>DeepSeek-R1</div>
+              <div className={`text-sm ${textStyles.caption}`}>7-day forecasting & trend analysis</div>
             </div>
-            
-            <div className="flex flex-wrap gap-3">
-              {subnetOptions.map((subnet) => (
-                <motion.button
-                  key={subnet.id}
-                  onClick={() => setSelectedSubnetId(subnet.id)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                    selectedSubnetId === subnet.id
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <div className="text-sm">
-                    <div className="font-semibold">#{subnet.id} {subnet.name}</div>
-                    <div className="text-xs opacity-80">{subnet.type}</div>
-                  </div>
-                </motion.button>
-              ))}
+            <div className={`${cardStyles.metric} bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30`}>
+              <div className={`font-bold ${textStyles.accent} mb-1`}>Llama-3.3-70B</div>
+              <div className={`text-sm ${textStyles.caption}`}>Risk assessment & sentiment analysis</div>
+            </div>
+            <div className={`${cardStyles.metric} bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30`}>
+              <div className={`font-bold ${textStyles.accent} mb-1`}>Claude Sonnet</div>
+              <div className={`text-sm ${textStyles.caption}`}>Anomaly detection & insights</div>
+            </div>
+            <div className={`${cardStyles.metric} bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30`}>
+              <div className={`font-bold ${textStyles.accent} mb-1`}>Statistical Models</div>
+              <div className={`text-sm ${textStyles.caption}`}>Investment recommendations</div>
             </div>
           </div>
-        </motion.div>
-
-        {/* AI Dashboard */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-          key={selectedSubnetId} // Re-animate when subnet changes
-        >
-          <PredictiveAnalyticsDashboard subnetId={selectedSubnetId} />
-        </motion.div>
-
-        {/* Footer Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="mt-8 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100"
-        >
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">🚀 Advanced AI Analysis</h3>
-            <p className="text-gray-700 mb-4">
-              This dashboard uses multiple AI models running on io.net's distributed computing network to provide:
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-white p-3 rounded-lg shadow-sm">
-                <strong className="text-indigo-600">DeepSeek-R1</strong>
-                <div className="text-gray-600">7-day forecasting & trend analysis</div>
-              </div>
-              <div className="bg-white p-3 rounded-lg shadow-sm">
-                <strong className="text-purple-600">Llama-3.3-70B</strong>
-                <div className="text-gray-600">Risk assessment & sentiment analysis</div>
-              </div>
-              <div className="bg-white p-3 rounded-lg shadow-sm">
-                <strong className="text-green-600">Claude Sonnet</strong>
-                <div className="text-gray-600">Anomaly detection & insights</div>
-              </div>
-              <div className="bg-white p-3 rounded-lg shadow-sm">
-                <strong className="text-orange-600">Statistical Models</strong>
-                <div className="text-gray-600">Investment recommendations</div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
     </div>
   );
 };
