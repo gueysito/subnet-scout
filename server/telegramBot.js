@@ -77,6 +77,43 @@ function formatSubnetInfo(subnet) {
 📈 Trend: ${subnet.metrics?.yield_change_24h > 0 ? '↗️' : '↘️'} ${Math.abs(subnet.metrics?.yield_change_24h || 0).toFixed(1)}%`;
 }
 
+// Helper function to get Ethos identity data for a user
+async function getEthosIdentity(userkey) {
+  try {
+    const response = await callBackendAPI(`/api/identity/bot/${userkey}`, 'GET');
+    if (response && response.success && response.data) {
+      return response.data;
+    }
+  } catch (error) {
+    console.log(`Ethos identity unavailable for ${userkey}: ${error.message}`);
+  }
+  return null;
+}
+
+// Helper function to format Ethos identity info
+function formatEthosIdentity(identity) {
+  if (!identity) return '';
+  
+  let info = '';
+  if (identity.profile?.name) {
+    // Escape markdown characters in the name
+    const safeName = identity.profile.name.replace(/[*_`\[\]]/g, '\\$&');
+    info += `👤 *${safeName}*\n`;
+  }
+  if (identity.reputation?.score) {
+    const score = identity.reputation.score;
+    const emoji = score >= 80 ? '🌟' : score >= 60 ? '⭐' : '✨';
+    info += `${emoji} Ethos Score: ${score}/100\n`;
+  }
+  if (identity.profile?.description) {
+    info += `📝 ${identity.profile.description}\n`;
+  }
+  if (identity.reviews?.summary?.total_reviews > 0) {
+    info += `📋 Reviews: ${identity.reviews.summary.total_reviews} (${identity.reviews.summary.average_rating}/5 ⭐)\n`;
+  }
+  return info;
+}
+
 // Helper function to get mock subnet data for top subnets
 async function getTopSubnets(count = 3) {
   // Since we don't have a specific "top subnets" endpoint, we'll simulate it
@@ -114,12 +151,14 @@ bot.start((ctx) => {
 🏆 \`/top\` - Get top 3 performing subnets
 🔍 \`/analyze <subnet_id>\` - Get detailed AI analysis of a subnet
 ⚖️ \`/compare <id1> <id2>\` - Compare two subnets side-by-side
+🪪 \`/identity <userkey>\` - Get Ethos Network identity & reputation
 🔔 \`/alerts\` - Enable/disable performance alerts
 ❓ \`/help\` - Show this help message
 
 **Examples:**
 • \`/analyze 1\` - Analyze subnet 1
 • \`/compare 1 21\` - Compare subnets 1 and 21
+• \`/identity 0x742d35Cc\` - Check wallet identity
 • \`/top\` - See top performers
 
 Powered by io.net distributed computing with 83% cost savings! 💰`;
@@ -135,6 +174,7 @@ bot.help((ctx) => {
 🏆 \`/top\` - Top 3 performing subnets
 🔍 \`/analyze <subnet_id>\` - Detailed subnet analysis  
 ⚖️ \`/compare <id1> <id2>\` - Compare two subnets
+🪪 \`/identity <userkey>\` - Get Ethos Network identity & reputation
 🔔 \`/alerts\` - Manage performance alerts
 ❓ \`/help\` - This help message
 
@@ -447,6 +487,109 @@ bot.command('compare', async (ctx) => {
   } catch (error) {
     console.error('Compare error:', error);
     ctx.reply('❌ Comparison failed. Please check that both subnet IDs are valid (1-118).');
+  }
+});
+
+// Command: /identity - Get Ethos Network identity and reputation data
+bot.command('identity', async (ctx) => {
+  try {
+    const args = ctx.message.text.split(' ').slice(1);
+    
+    if (args.length === 0) {
+      ctx.replyWithMarkdown(`🪪 **Ethos Network Identity Lookup**
+
+**Usage:** \`/identity <userkey>\`
+
+**Supported formats:**
+• Wallet address: \`0x742d35Cc6634C0532925a3b8D19389C13f6a8989\`
+• Discord handle: \`@username\`
+• Twitter handle: \`@twitteruser\`
+• Profile ID: \`profileId123\`
+
+**Example:** \`/identity 0x742d35Cc\`
+
+This will show Ethos Network reputation, reviews, and profile data.`);
+      return;
+    }
+
+    const userkey = args[0];
+    ctx.reply(`🔍 Looking up Ethos Network identity for: ${userkey}...`);
+
+    // Get Ethos identity data
+    const identity = await getEthosIdentity(userkey);
+    
+    if (identity) {
+      // Escape markdown characters in userkey
+      const safeUserkey = userkey.replace(/[*_`\[\]]/g, '\\$&');
+      let response = `🪪 *Ethos Network Identity Report*\n\n`;
+      response += `🔍 *User:* \`${safeUserkey}\`\n\n`;
+      
+      // Add formatted identity info
+      const identityInfo = formatEthosIdentity(identity);
+      if (identityInfo) {
+        response += identityInfo;
+        response += '\n';
+      }
+      
+      // Add verification status
+      if (identity.verification?.status) {
+        const verified = identity.verification.status === 'verified';
+        response += `${verified ? '✅' : '⚠️'} Verification: ${identity.verification.status}\n`;
+      }
+      
+      // Add social connections
+      if (identity.connections && Object.keys(identity.connections).length > 0) {
+        response += `🔗 *Connected Accounts:*\n`;
+        Object.entries(identity.connections).forEach(([platform, handle]) => {
+          const emoji = platform === 'twitter' ? '🐦' : platform === 'discord' ? '💬' : '🔗';
+          response += `${emoji} ${platform}: ${handle}\n`;
+        });
+        response += '\n';
+      }
+      
+      // Add trust metrics
+      if (identity.trust_metrics) {
+        response += `📊 *Trust Metrics:*\n`;
+        Object.entries(identity.trust_metrics).forEach(([metric, value]) => {
+          response += `• ${metric}: ${value}\n`;
+        });
+        response += '\n';
+      }
+      
+      response += `📅 Last updated: ${new Date().toLocaleDateString()}\n`;
+      
+      // Add demo note if this is mock data
+      if (identity.source === 'mock_demo') {
+        response += `\n💡 *Note:* This is demonstration data.\n`;
+        response += `Real Ethos integration requires user authentication tokens.\n`;
+      }
+      
+      response += `🔗 Powered by Ethos Network identity verification`;
+      
+      ctx.replyWithMarkdown(response);
+    } else {
+      const safeUserkey = userkey.replace(/[*_`\[\]]/g, '\\$&');
+      ctx.replyWithMarkdown(`❌ *Identity Not Found*
+
+No Ethos Network profile found for: \`${safeUserkey}\`
+
+*Possible reasons:*
+• User hasn't created an Ethos profile yet
+• Invalid userkey format
+• User profile is private
+
+*Try:*
+• Different userkey format (wallet address, Discord, Twitter)
+• Check if the user has an active Ethos Network profile
+
+💡 Users can create profiles at ethos.network`);
+    }
+
+  } catch (error) {
+    console.error('Identity lookup error:', error);
+    ctx.reply(`❌ Failed to lookup identity. Please try again or verify the userkey format.
+
+Use \`/identity\` without arguments for format examples.`);
   }
 });
 

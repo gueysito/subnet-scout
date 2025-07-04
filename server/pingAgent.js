@@ -1856,3 +1856,117 @@ const server = app.listen(PORT, () => {
     }
   }, 2000);
 });
+
+// Bot-friendly Ethos identity endpoint (no auth required for demo/testing)
+app.get('/api/identity/bot/:userkey', async (req, res) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const startTime = Date.now();
+  const { userkey } = req.params;
+  
+  try {
+    logger.info('Bot Ethos identity request', {
+      service: 'subnet-scout',
+      userkey,
+      request_id: requestId,
+      source: 'telegram_bot'
+    });
+
+    // For now, provide mock data since we need user tokens for real Ethos API
+    // In production, this would use a service token or cached public profiles
+    const mockIdentityData = {
+      success: true,
+      data: {
+        profile: {
+          name: userkey.startsWith('@') ? userkey.substring(1) : userkey,
+          description: "Bittensor community member and subnet participant"
+        },
+        reputation: {
+          score: Math.floor(Math.random() * 40) + 60 // Random score 60-100
+        },
+        reviews: {
+          summary: {
+            total_reviews: Math.floor(Math.random() * 10) + 1,
+            average_rating: (Math.random() * 2 + 3).toFixed(1) // 3.0-5.0 stars
+          }
+        },
+        verification: {
+          status: Math.random() > 0.3 ? 'verified' : 'pending'
+        },
+        connections: {},
+        trust_metrics: {
+          "Community Standing": "Strong",
+          "Transaction History": "Verified",
+          "Social Verification": "Active"
+        }
+      },
+      source: 'mock_demo',
+      note: 'This is demonstration data. Real Ethos integration requires user authentication tokens.',
+      timestamp: new Date().toISOString()
+    };
+
+    // If userkey looks like the test user, provide specific data
+    if (userkey.toLowerCase().includes('biggiepoppins')) {
+      mockIdentityData.data.profile.name = "Biggie Poppins";
+      mockIdentityData.data.profile.description = "Active Bittensor community member with verified social presence";
+      mockIdentityData.data.reputation.score = 85;
+      mockIdentityData.data.reviews.summary.total_reviews = 12;
+      mockIdentityData.data.reviews.summary.average_rating = "4.3";
+      mockIdentityData.data.verification.status = "verified";
+      mockIdentityData.data.connections = {
+        twitter: "@biggiepoppins",
+        discord: "biggiepoppins"
+      };
+    }
+
+    const responseTime = Date.now() - startTime;
+    logger.aiOperation('ethos_bot_lookup', 'ethos_network', userkey, responseTime, true);
+
+    logger.info('API Request Success', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 200,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(true, responseTime);
+    res.json(mockIdentityData);
+
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    
+    logger.error('Bot Ethos identity failed', {
+      service: 'subnet-scout',
+      userkey,
+      error: error.message,
+      request_id: requestId
+    });
+
+    logger.error('API Request Failed', {
+      service: 'subnet-scout',
+      type: 'api_request',
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      user_agent: req.get('User-Agent'),
+      status_code: 500,
+      error: error.message,
+      response_time: `${responseTime}ms`,
+      request_id: requestId
+    });
+
+    healthMonitor.recordRequest(false, responseTime);
+    res.status(500).json({
+      error: {
+        code: "ETHOS_IDENTITY_ERROR",
+        message: error.message,
+        request_id: requestId,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
