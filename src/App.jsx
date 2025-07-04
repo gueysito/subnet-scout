@@ -84,6 +84,10 @@ const App = () => {
 
   return (
     <div className={`${authkitStyles.primaryBg} ${authkitStyles.textPrimary} relative`}>
+      {/* VISUAL TEST - This should be immediately visible */}
+      <div className="fixed top-0 left-0 z-[9999] bg-red-500 text-white px-4 py-2 font-bold text-lg">
+        🔴 TEST: NEW UI ACTIVE - Clean Modern Theme
+      </div>
       <StagewiseToolbar 
         config={{
           plugins: [ReactPlugin]

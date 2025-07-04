@@ -15,6 +15,12 @@ export default function Home() {
 
   return (
     <div className={containerStyles.section}>
+      {/* VISUAL TEST - Confirm new styling */}
+      <div className="mb-4 p-4 bg-green-500 text-white rounded-lg border-4 border-yellow-400">
+        <h2 className="text-2xl font-bold">✅ NEW CLEAN UI LOADED!</h2>
+        <p>Background should be light gray, cards should be white, text should be dark</p>
+      </div>
+      
       {/* Hero Section */}
       <motion.div 
         initial={{ opacity: 0, y: 30 }}

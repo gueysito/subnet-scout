@@ -15,7 +15,7 @@ import {
   Legend,
 } from 'chart.js';
 import { GitBranch, Star, GitCommit, Users, Activity, TrendingUp, Download, Filter, Calendar, Code, AlertCircle } from 'lucide-react';
-import { containerStyles, cardStyles, textStyles, buttonStyles } from '../utils/styleUtils';
+import { containerStyles, cardStyles, textStyles, buttonStyles, authkitStyles } from '../utils/styleUtils';
 
 // Register ChartJS components
 ChartJS.register(
@@ -311,6 +311,11 @@ const GitHubInsights = () => {
 
   return (
     <div className={containerStyles.section}>
+      {/* VISUAL TEST */}
+      <div className="mb-4 p-4 bg-purple-500 text-white rounded-lg">
+        <h2 className="text-xl font-bold">🔗 GitHub Insights Page - New UI Active</h2>
+      </div>
+      
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -318,11 +323,11 @@ const GitHubInsights = () => {
         transition={{ duration: 0.6 }}
         className="mb-8"
       >
-        <h1 className={`text-4xl ${textStyles.heading} mb-4 flex items-center`}>
+        <h1 className={`text-4xl font-bold ${authkitStyles.textPrimary} mb-4 flex items-center`}>
           <GitBranch className="w-8 h-8 mr-3" />
           GitHub Development Insights
         </h1>
-        <p className={`text-xl ${textStyles.body} mb-6`}>
+        <p className={`text-xl ${authkitStyles.textSecondary} mb-6`}>
           Comprehensive analysis of development activity across all Bittensor subnet repositories
         </p>
       </motion.div>

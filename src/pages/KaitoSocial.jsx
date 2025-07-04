@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Line, Bar, Doughnut, Bubble } from 'react-chartjs-2';
 import { MessageCircle, Heart, Share, TrendingUp, Users, Eye, Hash, Calendar, Filter, Download, AlertTriangle, ThumbsUp } from 'lucide-react';
-import { containerStyles, cardStyles, textStyles, buttonStyles } from '../utils/styleUtils';
+import { containerStyles, cardStyles, textStyles, buttonStyles, authkitStyles } from '../utils/styleUtils';
 
 const KaitoSocial = () => {
   const [timeRange, setTimeRange] = useState('7d');
@@ -334,6 +334,11 @@ const KaitoSocial = () => {
 
   return (
     <div className={containerStyles.section}>
+      {/* VISUAL TEST */}
+      <div className="mb-4 p-4 bg-pink-500 text-white rounded-lg">
+        <h2 className="text-xl font-bold">📱 Kaito Social Page - New UI Active</h2>
+      </div>
+      
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -341,11 +346,11 @@ const KaitoSocial = () => {
         transition={{ duration: 0.6 }}
         className="mb-8"
       >
-        <h1 className={`text-4xl ${textStyles.heading} mb-4 flex items-center`}>
+        <h1 className={`text-4xl font-bold ${authkitStyles.textPrimary} mb-4 flex items-center`}>
           <MessageCircle className="w-8 h-8 mr-3" />
           Kaito Social Intelligence
         </h1>
-        <p className={`text-xl ${textStyles.body} mb-6`}>
+        <p className={`text-xl ${authkitStyles.textSecondary} mb-6`}>
           Real-time social media analytics and sentiment analysis for Bittensor subnets
         </p>
       </motion.div>
