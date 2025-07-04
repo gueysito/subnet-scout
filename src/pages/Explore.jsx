@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, TrendingUp, DollarSign, Activity, Users, GitBranch, Shield, Star, AlertCircle } from 'lucide-react';
-import { containerStyles, cardStyles, textStyles, buttonStyles, inputStyles } from '../utils/styleUtils';
+import { containerStyles, cardStyles, textStyles, buttonStyles, inputStyles, authkitStyles } from '../utils/styleUtils';
 
 const Explore = () => {
   const [subnets, setSubnets] = useState([]);
@@ -201,6 +201,11 @@ const Explore = () => {
     <div className={containerStyles.page}>
       <div className={containerStyles.section}>
         <div className={containerStyles.content}>
+          {/* VISUAL TEST */}
+          <div className="mb-4 p-4 bg-cyan-500 text-white rounded-lg">
+            <h2 className="text-xl font-bold">🔍 Explore Page - New UI Active</h2>
+          </div>
+          
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -208,10 +213,10 @@ const Explore = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-8"
           >
-            <h1 className={textStyles.hero}>
+            <h1 className={`text-5xl font-black ${authkitStyles.textPrimary}`}>
               Explore Subnets
             </h1>
-            <p className={`${textStyles.subheading} mt-4 max-w-3xl mx-auto`}>
+            <p className={`text-xl ${authkitStyles.textSecondary} mt-4 max-w-3xl mx-auto`}>
               Discover and analyze all active Bittensor subnets with real-time performance metrics
             </p>
           </motion.div>
