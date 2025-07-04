@@ -14,7 +14,7 @@ import SubnetHeatmap from './pages/SubnetHeatmap';
 import GitHubInsights from './pages/GitHubInsights';
 import KaitoSocial from './pages/KaitoSocial';
 import EthosIdentity from './pages/EthosIdentity';
-import { containerStyles, navStyles, textStyles, backgroundPatterns } from './utils/styleUtils';
+import { containerStyles, navStyles, textStyles, backgroundPatterns, authkitStyles } from './utils/styleUtils';
 
 const App = () => {
   const location = useLocation();
@@ -83,50 +83,41 @@ const App = () => {
   ];
 
   return (
-    <div className={`${containerStyles.page} ${backgroundPatterns.grid}`}>
+    <div className={`${authkitStyles.primaryBg} ${authkitStyles.textPrimary} relative`}>
       <StagewiseToolbar 
         config={{
           plugins: [ReactPlugin]
         }}
       />
-      {/* Premium Navigation Header - PROPERLY CENTERED */}
+      {/* Clean Modern Navigation Header */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="relative z-50 border-b border-white/10 bg-gradient-to-r from-slate-900/90 via-blue-900/80 to-indigo-900/90 backdrop-blur-2xl"
+        className={`relative z-50 ${authkitStyles.headerBg}`}
       >
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
-            {/* Premium Logo/Brand - CENTERED ON MOBILE */}
+            {/* Clean Modern Logo/Brand */}
             <motion.div 
               className="flex items-center space-x-4"
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
-                  <motion.span 
-                    className="text-2xl filter drop-shadow-lg"
-                    animate={{ rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    🚀
-                  </motion.span>
-                </div>
-                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-2xl blur opacity-20 animate-pulse"></div>
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-2xl">🚀</span>
               </div>
               <div>
-                <h1 className={`text-2xl sm:text-3xl ${textStyles.heading} bg-gradient-to-r from-white via-cyan-200 to-purple-200 bg-clip-text text-transparent`}>
+                <h1 className={`text-2xl sm:text-3xl font-bold ${authkitStyles.textPrimary}`}>
                   Subnet Scout
                 </h1>
-                <p className={`text-xs ${textStyles.caption} font-medium tracking-wide uppercase`}>
+                <p className={`text-xs ${authkitStyles.textMuted} font-medium tracking-wide uppercase`}>
                   Powered by io.net Intelligence
                 </p>
               </div>
             </motion.div>
             
-            {/* Premium Navigation Links - RESPONSIVE GRID */}
+            {/* AuthKit-inspired Navigation Links */}
             <nav className="flex flex-wrap items-center justify-center gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
@@ -141,17 +132,17 @@ const App = () => {
                   >
                     <Link 
                       to={item.path}
-                      className={isActive ? navStyles.active : navStyles.inactive}
+                      className={isActive ? authkitStyles.navLinkActive : authkitStyles.navLink}
                     >
                       <div className="flex items-center space-x-2">
                         <Icon className="w-4 h-4" />
-                        <span className="font-medium hidden sm:inline">{item.label}</span>
-                        <span className="font-medium sm:hidden text-xs">{item.label.substring(0, 3)}</span>
+                        <span className="hidden sm:inline">{item.label}</span>
+                        <span className="sm:hidden text-xs">{item.label.substring(0, 3)}</span>
                       </div>
                       {isActive && (
                         <motion.div
                           layoutId="activeTab"
-                          className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-20 rounded-xl`}
+                          className="absolute inset-0 bg-blue-100 rounded-lg"
                           initial={false}
                           transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         />
@@ -164,8 +155,8 @@ const App = () => {
           </div>
         </div>
 
-        {/* Subtle animated border */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
+        {/* Clean border */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gray-200"></div>
       </motion.header>
 
       {/* Main Content Area with Premium Animations */}
@@ -195,15 +186,7 @@ const App = () => {
         </AnimatePresence>
       </main>
 
-      {/* Premium Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        {/* Animated gradient orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-accent-500/10 to-emerald-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
-        
-        {/* Subtle mesh overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.02)_0%,transparent_50%)] opacity-50"></div>
-      </div>
+      {/* Clean background - no distracting effects */}
     </div>
   );
 };

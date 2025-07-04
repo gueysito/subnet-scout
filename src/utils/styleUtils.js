@@ -271,6 +271,170 @@ export const breakpoints = {
 };
 
 /**
+ * AUTHKIT-INSPIRED DESIGN SYSTEM
+ */
+export const authkitDesign = {
+  colors: {
+    primary: {
+      50: '#f0f9ff',
+      100: '#e0f2fe',
+      200: '#bae6fd',
+      300: '#7dd3fc',
+      400: '#38bdf8',
+      500: '#0ea5e9',
+      600: '#0284c7',
+      700: '#0369a1',
+      800: '#075985',
+      900: '#0c4a6e'
+    },
+    purple: {
+      50: '#faf5ff',
+      100: '#f3e8ff',
+      200: '#e9d5ff',
+      300: '#d8b4fe',
+      400: '#c084fc',
+      500: '#a855f7',
+      600: '#9333ea',
+      700: '#7c3aed',
+      800: '#6b21a8',
+      900: '#581c87'
+    },
+    slate: {
+      50: '#f8fafc',
+      100: '#f1f5f9',
+      200: '#e2e8f0',
+      300: '#cbd5e1',
+      400: '#94a3b8',
+      500: '#64748b',
+      600: '#475569',
+      700: '#334155',
+      800: '#1e293b',
+      900: '#0f172a'
+    },
+    glass: {
+      light: 'rgba(255, 255, 255, 0.1)',
+      medium: 'rgba(255, 255, 255, 0.15)',
+      strong: 'rgba(255, 255, 255, 0.2)'
+    }
+  },
+  
+  gradients: {
+    primary: 'from-blue-600 via-purple-600 to-indigo-600',
+    secondary: 'from-slate-800 via-slate-700 to-slate-800',
+    accent: 'from-cyan-400 via-blue-500 to-purple-600',
+    subtle: 'from-white/5 via-white/10 to-white/5',
+    glow: 'from-blue-500/20 via-purple-500/20 to-indigo-500/20'
+  },
+  
+  shadows: {
+    glow: 'shadow-2xl shadow-blue-500/10',
+    card: 'shadow-xl shadow-black/20',
+    button: 'shadow-lg shadow-blue-500/20',
+    input: 'shadow-inner shadow-black/10'
+  },
+  
+  blur: {
+    sm: 'backdrop-blur-sm',
+    md: 'backdrop-blur-md',
+    lg: 'backdrop-blur-lg',
+    xl: 'backdrop-blur-xl',
+    '2xl': 'backdrop-blur-2xl'
+  }
+};
+
+/**
+ * DRAMATIC REDESIGN - CLEAN MODERN LIGHT THEME
+ */
+export const authkitStyles = {
+  // Clean modern cards
+  glassCard: cn(
+    'bg-white border border-gray-200',
+    'rounded-lg shadow-sm',
+    'hover:shadow-md hover:border-gray-300',
+    'transition-all duration-200'
+  ),
+  
+  glassCardElevated: cn(
+    'bg-white border border-gray-200',
+    'rounded-lg shadow-lg',
+    'hover:shadow-xl hover:border-gray-300',
+    'transition-all duration-200'
+  ),
+  
+  // Bold modern buttons
+  primaryButton: cn(
+    'bg-blue-600 hover:bg-blue-700',
+    'text-white px-6 py-3 rounded-lg font-semibold',
+    'shadow-sm hover:shadow-md',
+    'transition-all duration-200 transform',
+    'hover:scale-[1.02] active:scale-[0.98]'
+  ),
+  
+  secondaryButton: cn(
+    'bg-gray-100 hover:bg-gray-200',
+    'border border-gray-300 hover:border-gray-400',
+    'text-gray-700 px-6 py-3 rounded-lg font-semibold',
+    'transition-all duration-200 transform',
+    'hover:scale-[1.02] active:scale-[0.98]'
+  ),
+  
+  ghostButton: cn(
+    'bg-transparent hover:bg-gray-50',
+    'border border-gray-300 hover:border-gray-400',
+    'text-gray-600 hover:text-gray-800 px-6 py-3 rounded-lg font-medium',
+    'transition-all duration-200'
+  ),
+  
+  // Clean inputs
+  modernInput: cn(
+    'w-full bg-white border border-gray-300 rounded-lg px-4 py-3',
+    'text-gray-900 placeholder-gray-500',
+    'focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+    'transition-all duration-200 outline-none'
+  ),
+  
+  modernSelect: cn(
+    'w-full bg-white border border-gray-300 rounded-lg px-4 py-3',
+    'text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+    'transition-all duration-200 outline-none'
+  ),
+  
+  // Clean navigation
+  navLink: cn(
+    'px-4 py-2 rounded-lg transition-all duration-200',
+    'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+    'font-medium'
+  ),
+  
+  navLinkActive: cn(
+    'px-4 py-2 rounded-lg',
+    'bg-blue-100 text-blue-700 border border-blue-200',
+    'font-semibold'
+  ),
+  
+  // Clean backgrounds
+  primaryBg: 'bg-gray-50 min-h-screen',
+  cardBg: 'bg-white border border-gray-200',
+  headerBg: 'bg-white border-b border-gray-200 shadow-sm',
+  
+  // Clean text styles
+  textPrimary: 'text-gray-900',
+  textSecondary: 'text-gray-700',
+  textMuted: 'text-gray-500',
+  textAccent: 'text-blue-600',
+  
+  // Modern labels
+  floatingLabel: cn(
+    'absolute left-4 top-3 text-gray-500 transition-all duration-200',
+    'pointer-events-none transform-origin-left'
+  ),
+  
+  floatingLabelActive: cn(
+    'transform -translate-y-6 scale-75 text-blue-600'
+  )
+};
+
+/**
  * COLOR PALETTE - PROFESSIONAL BRAND COLORS
  */
 export const colors = {

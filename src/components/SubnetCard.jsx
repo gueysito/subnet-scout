@@ -18,7 +18,7 @@ import {
   TrendingDown,
   Clock
 } from 'lucide-react';
-import { cardStyles, textStyles, buttonStyles, statusStyles } from '../utils/styleUtils';
+import { cardStyles, textStyles, buttonStyles, statusStyles, authkitStyles } from '../utils/styleUtils';
 import { useIntersectionObserver, useMemoizedApi, arePropsEqual } from '../utils/performance';
 import MindshareCard from './MindshareCard';
 import ReputationBadge from './ReputationBadge';
@@ -184,29 +184,25 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         transition: { type: "spring", stiffness: 400, damping: 17 }
       }}
       transition={{ duration: 0.4 }}
-      className={`${cardStyles.glass} group cursor-pointer relative overflow-hidden`}
+      className={`${authkitStyles.glassCard} group cursor-pointer relative overflow-hidden p-6`}
       role="article"
       aria-labelledby={`subnet-${agent.subnet_id}-title`}
       aria-describedby={`subnet-${agent.subnet_id}-description`}
     >
-      {/* Floating orbs background effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-accent-500/20 to-transparent rounded-full blur-xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
-        <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500"></div>
-      </div>
+      {/* Clean card - no distracting background effects */}
 
       {/* Header with name and status */}
       <header className="relative z-10 flex items-center justify-between mb-4">
         <div className="flex-1 min-w-0">
           <h3 
             id={`subnet-${agent.subnet_id}-title`}
-            className={`text-lg ${textStyles.heading} truncate group-hover:text-accent-300 transition-colors duration-300`}
+            className={`text-lg font-semibold ${authkitStyles.textPrimary} truncate group-hover:text-blue-600 transition-colors duration-300`}
           >
             {agent.name || `Subnet ${agent.subnet_id}`}
           </h3>
           <p 
             id={`subnet-${agent.subnet_id}-description`}
-            className={`text-sm ${textStyles.caption} truncate mt-1`}
+            className={`text-sm ${authkitStyles.textMuted} truncate mt-1`}
           >
             {agent.description || agent.type || 'Bittensor Subnet'}
           </p>
@@ -214,7 +210,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         
         <motion.div
           whileHover={{ scale: 1.1 }}
-          className={`${statusConfig.bg} ${statusConfig.border} border rounded-xl p-2 ${statusConfig.pulse} animate-pulse-slow`}
+          className={`bg-gray-100 border border-gray-200 rounded-lg p-2`}
           role="status"
           aria-label={`Subnet status: ${agent.status || 'unknown'}`}
         >
@@ -222,20 +218,17 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         </motion.div>
       </header>
 
-      {/* Score display with enhanced visual */}
+      {/* Clean score display */}
       <div className="mb-6">
         <motion.div 
           whileHover={{ scale: 1.05 }}
-          className={`${scoreConfig.bg} rounded-2xl p-6 border border-white/10 backdrop-blur-sm relative overflow-hidden`}
+          className={`bg-gray-50 rounded-lg p-6 border border-gray-200 text-center`}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-2xl"></div>
-          <div className="relative z-10 text-center">
-            <div className={`text-4xl font-bold bg-gradient-to-r ${scoreConfig.gradient} bg-clip-text text-transparent mb-2`}>
-              {agent.score}
-            </div>
-            <div className={`text-sm ${textStyles.caption} uppercase tracking-wide`}>
-              Overall Score
-            </div>
+          <div className={`text-4xl font-bold ${scoreConfig.color} mb-2`}>
+            {agent.score}
+          </div>
+          <div className={`text-sm ${authkitStyles.textMuted} uppercase tracking-wide`}>
+            Overall Score
           </div>
         </motion.div>
       </div>
@@ -251,15 +244,15 @@ const SubnetCard = ({ agent, onScoreClick }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ scale: 1.05, y: -2 }}
-              className="text-center p-3 bg-white/5 rounded-xl border border-white/10 backdrop-blur-sm group/metric"
+              className="text-center p-3 bg-white rounded-lg border border-gray-200 group/metric"
               role="figure"
               aria-label={`${metric.label}: ${metric.value}`}
             >
-              <Icon className={`w-5 h-5 ${metric.color} mx-auto mb-2 group-hover/metric:scale-110 transition-transform duration-300`} aria-hidden="true" />
-              <div className={`text-lg font-bold bg-gradient-to-r ${metric.gradient} bg-clip-text text-transparent mb-1`}>
+              <Icon className={`w-5 h-5 text-blue-600 mx-auto mb-2 group-hover/metric:scale-110 transition-transform duration-300`} aria-hidden="true" />
+              <div className={`text-lg font-bold ${authkitStyles.textPrimary} mb-1`}>
                 {metric.value}
               </div>
-              <div className={`text-xs ${textStyles.caption} uppercase tracking-wide`}>
+              <div className={`text-xs ${authkitStyles.textMuted} uppercase tracking-wide`}>
                 {metric.label}
               </div>
             </motion.div>
@@ -418,7 +411,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
           whileTap={{ scale: 0.95 }}
           onClick={handleScoreClick}
           aria-label={`Analyze subnet ${agent.name || agent.subnet_id}`}
-          className={`${buttonStyles.primary} flex-1 text-sm flex items-center justify-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none`}
+          className={`${authkitStyles.primaryButton} flex-1 text-sm flex items-center justify-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none`}
         >
           <TrendingUp className="w-4 h-4" aria-hidden="true" />
           <span>Analyze</span>
@@ -430,7 +423,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
           onClick={handleToggleExtended}
           aria-label={showExtended ? 'Hide additional subnet information' : 'Show additional subnet information'}
           aria-expanded={showExtended}
-          className={`${buttonStyles.secondary} text-sm flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:outline-none`}
+          className={`${authkitStyles.secondaryButton} text-sm flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:outline-none`}
         >
           <Eye className="w-4 h-4" aria-hidden="true" />
           <span>{showExtended ? 'Less' : 'More'}</span>
@@ -444,7 +437,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`View ${agent.name || 'subnet'} repository on GitHub (opens in new tab)`}
-            className={`${buttonStyles.ghost} px-4 py-3 flex items-center justify-center focus:ring-2 focus:ring-gray-500 focus:outline-none`}
+            className={`${authkitStyles.ghostButton} px-4 py-3 flex items-center justify-center focus:ring-2 focus:ring-gray-500 focus:outline-none`}
           >
             <Github className="w-4 h-4" aria-hidden="true" />
           </motion.a>
@@ -454,7 +447,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
             whileTap={{ scale: 0.95 }}
             disabled
             aria-label="No external link available for this subnet"
-            className={`${buttonStyles.ghost} px-4 py-3 flex items-center justify-center opacity-50 cursor-not-allowed focus:ring-2 focus:ring-gray-500 focus:outline-none`}
+            className={`${authkitStyles.ghostButton} px-4 py-3 flex items-center justify-center opacity-50 cursor-not-allowed focus:ring-2 focus:ring-gray-500 focus:outline-none`}
           >
             <ExternalLink className="w-4 h-4" aria-hidden="true" />
           </motion.button>
@@ -465,13 +458,13 @@ const SubnetCard = ({ agent, onScoreClick }) => {
       <div className="relative pt-4">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         <div className="flex items-center justify-between">
-          <p className={`text-xs ${textStyles.caption} flex items-center space-x-1`}>
+          <p className={`text-xs ${authkitStyles.textMuted} flex items-center space-x-1`}>
             <Clock className="w-3 h-3" aria-hidden="true" />
             <span>Updated {formattedDate}</span>
           </p>
           <div className="flex items-center space-x-2">
             {agent.emission_rate && (
-              <span className={`text-xs ${textStyles.caption} px-2 py-1 bg-blue-500/10 rounded-full border border-blue-500/20`}>
+              <span className={`text-xs ${authkitStyles.textMuted} px-2 py-1 bg-blue-500/10 rounded-full border border-blue-500/20`}>
                 {agent.emission_rate.toFixed(2)} TAO
               </span>
             )}
@@ -479,8 +472,8 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         </div>
       </div>
 
-      {/* Hover glow effect */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-accent-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+      {/* Clean hover effect */}
+      <div className="absolute inset-0 rounded-lg bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
     </motion.article>
   );
 };
