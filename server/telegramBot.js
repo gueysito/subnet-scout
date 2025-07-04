@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
 import fetch from 'node-fetch';
-import { getSubnetMetadata } from './src/data/subnets.js';
+import { getSubnetMetadata } from '../src/data/subnets.js';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 const BACKEND_URL = 'http://localhost:8080';
