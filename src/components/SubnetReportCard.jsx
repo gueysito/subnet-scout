@@ -120,7 +120,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     // Use shared subnet metadata
     const metadata = getSubnetMetadata(id)
     const name = metadata.name
-    const category = metadata.category || 'General'
+    const category = metadata.type || 'General'
     
     // Generate realistic data based on subnet ID with some variation
     const basePrice = 0.023 + (id * 0.001)
