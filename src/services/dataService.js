@@ -1,4 +1,4 @@
-import apiClient from '../utils/apiClient.js'
+import apiClient from '../../shared/utils/apiClient.js'
 
 class DataService {
   constructor() {

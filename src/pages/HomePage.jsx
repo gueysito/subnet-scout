@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dataService from '../services/dataService'
+import SubnetReportCard from '../components/SubnetReportCard'
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('')
@@ -15,6 +16,8 @@ const HomePage = () => {
     subnetChange1m: '+10.4%',
     networkHealth: '92%'
   })
+  const [showReportCard, setShowReportCard] = useState(false)
+  const [selectedSubnetId, setSelectedSubnetId] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -31,10 +34,56 @@ const HomePage = () => {
     fetchMarketData()
   }, [])
 
+  // Detect if search query is a subnet ID or name
+  const detectSubnetQuery = (query) => {
+    const trimmed = query.trim().toLowerCase()
+    
+    // Check if it's a direct subnet number
+    const subnetNumber = parseInt(trimmed.replace(/^subnet\s*/i, ''))
+    if (!isNaN(subnetNumber) && subnetNumber >= 1 && subnetNumber <= 118) {
+      return subnetNumber
+    }
+    
+    // Check common subnet names
+    const subnetNames = {
+      'text prompting': 1,
+      'prompting': 1,
+      'text': 1,
+      'machine translation': 2,
+      'translation': 2,
+      'scraping': 3,
+      'multi modality': 4,
+      'multimodal': 4,
+      'image generation': 5,
+      'image': 5,
+      'finance bots': 6,
+      'finance': 6,
+      'financial': 6,
+      'taoshi': 8,
+      'filetao': 21,
+      'storage': 21,
+      'file': 21
+    }
+    
+    return subnetNames[trimmed] || null
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
-    navigate(`/explorer?search=${encodeURIComponent(searchQuery)}`)
+    
+    // Check if this looks like a subnet query
+    const subnetId = detectSubnetQuery(searchQuery)
+    
+    if (subnetId) {
+      // Show report card for subnet
+      setSelectedSubnetId(subnetId)
+      setShowReportCard(true)
+      setSearchQuery('') // Clear search after opening modal
+    } else {
+      // Navigate to explorer for general search
+      navigate(`/explorer?search=${encodeURIComponent(searchQuery)}`)
+    }
   }
 
   return (
@@ -70,10 +119,13 @@ const HomePage = () => {
 
         <section className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/10">
           <h2 className="text-2xl font-bold mb-4">Explore a Subnet</h2>
+          <p className="text-gray-400 text-sm mb-4">
+            Enter a subnet number (1-118) or name to get a comprehensive report card, or search for other content.
+          </p>
           <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-center gap-4">
             <input 
               type="text" 
-              placeholder="Enter subnet number or name..." 
+              placeholder="Try: '6', 'finance bots', 'taoshi', or 'subnet 21'..." 
               className="w-full md:w-auto flex-1 px-4 py-2 rounded bg-gray-700 text-white border border-gray-600 placeholder-gray-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -86,12 +138,22 @@ const HomePage = () => {
               Scout
             </button>
           </form>
+          <div className="mt-3 text-xs text-gray-500">
+            🧾 Subnet queries show detailed report cards • 🔍 Other searches explore the network
+          </div>
         </section>
       </main>
 
       <footer className="text-center text-sm text-gray-500 py-6">
         &copy; 2025 Subnet Scout. All rights reserved.
       </footer>
+
+      {/* Subnet Report Card Modal */}
+      <SubnetReportCard 
+        subnetId={selectedSubnetId}
+        isOpen={showReportCard}
+        onClose={() => setShowReportCard(false)}
+      />
     </div>
   )
 }
