@@ -235,6 +235,250 @@ logger.info('🚀 Subnet Scout Agent - Server Starting', {
   }
 });
 
+// ========================================================================================
+// io.net Multi-Agent Processing System for TAO Questions
+// ========================================================================================
+
+async function processQuestionWithIONetAgents(question) {
+  try {
+    console.log(`🤖 Processing TAO question with io.net agents: "${question}"`);
+    
+    // Step 1: Use Classification Agent to determine question type
+    const questionType = await classifyQuestion(question);
+    console.log(`📋 Question classified as: ${questionType.category}`);
+    
+    // Step 2: Use Moderation Agent to ensure TAO/subnet focus
+    const moderationResult = await moderateQuestion(question);
+    if (!moderationResult.approved) {
+      return {
+        answer: "I focus on TAO and subnet questions! Try asking about:\n• TAO staking amounts: 'How much TAO does subnet 8 have?'\n• Subnet information: 'What type is FileTAO?'\n• Latest updates: 'Recent news about Taoshi'",
+        agent: 'Moderation Agent',
+        category: 'off-topic'
+      };
+    }
+    
+    // Step 3: Route to appropriate agent based on question type
+    let response;
+    switch (questionType.category) {
+      case 'news':
+      case 'announcements':
+        response = await processNewsQuestion(question);
+        break;
+      case 'data':
+      case 'statistics':
+        response = await processDataQuestion(question);
+        break;
+      case 'community':
+      case 'sentiment':
+        response = await processSentimentQuestion(question);
+        break;
+      default:
+        response = await processGeneralQuestion(question);
+    }
+    
+    return {
+      ...response,
+      category: questionType.category,
+      question_type: questionType
+    };
+    
+  } catch (error) {
+    console.error('io.net agent processing error:', error);
+    throw error;
+  }
+}
+
+// Classification Agent - Categorize question type
+async function classifyQuestion(question) {
+  try {
+    const prompt = `Classify this TAO/subnet question into one of these categories:
+- news: Latest announcements, updates, releases
+- data: TAO amounts, statistics, metrics, numbers
+- community: Community opinions, sentiment, discussions
+- general: Basic information, explanations, how-to
+
+Question: "${question}"
+
+Respond with just the category name:`;
+
+    const response = await enhancedScoreAgent.ionetClient.generateText(prompt, {
+      max_tokens: 50,
+      model: 'meta-llama/Llama-3.3-70B-Instruct'
+    });
+    
+    const category = response.trim().toLowerCase();
+    return { 
+      category: ['news', 'data', 'community', 'general'].includes(category) ? category : 'general',
+      confidence: 0.85
+    };
+  } catch (error) {
+    console.warn('Classification failed, using general category:', error);
+    return { category: 'general', confidence: 0.5 };
+  }
+}
+
+// Moderation Agent - Ensure TAO/subnet focus
+async function moderateQuestion(question) {
+  try {
+    const taoKeywords = ['tao', 'subnet', 'bittensor', 'staking', 'emissions', 'validators', 'mining'];
+    const questionLower = question.toLowerCase();
+    
+    const hasTaoContent = taoKeywords.some(keyword => questionLower.includes(keyword));
+    
+    return {
+      approved: hasTaoContent,
+      reason: hasTaoContent ? 'TAO-related content detected' : 'No TAO/subnet content detected'
+    };
+  } catch (error) {
+    console.warn('Moderation failed, allowing question:', error);
+    return { approved: true, reason: 'Moderation unavailable' };
+  }
+}
+
+// Summary Agent - Process news/announcements
+async function processNewsQuestion(question) {
+  try {
+    console.log('🔍 Processing news question with Summary Agent');
+    
+    const subnetInfo = extractSubnetFromQuestion(question);
+    
+    const prompt = `You are the io.net Summary Agent. Analyze this TAO/subnet question and provide a concise, helpful response.
+
+Question: "${question}"
+
+Provide a brief, informative response about the subnet or TAO topic:`;
+
+    const response = await enhancedScoreAgent.ionetClient.generateText(prompt, {
+      max_tokens: 200,
+      model: 'meta-llama/Llama-3.3-70B-Instruct'
+    });
+    
+    return {
+      answer: response,
+      agent: 'Summary Agent',
+      subnet_info: subnetInfo
+    };
+  } catch (error) {
+    console.warn('Summary Agent failed:', error);
+    return processGeneralQuestion(question);
+  }
+}
+
+// Named Entity Recognizer - Process data questions
+async function processDataQuestion(question) {
+  try {
+    console.log('📊 Processing data question with Named Entity Recognizer');
+    
+    const subnetInfo = extractSubnetFromQuestion(question);
+    let dataResponse = "I don't have current TAO staking data, but I can help with general subnet information.";
+    
+    if (subnetInfo) {
+      const metadata = getSubnetMetadata(subnetInfo.id);
+      dataResponse = `Subnet ${subnetInfo.id} (${metadata.name}) is a ${metadata.type} subnet. For current staking amounts and precise metrics, please check TaoStats or the Bittensor explorer.`;
+    }
+    
+    return {
+      answer: dataResponse,
+      agent: 'Named Entity Recognizer',
+      subnet_info: subnetInfo
+    };
+  } catch (error) {
+    console.warn('Named Entity Recognizer failed:', error);
+    return processGeneralQuestion(question);
+  }
+}
+
+// Sentiment Analysis Agent - Process community questions
+async function processSentimentQuestion(question) {
+  try {
+    console.log('💭 Processing sentiment question with Sentiment Analysis Agent');
+    
+    const prompt = `You are the io.net Sentiment Analysis Agent. Analyze this TAO/subnet community question and provide insights.
+
+Question: "${question}"
+
+Provide a balanced perspective on the topic:`;
+
+    const response = await enhancedScoreAgent.ionetClient.generateText(prompt, {
+      max_tokens: 150,
+      model: 'meta-llama/Llama-3.3-70B-Instruct'
+    });
+    
+    return {
+      answer: response,
+      agent: 'Sentiment Analysis Agent'
+    };
+  } catch (error) {
+    console.warn('Sentiment Analysis Agent failed:', error);
+    return processGeneralQuestion(question);
+  }
+}
+
+// Custom Agent - Process general questions
+async function processGeneralQuestion(question) {
+  try {
+    console.log('🔧 Processing general question with Custom Agent');
+    
+    const prompt = `You are the io.net Custom Agent specializing in TAO and Bittensor subnet information. Answer this question helpfully and concisely.
+
+Question: "${question}"
+
+Provide a clear, informative response:`;
+
+    const response = await enhancedScoreAgent.ionetClient.generateText(prompt, {
+      max_tokens: 150,
+      model: 'meta-llama/Llama-3.3-70B-Instruct'
+    });
+    
+    return {
+      answer: response,
+      agent: 'Custom Agent'
+    };
+  } catch (error) {
+    console.error('Custom Agent failed:', error);
+    return {
+      answer: "I'm having trouble processing that question. Please try asking about a specific subnet number for a detailed report card.",
+      agent: 'Fallback',
+      error: true
+    };
+  }
+}
+
+// Utility: Extract subnet information from question
+function extractSubnetFromQuestion(question) {
+  const questionLower = question.toLowerCase();
+  
+  // Check for subnet numbers
+  const subnetNumberMatch = questionLower.match(/subnet\s*(\d+)|(\d+)/);
+  if (subnetNumberMatch) {
+    const id = parseInt(subnetNumberMatch[1] || subnetNumberMatch[2]);
+    if (id >= 1 && id <= 118) {
+      return { id, type: 'number' };
+    }
+  }
+  
+  // Check for known subnet names
+  const knownNames = {
+    'taoshi': 8,
+    'filetao': 21,
+    'openkaito': 5,
+    'text prompting': 1,
+    'prompting': 1
+  };
+  
+  for (const [name, id] of Object.entries(knownNames)) {
+    if (questionLower.includes(name)) {
+      return { id, name, type: 'name' };
+    }
+  }
+  
+  return null;
+}
+
+// ========================================================================================
+// API Endpoints
+// ========================================================================================
+
 // Health monitoring and system status endpoints
 app.get('/health', async (req, res) => {
   try {
@@ -757,6 +1001,56 @@ app.get("/api/health/enhancement", async (req, res) => {
       error: {
         code: "HEALTH_CHECK_ERROR",
         message: err.message,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
+// TAO Question Processing with io.net Multi-Agent System
+app.post("/api/tao/question", async (req, res) => {
+  try {
+    const { question, timestamp } = req.body;
+
+    // Validate required fields
+    if (!question || typeof question !== 'string') {
+      return res.status(400).json({ 
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Missing required field: question (string)",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    const trimmedQuestion = question.trim();
+    if (trimmedQuestion.length === 0) {
+      return res.status(400).json({ 
+        error: {
+          code: "EMPTY_QUESTION",
+          message: "Question cannot be empty",
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+
+    // Process question through io.net multi-agent system
+    const startTime = Date.now();
+    const response = await processQuestionWithIONetAgents(trimmedQuestion);
+    const processingTime = Date.now() - startTime;
+
+    res.json({
+      ...response,
+      processing_time_ms: processingTime,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('TAO question processing error:', error);
+    res.status(500).json({
+      error: {
+        code: "PROCESSING_ERROR",
+        message: "Failed to process TAO question",
         timestamp: new Date().toISOString()
       }
     });
