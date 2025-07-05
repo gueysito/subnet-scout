@@ -292,6 +292,21 @@ class DataService {
     }
   }
 
+  // Process TAO question using io.net agents
+  async processTaoQuestion(question) {
+    try {
+      const response = await apiClient.post('/api/tao/question', {
+        question: question.trim(),
+        timestamp: Date.now()
+      })
+      
+      return response.data
+    } catch (error) {
+      console.warn('Failed to process TAO question:', error)
+      throw error
+    }
+  }
+
   // Clear cache
   clearCache() {
     this.cache.clear()

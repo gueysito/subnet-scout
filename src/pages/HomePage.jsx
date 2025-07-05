@@ -18,6 +18,8 @@ const HomePage = () => {
   })
   const [showReportCard, setShowReportCard] = useState(false)
   const [selectedSubnetId, setSelectedSubnetId] = useState(null)
+  const [taoResponse, setTaoResponse] = useState(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -68,11 +70,59 @@ const HomePage = () => {
     return subnetNames[trimmed] || null
   }
 
-  const handleSubmit = (e) => {
+  // Detect if query is a TAO-specific question
+  const detectTaoQuestion = (query) => {
+    const trimmed = query.trim().toLowerCase()
+    
+    // TAO question keywords
+    const taoKeywords = [
+      'tao', 'subnet', 'staking', 'emissions', 'validators', 'bittensor',
+      'how much', 'latest', 'news', 'announcement', 'github', 'development',
+      'health', 'performance', 'community', 'price', 'market'
+    ]
+    
+    // Question indicators
+    const questionIndicators = ['?', 'how', 'what', 'when', 'where', 'why', 'latest', 'recent']
+    
+    const hasQuestionIndicator = questionIndicators.some(indicator => 
+      trimmed.includes(indicator)
+    )
+    
+    const hasTaoKeyword = taoKeywords.some(keyword => 
+      trimmed.includes(keyword)
+    )
+    
+    return hasQuestionIndicator && hasTaoKeyword
+  }
+
+  // Process TAO question using io.net agents
+  const processTaoQuestion = async (question) => {
+    setIsProcessing(true)
+    setTaoResponse(null)
+    
+    try {
+      const response = await dataService.processTaoQuestion(question)
+      setTaoResponse(response)
+    } catch (error) {
+      console.error('Error processing TAO question:', error)
+      setTaoResponse({
+        answer: "I'm having trouble processing that question right now. Please try asking about a specific subnet number for a report card instead.",
+        agent: 'Error Handler',
+        error: true
+      })
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
     
-    // Check if this looks like a subnet query
+    // Clear any previous responses
+    setTaoResponse(null)
+    
+    // Check if this looks like a subnet query (first priority)
     const subnetId = detectSubnetQuery(searchQuery)
     
     if (subnetId) {
@@ -80,6 +130,10 @@ const HomePage = () => {
       setSelectedSubnetId(subnetId)
       setShowReportCard(true)
       setSearchQuery('') // Clear search after opening modal
+    } else if (detectTaoQuestion(searchQuery)) {
+      // Process TAO-specific question with io.net agents
+      await processTaoQuestion(searchQuery)
+      setSearchQuery('') // Clear search after processing
     } else {
       // Navigate to explorer for general search
       navigate(`/explorer?search=${encodeURIComponent(searchQuery)}`)
@@ -120,12 +174,12 @@ const HomePage = () => {
         <section className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/10">
           <h2 className="text-2xl font-bold mb-4">Explore a Subnet</h2>
           <p className="text-gray-400 text-sm mb-4">
-            Enter a subnet number (1-118) or name to get a comprehensive report card, or search for other content.
+            Enter a subnet number (1-118) or name for a report card, or ask TAO-specific questions.
           </p>
           <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-center gap-4">
             <input 
               type="text" 
-              placeholder="Try: '6', 'finance bots', 'taoshi', or 'subnet 21'..." 
+              placeholder="Try: 'subnet 8', 'How much TAO does FileTAO have?', or 'Latest news about Taoshi'" 
               className="w-full md:w-auto flex-1 px-4 py-2 rounded bg-gray-700 text-white border border-gray-600 placeholder-gray-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -139,9 +193,70 @@ const HomePage = () => {
             </button>
           </form>
           <div className="mt-3 text-xs text-gray-500">
-            🧾 Subnet queries show detailed report cards • 🔍 Other searches explore the network
+            🧾 Subnet names/numbers show report cards • 🤖 TAO questions get AI-powered answers
           </div>
         </section>
+
+        {/* TAO Question Processing/Response Section */}
+        {(isProcessing || taoResponse) && (
+          <section className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/10 mt-6 max-w-4xl mx-auto">
+            {isProcessing && (
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mb-4"></div>
+                <h3 className="text-lg font-semibold text-blue-400">Processing with io.net Intelligence Agents...</h3>
+                <p className="text-gray-400 text-sm mt-2">Analyzing your question using advanced AI models</p>
+              </div>
+            )}
+            
+            {taoResponse && !isProcessing && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">TAO Intelligence Response</h3>
+                  <button 
+                    onClick={() => setTaoResponse(null)}
+                    className="text-gray-400 hover:text-white text-sm"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+                
+                <div className={`p-4 rounded-lg border-l-4 ${
+                  taoResponse.error 
+                    ? 'bg-red-900/20 border-red-500' 
+                    : 'bg-blue-900/20 border-blue-500'
+                }`}>
+                  <p className="text-white leading-relaxed">{taoResponse.answer}</p>
+                  
+                  {taoResponse.agent && !taoResponse.error && (
+                    <div className="mt-3 text-xs text-gray-400 flex items-center">
+                      <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                      Processed by io.net {taoResponse.agent}
+                    </div>
+                  )}
+                  
+                  {taoResponse.sources && taoResponse.sources.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-400 mb-2">Sources:</p>
+                      <div className="space-y-1">
+                        {taoResponse.sources.map((source, index) => (
+                          <a 
+                            key={index}
+                            href={source.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300 block truncate"
+                          >
+                            • {source.title}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       <footer className="text-center text-sm text-gray-500 py-6">
