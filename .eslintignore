@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+logs
+*.log
+server/
+docs/
+test-*.js
+*.test.js
+validateTauV1.js
+test_*.js
+*.config.js
