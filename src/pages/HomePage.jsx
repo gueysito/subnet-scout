@@ -46,6 +46,13 @@ const HomePage = () => {
       return subnetNumber
     }
     
+    // Check for placeholder patterns like "subnet x" - these should NOT trigger subnet navigation
+    // Instead, they should be processed as TAO questions
+    const placeholderPatterns = /subnet\s*[x|xx|xxx|\?]/i
+    if (placeholderPatterns.test(trimmed)) {
+      return null // Don't treat as valid subnet ID, let it go to TAO processing
+    }
+    
     // Check common subnet names
     const subnetNames = {
       'text prompting': 1,
@@ -197,65 +204,96 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* TAO Question Processing/Response Section */}
+        {/* TAO Question Processing/Response Modal - Center Screen */}
         {(isProcessing || taoResponse) && (
-          <section className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/10 mt-6 max-w-4xl mx-auto">
-            {isProcessing && (
-              <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mb-4"></div>
-                <h3 className="text-lg font-semibold text-blue-400">Processing with io.net Intelligence Agents...</h3>
-                <p className="text-gray-400 text-sm mt-2">Analyzing your question using advanced AI models</p>
-              </div>
-            )}
-            
-            {taoResponse && !isProcessing && (
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">TAO Intelligence Response</h3>
-                  <button 
-                    onClick={() => setTaoResponse(null)}
-                    className="text-gray-400 hover:text-white text-sm"
-                  >
-                    ✕ Close
-                  </button>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-700 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+              {isProcessing && (
+                <div className="p-8 text-center">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mb-6"></div>
+                  <h3 className="text-xl font-semibold text-blue-400 mb-2">Processing with io.net Intelligence...</h3>
+                  <p className="text-gray-400">Analyzing your question using advanced AI models</p>
                 </div>
-                
-                <div className={`p-4 rounded-lg border-l-4 ${
-                  taoResponse.error 
-                    ? 'bg-red-900/20 border-red-500' 
-                    : 'bg-blue-900/20 border-blue-500'
-                }`}>
-                  <p className="text-white leading-relaxed">{taoResponse.answer}</p>
+              )}
+              
+              {taoResponse && !isProcessing && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold text-white">TAO Intelligence Response</h3>
+                    <button 
+                      onClick={() => setTaoResponse(null)}
+                      className="text-gray-400 hover:text-white text-2xl font-light"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
                   
-                  {taoResponse.agent && !taoResponse.error && (
-                    <div className="mt-3 text-xs text-gray-400 flex items-center">
-                      <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                      Processed by io.net {taoResponse.agent}
+                  <div className={`p-6 rounded-xl border-l-4 ${
+                    taoResponse.error 
+                      ? 'bg-red-900/20 border-red-500' 
+                      : 'bg-blue-900/20 border-blue-500'
+                  }`}>
+                    <div className="text-white leading-relaxed text-base">
+                      {taoResponse.answer.split('\n').map((line, index) => (
+                        <p key={index} className={index > 0 ? 'mt-4' : ''}>
+                          {line}
+                        </p>
+                      ))}
                     </div>
-                  )}
-                  
-                  {taoResponse.sources && taoResponse.sources.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs text-gray-400 mb-2">Sources:</p>
-                      <div className="space-y-1">
-                        {taoResponse.sources.map((source, index) => (
-                          <a 
-                            key={index}
-                            href={source.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-400 hover:text-blue-300 block truncate"
-                          >
-                            • {source.title}
-                          </a>
-                        ))}
+                    
+                    {taoResponse.agent && !taoResponse.error && (
+                      <div className="mt-4 pt-4 border-t border-gray-600 text-sm text-gray-400 flex items-center">
+                        <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+                        Processed by {taoResponse.agent}
+                        {taoResponse.model && (
+                          <span className="ml-2 text-xs">• Model: {taoResponse.model}</span>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
+                    
+                    {taoResponse.suggestions && taoResponse.suggestions.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-600">
+                        <p className="text-sm text-gray-400 mb-3">Try these alternative questions:</p>
+                        <div className="space-y-2">
+                          {taoResponse.suggestions.map((suggestion, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setSearchQuery(suggestion);
+                                setTaoResponse(null);
+                              }}
+                              className="block w-full text-left text-sm text-blue-400 hover:text-blue-300 p-2 rounded bg-blue-900/10 hover:bg-blue-900/20 transition-colors"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {taoResponse.sources && taoResponse.sources.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-600">
+                        <p className="text-sm text-gray-400 mb-3">Sources:</p>
+                        <div className="space-y-1">
+                          {taoResponse.sources.map((source, index) => (
+                            <a 
+                              key={index}
+                              href={source.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-400 hover:text-blue-300 block truncate"
+                            >
+                              • {source.title}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </div>
+          </div>
         )}
       </main>
 

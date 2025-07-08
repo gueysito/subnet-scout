@@ -19,6 +19,7 @@ const ExplorerPage = () => {
     { id: 88, change: '-7.7%' },
     { id: 56, change: '-6.2%' }
   ])
+  const [isLoadingMovers, setIsLoadingMovers] = useState(false)
 
   // Sort function
   const handleSort = (key) => {
@@ -118,22 +119,32 @@ const ExplorerPage = () => {
 
     const fetchData = async () => {
       try {
+        setIsLoadingMovers(true)
+        
         // Try to fetch real data, fallback to generated data
-        const [subnetListData, moversData] = await Promise.all([
-          searchQuery 
-            ? dataService.searchSubnets(searchQuery)
-            : dataService.getSubnetList(1, 20),
-          dataService.getTopMovers()
-        ])
-
-        if (moversData?.topMovers) {
-          setTopMovers(moversData.topMovers)
+        const subnetListPromise = searchQuery 
+          ? dataService.searchSubnets(searchQuery)
+          : dataService.getSubnetList(1, 20)
+        
+        // Fetch movers data separately with better error handling
+        try {
+          const moversData = await dataService.getTopMovers()
+          if (moversData?.topMovers && moversData.topMovers.length > 0) {
+            setTopMovers(moversData.topMovers)
+          }
+          if (moversData?.topLosers && moversData.topLosers.length > 0) {
+            setTopLosers(moversData.topLosers)
+          }
+        } catch (moversErr) {
+          console.warn('Top movers data fetch failed, keeping fallback data:', moversErr)
+          // Keep existing fallback data, don't clear the boxes
         }
-        if (moversData?.topLosers) {
-          setTopLosers(moversData.topLosers)
-        }
+        
+        await subnetListPromise
+        setIsLoadingMovers(false)
       } catch (err) {
         console.error('Error fetching explorer data:', err)
+        setIsLoadingMovers(false)
       }
     }
 

@@ -54,16 +54,16 @@ const AboutPage = () => {
           <h2 className="text-2xl font-bold mb-4 text-center">📊 Why It Matters</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-lg">
-              <h3 className="font-semibold text-lg mb-2">⚡ 83% Cost Savings</h3>
-              <p className="text-sm text-zinc-400">Compared to traditional cloud (AWS/GCP), our io.net agent infra saves users up to 83% while improving elasticity and scalability.</p>
+              <h3 className="font-semibold text-lg mb-2">⚡ 89x Faster Processing</h3>
+              <p className="text-sm text-zinc-400">Distributed monitoring processes all 118 subnets in just 5.37 seconds (22 subnets/second) - 89x faster than traditional cloud infrastructure.</p>
+            </div>
+            <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-lg">
+              <h3 className="font-semibold text-lg mb-2">💰 83% Cost Savings</h3>
+              <p className="text-sm text-zinc-400">Our io.net infrastructure costs $150/month vs $900/month for traditional cloud (AWS/GCP), delivering massive savings with better performance.</p>
             </div>
             <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-lg">
               <h3 className="font-semibold text-lg mb-2">📡 Unmatched Coverage</h3>
-              <p className="text-sm text-zinc-400">We bring in exclusive data from teams like Ethos and Kaido — and are constantly expanding with new sources we deem worthy.</p>
-            </div>
-            <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-lg">
-              <h3 className="font-semibold text-lg mb-2">🛠️ Built for Builders</h3>
-              <p className="text-sm text-zinc-400">Open source, extensible, and developer-friendly. Fork it, remix it, or contribute your own subnet rules.</p>
+              <p className="text-sm text-zinc-400">Exclusive data from Ethos and Kaito teams, plus real-time distributed processing across all 118+ Bittensor subnets.</p>
             </div>
           </div>
         </section>
@@ -73,9 +73,10 @@ const AboutPage = () => {
             <h2 className="text-xl font-semibold mb-3">🔍 Technical Stack</h2>
             <ul className="list-disc list-inside text-zinc-300 space-y-1">
               <li><strong>Frontend:</strong> React + Tailwind CSS</li>
-              <li><strong>Backend:</strong> Express.js</li>
-              <li><strong>Data Sources:</strong> TaoStats, GitHub, Ethos, Kaido</li>
-              <li><strong>Agents:</strong> io.net with OpenAI-compatible LLMs</li>
+              <li><strong>Backend:</strong> Express.js + Python Ray distributed processing</li>
+              <li><strong>Data Sources:</strong> TaoStats, GitHub, Ethos, Kaito</li>
+              <li><strong>AI Agents:</strong> io.net with multi-model LLM selection</li>
+              <li><strong>Caching:</strong> Redis with intelligent TTL management</li>
               <li><strong>Hosting:</strong> Decentralized infrastructure (via io.net)</li>
             </ul>
           </section>

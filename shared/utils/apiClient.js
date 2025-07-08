@@ -300,6 +300,20 @@ class ApiClient {
     return this.fetchWithErrorHandling(url);
   }
 
+  // Generic POST method for any endpoint
+  async post(endpoint, data = {}) {
+    // If endpoint starts with slash, treat as relative to backend server
+    // Otherwise, treat as absolute URL
+    const url = endpoint.startsWith('/') 
+      ? `${API_CONFIG.BACKEND_BASE_URL}${endpoint}`
+      : endpoint;
+
+    return this.fetchWithErrorHandling(url, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
   // Utility methods
   toggleMockMode() {
     this.useMock = !this.useMock;

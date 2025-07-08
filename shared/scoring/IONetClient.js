@@ -406,6 +406,24 @@ Format: Clear comparison table and actionable insights.`;
     const responseTokens = expectedResponse;
     return promptTokens + responseTokens;
   }
+
+  /**
+   * Generic text generation method for TAO question processing
+   */
+  async generateText(prompt, options = {}) {
+    const model = options.model || this.models.general;
+    const messages = [
+      { role: 'user', content: prompt }
+    ];
+
+    const response = await this.makeInferenceRequest(model, messages, {
+      temperature: options.temperature || 0.7,
+      maxTokens: options.max_tokens || 500,
+      ...options
+    });
+
+    return response.content;
+  }
 }
 
 export default IONetClient; 

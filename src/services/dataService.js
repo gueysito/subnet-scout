@@ -300,7 +300,7 @@ class DataService {
         timestamp: Date.now()
       })
       
-      return response.data
+      return response
     } catch (error) {
       console.warn('Failed to process TAO question:', error)
       throw error
