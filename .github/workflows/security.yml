@@ -1,0 +1,224 @@
+name: 🔒 Security Audit
+
+on:
+  push:
+    branches: [ main, master, develop, production/* ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run security audit daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  security-audit:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run npm audit
+      run: |
+        echo "🔍 Running npm audit..."
+        npm audit --audit-level=moderate
+      continue-on-error: false
+
+    - name: Run security linting
+      run: |
+        echo "🔍 Running ESLint security rules..."
+        npx eslint . --ext .js,.jsx,.ts,.tsx --config eslint.config.js
+      continue-on-error: false
+
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run TruffleHog OSS
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+    - name: Custom secret patterns scan
+      run: |
+        echo "🔍 Scanning for common secret patterns..."
+        
+        # Check for API keys and tokens
+        if grep -r -i -E "(api_key|secret|password|token|private_key)\s*[=:]\s*['\"][^'\"]{20,}" . \
+          --exclude-dir=node_modules \
+          --exclude-dir=.git \
+          --exclude="*.log" \
+          --exclude="package-lock.json"; then
+          echo "❌ Potential secrets found!"
+          exit 1
+        fi
+        
+        # Check for .env files in repository
+        if find . -name ".env" -not -path "./node_modules/*" -not -path "./.git/*"; then
+          echo "❌ .env files found in repository!"
+          exit 1
+        fi
+        
+        echo "✅ No secrets detected"
+
+  dependency-check:
+    name: Dependency Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=medium
+      continue-on-error: true
+
+    - name: Upload Snyk report as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: snyk-report
+        path: snyk-report.json
+      if: always()
+
+  code-analysis:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:javascript"
+
+  security-headers:
+    name: Security Headers Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Start server for testing
+      run: |
+        npm run backend &
+        sleep 10
+      env:
+        NODE_ENV: test
+
+    - name: Test security headers
+      run: |
+        echo "🔍 Testing security headers..."
+        
+        # Test for security headers
+        response=$(curl -s -I http://localhost:8080/health)
+        
+        echo "Response headers:"
+        echo "$response"
+        
+        # Check for required security headers
+        if ! echo "$response" | grep -i "x-content-type-options"; then
+          echo "❌ Missing X-Content-Type-Options header"
+          exit 1
+        fi
+        
+        if ! echo "$response" | grep -i "x-frame-options\|content-security-policy"; then
+          echo "❌ Missing frame protection headers"
+          exit 1
+        fi
+        
+        echo "✅ Security headers check passed"
+
+  report:
+    name: Security Report
+    runs-on: ubuntu-latest
+    needs: [security-audit, secret-scan, dependency-check, code-analysis, security-headers]
+    if: always()
+    
+    steps:
+    - name: Generate Security Report
+      run: |
+        echo "## 🔒 Security Audit Report" >> security-report.md
+        echo "### Date: $(date)" >> security-report.md
+        echo "### Repository: ${{ github.repository }}" >> security-report.md
+        echo "### Commit: ${{ github.sha }}" >> security-report.md
+        echo "" >> security-report.md
+        
+        # Job status summary
+        echo "### Job Status:" >> security-report.md
+        echo "- Security Audit: ${{ needs.security-audit.result }}" >> security-report.md
+        echo "- Secret Scan: ${{ needs.secret-scan.result }}" >> security-report.md
+        echo "- Dependency Check: ${{ needs.dependency-check.result }}" >> security-report.md
+        echo "- Code Analysis: ${{ needs.code-analysis.result }}" >> security-report.md
+        echo "- Security Headers: ${{ needs.security-headers.result }}" >> security-report.md
+        
+        if [[ "${{ needs.security-audit.result }}" == "success" && 
+              "${{ needs.secret-scan.result }}" == "success" && 
+              "${{ needs.security-headers.result }}" == "success" ]]; then
+          echo "✅ **Overall Status: PASS**" >> security-report.md
+        else
+          echo "❌ **Overall Status: FAIL**" >> security-report.md
+        fi
+
+    - name: Upload Security Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-report
+        path: security-report.md

@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔒 Running pre-commit security checks..."
+
+# Run lint-staged for code formatting and linting
+npx lint-staged
+
+# Security: Check for secrets in staged files
+echo "🔍 Scanning for secrets..."
+git diff --cached --name-only | xargs grep -l -i -E "(api_key|secret|password|token|private_key)" && {
+  echo "❌ Potential secrets detected in staged files!"
+  echo "Please review and ensure no real secrets are committed."
+  echo "If these are intentional (like variable names), add them to .secretsignore"
+  exit 1
+} || echo "✅ No secrets detected"
+
+# Security: Check for .env files
+if git diff --cached --name-only | grep -q "\.env$"; then
+  echo "❌ .env file detected in staged changes!"
+  echo "Environment files should never be committed."
+  exit 1
+fi
+
+# Security: Check for large files that might contain sensitive data
+echo "🔍 Checking for large files..."
+large_files=$(git diff --cached --name-only | xargs ls -la 2>/dev/null | awk '$5 > 1048576 {print $9 " (" $5 " bytes)"}')
+if [ -n "$large_files" ]; then
+  echo "⚠️  Large files detected (>1MB):"
+  echo "$large_files"
+  echo "Please ensure these don't contain sensitive data."
+fi
+
+# Run ESLint on staged files
+echo "🔍 Running ESLint..."
+npx eslint --fix --ext .js,.jsx,.ts,.tsx $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | tr '\n' ' ')
+
+echo "✅ Pre-commit checks completed successfully!"

@@ -20,6 +20,10 @@ import healthMonitor from '../shared/utils/healthMonitor.js';
 import database from '../shared/utils/database.js';
 import kaitoYapsService from '../shared/utils/kaitoYapsService.js';
 import ethosService from '../shared/utils/ethosService.js';
+import { authenticateToken, optionalAuth, requireAdmin } from '../shared/middleware/auth.js';
+import { csrfProtection, getCSRFToken } from '../shared/middleware/csrf.js';
+import { httpsRedirect, startServer, gracefulShutdown as httpsGracefulShutdown } from '../shared/config/https.js';
+import session from 'express-session';
 
 // Load .env variables
 dotenv.config();
@@ -42,8 +46,15 @@ app.use(helmet({
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
     },
   },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
@@ -65,12 +76,25 @@ app.use(cors({
   origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token', 'X-XSRF-Token'],
+}));
+
+// Session middleware for CSRF protection
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    httpOnly: true, // Prevent XSS
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'strict' // CSRF protection
+  }
 }));
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '1mb' })); // Reduced from 10mb for security
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Request logging middleware
 app.use(logger.getMorganMiddleware());
@@ -122,6 +146,9 @@ const computeIntensiveLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   }
 });
+
+// HTTPS redirect in production
+app.use(httpsRedirect);
 
 // Apply rate limiting to all API routes
 app.use('/api/', apiLimiter);
@@ -686,6 +713,9 @@ function generateQuestionSuggestions(originalQuestion, subnetInfo) {
 // API Endpoints
 // ========================================================================================
 
+// CSRF token endpoint
+app.get('/api/csrf-token', getCSRFToken);
+
 // Health monitoring and system status endpoints
 app.get('/health', async (req, res) => {
   try {
@@ -739,8 +769,8 @@ app.get('/api/metrics', async (req, res) => {
   }
 });
 
-// Cache management endpoints
-app.post('/api/cache/clear', async (req, res) => {
+// Cache management endpoints - Admin only
+app.post('/api/cache/clear', csrfProtection, authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { pattern } = req.body;
     const result = await cacheService.clear(pattern);
@@ -757,8 +787,8 @@ app.post('/api/cache/clear', async (req, res) => {
   }
 });
 
-// Claude endpoint — properly uses input
-app.post("/api/claude", async (req, res) => {
+// Claude endpoint — properly uses input - Authentication required
+app.post("/api/claude", csrfProtection, authenticateToken, async (req, res) => {
   const start = Date.now();
   try {
     const userInput = req.body.input?.trim();
@@ -827,7 +857,7 @@ app.post("/api/score", async (req, res) => {
 });
 
 // Batch scoring endpoint - Calculate scores for multiple subnets
-app.post("/api/score/batch", computeIntensiveLimiter, async (req, res) => {
+app.post("/api/score/batch", authenticateToken, computeIntensiveLimiter, async (req, res) => {
   try {
     const { subnet_metrics, timeframe = '24h' } = req.body;
 
@@ -859,8 +889,8 @@ app.post("/api/score/batch", computeIntensiveLimiter, async (req, res) => {
   }
 });
 
-// Enhanced scoring endpoint - IO.net powered analysis
-app.post("/api/score/enhanced", computeIntensiveLimiter, async (req, res) => {
+// Enhanced scoring endpoint - IO.net powered analysis - Authentication required
+app.post("/api/score/enhanced", authenticateToken, computeIntensiveLimiter, async (req, res) => {
   const start = Date.now();
   try {
     const { 
@@ -955,7 +985,7 @@ app.post("/api/score/enhanced", computeIntensiveLimiter, async (req, res) => {
 });
 
 // Batch enhanced scoring endpoint - IO.net powered batch analysis
-app.post("/api/score/enhanced/batch", computeIntensiveLimiter, async (req, res) => {
+app.post("/api/score/enhanced/batch", authenticateToken, computeIntensiveLimiter, async (req, res) => {
   try {
     const { 
       subnet_metrics, 
@@ -1044,7 +1074,7 @@ app.post("/api/analysis/comprehensive", async (req, res) => {
 });
 
 // 7-Day Performance Forecasting endpoint - AI Insights milestone
-app.post("/api/insights/forecast", computeIntensiveLimiter, async (req, res) => {
+app.post("/api/insights/forecast", authenticateToken, computeIntensiveLimiter, async (req, res) => {
   try {
     const { 
       subnet_id, 
@@ -1265,7 +1295,7 @@ app.post("/api/tao/question", async (req, res) => {
 });
 
 // Distributed monitoring endpoint - THE KEY DIFFERENTIATOR!
-app.post("/api/monitor/distributed", computeIntensiveLimiter, async (req, res) => {
+app.post("/api/monitor/distributed", authenticateToken, computeIntensiveLimiter, async (req, res) => {
   try {
     const { subnet_count = 118, workers = 8, mock_mode = true } = req.body;
 
@@ -2311,6 +2341,7 @@ async function gracefulShutdown(signal) {
   try {
     // Close all connections gracefully
     await Promise.all([
+      httpsGracefulShutdown(servers),
       cacheService.close(),
       database.close()
     ]);
@@ -2335,15 +2366,17 @@ process.on('unhandledRejection', (reason, promise) => {
   gracefulShutdown('unhandledRejection');
 });
 
-// Start server with comprehensive logging
+// Start server with HTTPS support
+const servers = startServer(app);
+
+// Log server information
 const PORT = process.env.PORT || 8080;
-const server = app.listen(PORT, () => {
-  logger.info(`🚀 Subnet Scout Backend started successfully`, {
-    port: PORT,
-    host: 'localhost',
-    environment: process.env.NODE_ENV || 'development',
-    process_id: process.pid
-  });
+logger.info(`🚀 Subnet Scout Backend started successfully`, {
+  port: PORT,
+  environment: process.env.NODE_ENV || 'development',
+  https_enabled: process.env.FORCE_HTTPS === 'true',
+  process_id: process.pid
+});
   
   logger.info(`📋 Available endpoints:`, {
     health: [
@@ -2418,7 +2451,6 @@ const server = app.listen(PORT, () => {
       logger.error('❌ Initial health check failed', { error: error.message });
     }
   }, 2000);
-});
 
 // Bot-friendly Ethos identity endpoint (no auth required for demo/testing)
 app.get('/api/identity/bot/:userkey', async (req, res) => {

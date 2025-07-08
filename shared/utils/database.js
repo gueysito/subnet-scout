@@ -225,15 +225,18 @@ class DatabaseService {
     try {
       const client = await this.pool.connect();
       
+      // Validate and sanitize hours parameter to prevent SQL injection
+      const validatedHours = Math.max(1, Math.min(parseInt(hours) || 24, 8760)); // 1 hour to 1 year max
+      
       const query = `
         SELECT * FROM subnet_metrics 
         WHERE subnet_id = $1 
-        AND timestamp >= NOW() - INTERVAL '${hours} hours'
+        AND timestamp >= NOW() - INTERVAL $2
         ORDER BY timestamp DESC
         LIMIT 1000;
       `;
 
-      const result = await client.query(query, [subnetId]);
+      const result = await client.query(query, [subnetId, `${validatedHours} hours`]);
       client.release();
 
       return result.rows;
@@ -284,14 +287,17 @@ class DatabaseService {
     try {
       const client = await this.pool.connect();
       
+      // Validate and sanitize hours parameter to prevent SQL injection
+      const validatedHours = Math.max(1, Math.min(parseInt(hours) || 1, 8760)); // 1 hour to 1 year max
+      
       const query = `
         SELECT * FROM system_metrics 
         WHERE metric_type = $1 
-        AND timestamp >= NOW() - INTERVAL '${hours} hours'
+        AND timestamp >= NOW() - INTERVAL $2
         ORDER BY timestamp DESC;
       `;
 
-      const result = await client.query(query, [metricType]);
+      const result = await client.query(query, [metricType, `${validatedHours} hours`]);
       client.release();
 
       return result.rows;

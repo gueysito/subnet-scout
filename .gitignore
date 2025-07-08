@@ -91,3 +91,83 @@ Desktop.ini
 auth.json
 tokens.json
 credentials.json
+secrets.json
+config/secrets.js
+config/production.js
+.secrets/
+private/
+ssh/
+ssl/
+certs/
+certificates/
+
+# --- Additional secret patterns ---
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.jks
+*.keystore
+*.truststore
+
+# --- API Keys and Tokens ---
+.apikeys
+.tokens
+api-keys.json
+service-account.json
+service-account-*.json
+google-services.json
+GoogleService-Info.plist
+
+# --- AWS and Cloud Credentials ---
+.aws/
+.gcp/
+.azure/
+credentials
+config
+
+# --- Docker secrets ---
+docker-compose.override.yml
+docker-compose.prod.yml
+.dockerignore.local
+
+# --- Backup files that might contain sensitive data ---
+*.backup
+*.bak
+*.dump
+*.sql
+*.sqlite
+*.db-journal
+
+# --- IDE sensitive files ---
+.vscode/settings.json
+.vscode/launch.json
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/shelf/
+
+# --- Application specific ---
+app-secrets.json
+local-config.json
+private-config.json
+.env.production.local.backup
+.env.*.backup
+
+# --- Certificate Authority files ---
+ca-key.pem
+ca.pem
+ca.srl
+server-key.pem
+server.pem
+
+# --- SSH and GPG ---
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.gpg
+*.asc
