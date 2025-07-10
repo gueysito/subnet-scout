@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MessageCircle } from 'lucide-react'
 import dataService from '../services/dataService'
 import SubnetReportCard from '../components/SubnetReportCard'
+import { ENV_CONFIG } from '../config/env.js'
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('')
@@ -48,7 +50,7 @@ const HomePage = () => {
     
     // Check for placeholder patterns like "subnet x" - these should NOT trigger subnet navigation
     // Instead, they should be processed as TAO questions
-    const placeholderPatterns = /subnet\s*[x|xx|xxx|\?]/i
+    const placeholderPatterns = /subnet\s*[x|xx|xxx|?]/i
     if (placeholderPatterns.test(trimmed)) {
       return null // Don't treat as valid subnet ID, let it go to TAO processing
     }
@@ -298,7 +300,19 @@ const HomePage = () => {
       </main>
 
       <footer className="text-center text-sm text-gray-500 py-6">
-        &copy; 2025 Subnet Scout. All rights reserved.
+        <div className="flex flex-col items-center gap-3">
+          <a
+            href={`https://t.me/${ENV_CONFIG.TELEGRAM_BOT_USERNAME}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors border border-blue-200 rounded-lg hover:bg-blue-50"
+            title="Chat with Subnet Scout Bot"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span>Chat with our Telegram Bot</span>
+          </a>
+          <div>&copy; 2025 Subnet Scout. All rights reserved.</div>
+        </div>
       </footer>
 
       {/* Subnet Report Card Modal */}

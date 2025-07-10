@@ -5,7 +5,9 @@ const getEnvVar = (name) => {
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     return import.meta.env[name];
   }
+  // eslint-disable-next-line no-undef
   if (typeof process !== 'undefined' && process.env) {
+    // eslint-disable-next-line no-undef
     return process.env[name];
   }
   return undefined;
@@ -31,6 +33,9 @@ export const ENV_CONFIG = {
   // Feature Flags
   ENABLE_DEBUG_LOGS: getEnvVar('VITE_ENABLE_DEBUG_LOGS') === 'true' || false,
   ENABLE_ERROR_SIMULATION: getEnvVar('VITE_ENABLE_ERROR_SIMULATION') === 'true' || false,
+  
+  // Social/Bot Integration
+  TELEGRAM_BOT_USERNAME: getEnvVar('VITE_TELEGRAM_BOT_USERNAME') || 'subnet_scout_bot',
 };
 
 // Validation function to check required environment variables

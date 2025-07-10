@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { MessageCircle } from 'lucide-react'
 import apiClient from '../../shared/utils/apiClient'
+import { ENV_CONFIG } from '../config/env.js'
 
 const AboutPage = () => {
   const [systemHealth, setSystemHealth] = useState(null)
@@ -46,7 +48,19 @@ const AboutPage = () => {
             <li><strong>TaoStats API</strong>: Real-time/historical subnet data (emissions, yield, validators, holders, health, etc.)</li>
             <li><strong>io.net Agents</strong>: AI-generated commentary and intelligent subnet rankings</li>
             <li><strong>Ethos, Kaido, GitHub</strong>: Pulling high-signal off-chain data and developer activity</li>
-            <li><strong>Telegram Bot</strong>: Retrieve subnet report cards instantly on demand</li>
+            <li>
+              <strong>
+                <a
+                  href={`https://t.me/${ENV_CONFIG.TELEGRAM_BOT_USERNAME}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Telegram Bot
+                </a>
+              </strong>: Retrieve subnet report cards instantly on demand
+            </li>
           </ul>
         </section>
 
