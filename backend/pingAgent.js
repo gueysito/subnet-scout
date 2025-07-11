@@ -1670,6 +1670,21 @@ app.get("/api/agents", async (req, res) => {
         const data = subnetData.data;
         const metadata = getSubnetMetadata(i);
         
+        // Debug logging for metadata issues
+        console.log(`🔍 [DEBUG] Subnet ${i} metadata:`, metadata);
+        console.log(`🔍 [DEBUG] Subnet ${i} name: "${metadata?.name || 'MISSING'}"`, typeof metadata?.name);
+        
+        // Fallback logic for missing metadata  
+        const safeMetadata = {
+          name: metadata?.name || `Subnet ${i}`,
+          description: metadata?.description || `Bittensor subnet ${i} - real-time monitoring`,
+          type: metadata?.type || 'inference',
+          github: metadata?.github || `https://github.com/bittensor-subnet/subnet-${i}`,
+          twitter: metadata?.twitter || null  // Add Twitter field
+        };
+        
+        console.log(`✅ [DEBUG] Subnet ${i} safe metadata:`, safeMetadata);
+        
         // Calculate derived metrics for filtering and display
         const yieldPercentage = ((data.emission_rate / 24) * 100) || Math.random() * 50 + 10; // Realistic yield 10-60%
         const activityLevel = Math.min(100, data.activity_score + Math.random() * 10); // Activity based on score
@@ -1678,10 +1693,11 @@ app.get("/api/agents", async (req, res) => {
         agents.push({
           id: i,
           subnet_id: i,
-          name: metadata.name,
-          description: metadata.description,
-          type: metadata.type,
-          github_url: metadata.github,
+          name: safeMetadata.name,
+          description: safeMetadata.description,
+          type: safeMetadata.type,
+          github_url: safeMetadata.github,
+          twitter_url: safeMetadata.twitter,  // Add Twitter URL field
           status: data.activity_score > 70 ? 'healthy' : data.activity_score > 40 ? 'warning' : 'critical',
           score: Math.round(data.activity_score * 10) / 10,
           yield: Math.round(yieldPercentage * 10) / 10,

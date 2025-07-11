@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { X, Copy, Download, ExternalLink } from 'lucide-react'
+import { X, Copy, Download, ExternalLink, Github, Twitter } from 'lucide-react'
 import { getSubnetMetadata } from '../../shared/data/subnets.js'
 
 const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
@@ -140,6 +140,10 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
       name,
       category,
       description: metadata.description,
+      
+      // Social/Development Links
+      githubUrl: metadata.github,
+      twitterUrl: metadata.twitter,
       
       // Market data
       price: `$${basePrice.toFixed(3)}`,
@@ -430,10 +434,10 @@ Powered by Subnet Scout & io.net
                 <p className="text-gray-300 leading-relaxed">{reportData.aiSummary}</p>
               </div>
 
-              {/* Export Actions */}
+              {/* Export Actions & Social Links */}
               <div className="bg-gray-800/50 rounded-xl p-5">
-                <h3 className="text-lg font-semibold mb-4">Export Report</h3>
-                <div className="flex flex-col sm:flex-row gap-3">
+                <h3 className="text-lg font-semibold mb-4">Export Report & Links</h3>
+                <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
                   <button 
                     onClick={copyReportText}
                     className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white transition-colors"
@@ -441,6 +445,35 @@ Powered by Subnet Scout & io.net
                     <Copy className="w-4 h-4" />
                     {copySuccess ? 'Copied!' : 'Copy Text'}
                   </button>
+                  
+                  {/* GitHub Link */}
+                  {reportData.githubUrl && (
+                    <a 
+                      href={reportData.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg text-white transition-colors"
+                      title="View GitHub Repository"
+                    >
+                      <Github className="w-4 h-4" />
+                      GitHub
+                    </a>
+                  )}
+                  
+                  {/* Twitter Link */}
+                  {reportData.twitterUrl && (
+                    <a 
+                      href={reportData.twitterUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-lg text-white transition-colors"
+                      title="Follow on Twitter"
+                    >
+                      <Twitter className="w-4 h-4" />
+                      Twitter
+                    </a>
+                  )}
+                  
                   <a 
                     href={`https://rpc.subnet${reportData.id}.io`}
                     target="_blank"

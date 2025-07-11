@@ -8,6 +8,7 @@ export const SUBNET_METADATA = {
     name: "Text Prompting", 
     description: "Advanced text generation and prompting subnet for natural language processing",
     github: "https://github.com/macrocosm-os/prompting",
+    twitter: "https://twitter.com/macrocosmos_ai",
     type: "inference"
   },
   2: { 
@@ -32,12 +33,14 @@ export const SUBNET_METADATA = {
     name: "OpenKaito", 
     description: "Open-source conversational AI search and knowledge subnet",
     github: "https://github.com/openkaito/openkaito",
+    twitter: "https://twitter.com/OpenKaito",
     type: "inference"
   },
   6: { 
     name: "Masa", 
     description: "Social data processing and analytics subnet",
     github: "https://github.com/masa-finance/masa-subnet",
+    twitter: "https://twitter.com/getmasa",
     type: "data"
   },
   7: { 
