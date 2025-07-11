@@ -20,7 +20,8 @@ async function getSubnetMetadata(subnetId) {
           description: result.data.description || `Bittensor subnet ${subnetId}`,
           type: result.data.type || 'inference',
           github: result.data.github_url || null,
-          twitter: result.data.twitter_url || null
+          twitter: result.data.twitter_url || null,
+          website: result.data.website_url || null
         };
       }
     }
@@ -34,7 +35,8 @@ async function getSubnetMetadata(subnetId) {
     description: `Bittensor subnet ${subnetId} - real-time monitoring`,
     type: 'inference',
     github: `https://github.com/bittensor-subnet/subnet-${subnetId}`,
-    twitter: null
+    twitter: null,
+    website: null
   };
 }
 
@@ -376,6 +378,9 @@ bot.command('analyze', async (ctx) => {
     }
     if (metadata.twitter) {
       socialLinks.push(`🐦 [Twitter](${metadata.twitter})`);
+    }
+    if (metadata.website) {
+      socialLinks.push(`🌐 [Website](${metadata.website})`);
     }
     if (socialLinks.length > 0) {
       response += `**Links:** ${socialLinks.join(' • ')}\n`;

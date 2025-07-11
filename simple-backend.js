@@ -16,6 +16,7 @@ const SUBNET_METADATA = {
     description: "Advanced text generation and prompting subnet for natural language processing",
     github: "https://github.com/macrocosm-os/prompting",
     twitter: "https://twitter.com/opentensor", // Verified: OpenTensor Foundation official account
+    website: "https://bittensor.com", // OpenTensor Foundation official website
     type: "inference"
   },
   2: { 
@@ -41,6 +42,7 @@ const SUBNET_METADATA = {
     description: "Open-source conversational AI search and knowledge subnet",
     github: "https://github.com/openkaito/openkaito",
     twitter: "https://twitter.com/_kaitoai", // Verified: Kaito AI official account
+    website: "https://kaito.ai", // Verified: Kaito AI official website
     type: "inference"
   },
   6: { 
@@ -48,6 +50,7 @@ const SUBNET_METADATA = {
     description: "Social data processing and analytics subnet",
     github: "https://github.com/masa-finance/masa-subnet",
     twitter: "https://twitter.com/getmasa", // Verified: Masa Finance official account
+    website: "https://masa.ai", // Verified: Masa Finance official website
     type: "data"
   },
   7: { 
@@ -61,6 +64,7 @@ const SUBNET_METADATA = {
     description: "Financial prediction and market analysis subnet for proprietary trading",
     github: "https://github.com/taoshidev/proprietary-trading-network",
     twitter: "https://twitter.com/taoshiio", // Verified: Taoshi official account
+    website: "https://taoshi.io", // Verified: Taoshi official website
     type: "inference"
   },
   9: { 
@@ -121,6 +125,7 @@ const SUBNET_METADATA = {
     name: "Corcel", 
     description: "Decentralized AI inference and model serving subnet",
     github: "https://github.com/corcel-api/cortex.t",
+    website: "https://corcel.io", // Verified: Corcel official website
     type: "inference"
   },
   19: { 
@@ -193,6 +198,7 @@ const SUBNET_METADATA = {
     name: "Wombo Dream",
     description: "AI-powered image generation and artistic creation subnet",
     github: "https://github.com/wombo/wombo-bittensor-subnet",
+    website: "https://wombo.ai", // Verified: WOMBO official website
     type: "inference"
   }
 };
@@ -265,6 +271,7 @@ function generateSubnetData(subnetId) {
       type: metadata.type,
       github_url: metadata.github,
       twitter_url: metadata.twitter || null,
+      website_url: metadata.website || null,
       
       // Market data
       price: `$${basePrice.toFixed(3)}`,
@@ -353,6 +360,7 @@ const server = http.createServer((req, res) => {
           type: data.type,
           github_url: data.github_url,
           twitter_url: data.twitter_url,
+          website_url: data.website_url,
           status: data.status,
           score: data.activity_score,
           yield: data.yield_percentage,

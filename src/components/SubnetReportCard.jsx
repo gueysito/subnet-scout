@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { X, Copy, Download, ExternalLink, Github, Twitter } from 'lucide-react'
+import { X, Copy, Download, ExternalLink, Github, Twitter, Globe } from 'lucide-react'
 import { getSubnetMetadata } from '../../shared/data/subnets.js'
 import { ENV_CONFIG } from '../config/env.js'
 
@@ -17,20 +17,8 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, subnetId])
 
-  const getCachedData = (key) => {
-    try {
-      const cached = localStorage.getItem(key)
-      if (cached) {
-        const data = JSON.parse(cached)
-        if (Date.now() - data.timestamp < 30 * 60 * 1000) { // 30 min cache
-          return data.report
-        }
-      }
-    } catch (err) {
-      console.warn('Cache read error:', err)
-    }
-    return null
-  }
+  // Cache functions removed since we're forcing fresh data
+  // const getCachedData = (key) => { ... }
 
   const setCachedData = (key, data) => {
     try {
@@ -81,6 +69,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
       // Social/Development Links
       githubUrl: apiData.subnet?.data?.github_url || metadata.github,
       twitterUrl: apiData.subnet?.data?.twitter_url || metadata.twitter,
+      websiteUrl: apiData.subnet?.data?.website_url || metadata.website,
       
       // Market data
       price: `$${basePrice.toFixed(3)}`,
@@ -120,8 +109,6 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
   }, [])
 
   const fetchReportData = useCallback(async () => {
-    const cacheKey = `subnet-report-${subnetId}`
-    
     console.log('🔍 REPORT CARD - Starting fetch for subnet:', subnetId)
     
     // TEMPORARILY SKIP CACHE TO FORCE FRESH DATA
@@ -183,7 +170,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
       })
 
       setReportData(report)
-      setCachedData(cacheKey, report)
+      setCachedData(`subnet-report-${subnetId}`, report)
     } catch (err) {
       setError('Failed to fetch subnet data. Please try again.')
       console.error('Report fetch error:', err)
@@ -358,6 +345,19 @@ Powered by Subnet Scout & io.net
                           Twitter
                         </a>
                       )}
+                      
+                      {reportData.websiteUrl && (
+                        <a 
+                          href={reportData.websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs text-white transition-colors"
+                          title="Visit Official Website"
+                        >
+                          <Globe className="w-3 h-3" />
+                          Website
+                        </a>
+                      )}
                     </div>
                   </div>
                   <div className="text-sm text-gray-300">
@@ -510,6 +510,20 @@ Powered by Subnet Scout & io.net
                     >
                       <Twitter className="w-4 h-4" />
                       Twitter
+                    </a>
+                  )}
+                  
+                  {/* Website Link */}
+                  {reportData.websiteUrl && (
+                    <a 
+                      href={reportData.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white transition-colors"
+                      title="Visit Official Website"
+                    >
+                      <Globe className="w-4 h-4" />
+                      Website
                     </a>
                   )}
                   
