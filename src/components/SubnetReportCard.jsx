@@ -122,12 +122,17 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
   const fetchReportData = useCallback(async () => {
     const cacheKey = `subnet-report-${subnetId}`
     
+    console.log('🔍 REPORT CARD - Starting fetch for subnet:', subnetId)
+    
     // Check cache first
     const cached = getCachedData(cacheKey)
     if (cached) {
+      console.log('🔍 REPORT CARD - Using cached data')
       setReportData(cached)
       return
     }
+    
+    console.log('🔍 REPORT CARD - No cache, fetching from backend')
 
     setLoading(true)
     setError(null)

@@ -390,6 +390,44 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Market metrics endpoint
+  if (pathname === '/api/metrics') {
+    try {
+      console.log('📊 Serving market metrics');
+      
+      // Generate realistic market data
+      const marketData = {
+        totalMarketCap: '$2.4B',
+        totalStaked: '4.2M TAO',
+        change24h: '+5.2%',
+        subnetCount: 118,
+        activeValidators: 3247,
+        totalEmissions24h: '12,450 TAO',
+        avgYield: '14.8%',
+        topPerformers: [
+          { id: 1, name: 'Text Prompting', change: '+15.2%' },
+          { id: 18, name: 'Corcel', change: '+12.8%' },
+          { id: 8, name: 'Taoshi', change: '+10.1%' }
+        ]
+      };
+      
+      sendJSON(res, 200, {
+        success: true,
+        data: marketData,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Error in /api/metrics:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Failed to fetch market metrics',
+        timestamp: new Date().toISOString()
+      });
+    }
+    return;
+  }
+
   // Individual subnet data endpoint - using regex to match pattern
   const subnetMatch = pathname.match(/^\/api\/subnet\/(\d+)\/data$/);
   if (subnetMatch) {
@@ -428,6 +466,7 @@ const server = http.createServer((req, res) => {
     available_endpoints: [
       'GET /health',
       'GET /api/agents',
+      'GET /api/metrics',
       'GET /api/subnet/:id/data'
     ],
     timestamp: new Date().toISOString()
