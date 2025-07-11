@@ -124,15 +124,8 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     
     console.log('🔍 REPORT CARD - Starting fetch for subnet:', subnetId)
     
-    // Check cache first
-    const cached = getCachedData(cacheKey)
-    if (cached) {
-      console.log('🔍 REPORT CARD - Using cached data')
-      setReportData(cached)
-      return
-    }
-    
-    console.log('🔍 REPORT CARD - No cache, fetching from backend')
+    // TEMPORARILY SKIP CACHE TO FORCE FRESH DATA
+    console.log('🔍 REPORT CARD - Skipping cache, forcing fresh backend data')
 
     setLoading(true)
     setError(null)
