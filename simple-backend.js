@@ -196,15 +196,47 @@ const SUBNET_METADATA = {
   }
 };
 
+// Generate metadata for subnets 31-118 with proper names (same logic as shared/data/subnets.js)
+function generateRemainingSubnets() {
+  const remaining = {};
+  const subnetTypes = ['inference', 'training', 'data', 'storage', 'compute', 'hybrid'];
+  const categories = [
+    'ai', 'blockchain', 'data', 'security', 'vision', 'audio', 'text', 
+    'prediction', 'social', 'gaming', 'defi', 'storage', 'compute', 'iot',
+    'research', 'education', 'healthcare', 'finance', 'entertainment',
+    'robotics', 'simulation', 'optimization', 'analytics'
+  ];
+
+  for (let i = 31; i <= 118; i++) {
+    const typeIndex = (i - 28) % subnetTypes.length;
+    const categoryIndex = (i - 28) % categories.length;
+    const type = subnetTypes[typeIndex];
+    const category = categories[categoryIndex];
+
+    remaining[i] = {
+      name: `${category.charAt(0).toUpperCase() + category.slice(1)} Subnet`,
+      description: `${type.charAt(0).toUpperCase() + type.slice(1)} subnet specializing in ${category} applications and services`,
+      github: `https://github.com/bittensor-subnet/subnet-${i}`,
+      type: type
+    };
+  }
+
+  return remaining;
+}
+
+// Merge base metadata with generated subnets for ALL 118 subnets
+const generatedSubnets = generateRemainingSubnets();
+Object.assign(SUBNET_METADATA, generatedSubnets);
+
 // Helper function to get subnet metadata with fallback
 function getSubnetMetadata(subnetId) {
   const metadata = SUBNET_METADATA[subnetId];
   if (!metadata) {
     return {
-      name: `Subnet ${subnetId}`,
-      description: `Bittensor subnet ${subnetId} - real-time monitoring`,
+      name: `Unknown Subnet ${subnetId}`,
+      description: `Bittensor subnet ${subnetId} - metadata not available`,
       github: `https://github.com/bittensor-subnet/subnet-${subnetId}`,
-      type: 'inference'
+      type: 'unknown'
     };
   }
   return metadata;
