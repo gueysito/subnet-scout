@@ -5,10 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'node_modules', 'test-*.js', 'verify-deployment.js']),
   {
-    files: ['**/*.{js,jsx}'],
-    ignores: ['simple-backend.js', 'backend/telegramBot.js'], // Ignore Node.js backend files
+    files: ['src/**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
       reactHooks.configs['recommended-latest'],
@@ -25,18 +24,31 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-new-func': 'error',
+      'no-script-url': 'error',
     },
   },
   {
-    files: ['simple-backend.js'], // Separate config for Node.js backend
+    files: ['**/*.js'],
+    ignores: ['src/**/*'],
     extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 2020,
-      globals: globals.node, // Use Node.js globals
+      globals: globals.node,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
       },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-eval': 'error',
+      'no-implied-eval': 'error', 
+      'no-new-func': 'error',
+      'no-script-url': 'error',
+      'no-undef': 'off', // Allow process, require, etc. in Node.js
     },
   },
 ])

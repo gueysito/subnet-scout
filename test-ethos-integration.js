@@ -18,7 +18,7 @@ import fetch from 'node-fetch';
 const SERVER_URL = 'http://localhost:8080';
 
 // Mock Privy JWT token for testing (will fail real API calls)
-const MOCK_JWT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ0ZXN0LXVzZXItMTIzIiwiaWF0IjoxNzM4NDgxMjAwLCJleHAiOjE3Mzg0ODQ4MDB9.test-signature';
+const MOCK_JWT_TOKEN = 'mock-jwt-token-for-testing-only';
 
 let testResults = {
   passed: 0,

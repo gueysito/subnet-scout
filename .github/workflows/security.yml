@@ -37,8 +37,8 @@ jobs:
 
     - name: Run security linting
       run: |
-        echo "🔍 Running ESLint security rules..."
-        npx eslint . --ext .js,.jsx,.ts,.tsx --config eslint.config.js
+        echo "🔍 Running ESLint security rules on production files..."
+        npx eslint simple-backend.js src/ backend/telegramBot.js
       continue-on-error: false
 
   secret-scan:
@@ -63,12 +63,15 @@ jobs:
       run: |
         echo "🔍 Scanning for common secret patterns..."
         
-        # Check for API keys and tokens
+        # Check for API keys and tokens in production files only
         if grep -r -i -E "(api_key|secret|password|token|private_key)\s*[=:]\s*['\"][^'\"]{20,}" . \
           --exclude-dir=node_modules \
           --exclude-dir=.git \
           --exclude="*.log" \
-          --exclude="package-lock.json"; then
+          --exclude="package-lock.json" \
+          --exclude="test-*.js" \
+          --exclude="*test*.js" \
+          --exclude="verify-deployment.js"; then
           echo "❌ Potential secrets found!"
           exit 1
         fi

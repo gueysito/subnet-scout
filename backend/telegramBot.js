@@ -128,7 +128,7 @@ function formatEthosIdentity(identity) {
   let info = '';
   if (identity.profile?.name) {
     // Escape markdown characters in the name
-    const safeName = identity.profile.name.replace(/[*_`\[\]]/g, '\\$&');
+    const safeName = identity.profile.name.replace(/[*_`\\[\\]]/g, '\\$&');
     info += `👤 *${safeName}*\n`;
   }
   if (identity.reputation?.score) {
@@ -245,7 +245,7 @@ bot.command('top', async (ctx) => {
           const stats = githubStats.github_stats;
           response += `📊 Dev Activity: ${stats.commits_last_30_days || 0} commits, ${stats.activity_score || 0}/100 score\n`;
         }
-      } catch (err) {
+      } catch {
         // GitHub data unavailable, continue without it
       }
       
@@ -258,7 +258,7 @@ bot.command('top', async (ctx) => {
           const reputation = kaitoData.data;
           response += `🎯 Reputation: ${reputation.badge?.emoji || '🆕'} ${reputation.badge?.level || 'New'} (${reputation.reputation?.score || 0}/100)\n`;
         }
-      } catch (err) {
+      } catch {
         // Kaito data unavailable, continue without it
       }
       
@@ -304,7 +304,7 @@ bot.command('analyze', async (ctx) => {
     const subnetMetrics = await getRealSubnetData(subnetId);
     
     // Get all data sources in parallel - FIXED: No nested await
-    const [analysisResult, githubStats, riskAssessment, ethosData] = await Promise.allSettled([
+    const [analysisResult, githubStats] = await Promise.allSettled([
       // Enhanced AI scoring with io.net models
       callBackendAPI('/api/score/enhanced', 'POST', {
         subnet_id: subnetId,
@@ -322,26 +322,14 @@ bot.command('analyze', async (ctx) => {
       callBackendAPI(`/api/github-stats/${subnetId}`, 'GET').catch(err => {
         console.log(`GitHub stats unavailable for subnet ${subnetId}: ${err.message}`);
         return null;
-      }),
-      
-      // AI-powered risk assessment
-      callBackendAPI(`/api/insights/risk/${subnetId}`, 'GET').catch(err => {
-        console.log(`Risk assessment unavailable for subnet ${subnetId}: ${err.message}`);
-        return null;
-      }),
-
-      // Ethos Network identity verification
-      callBackendAPI(`/api/identity/bot/subnet${subnetId}`, 'GET').catch(err => {
-        console.log(`Ethos data unavailable for subnet ${subnetId}: ${err.message}`);
-        return null;
       })
     ]);
 
     // Extract successful results
     const analysis = analysisResult.status === 'fulfilled' ? analysisResult.value : null;
     const github = githubStats.status === 'fulfilled' ? githubStats.value : null;
-    const risks = riskAssessment.status === 'fulfilled' ? riskAssessment.value : null;
-    const ethos = ethosData.status === 'fulfilled' ? ethosData.value : null;
+    // const risks = riskAssessment.status === 'fulfilled' ? riskAssessment.value : null;
+    // const ethos = ethosData.status === 'fulfilled' ? ethosData.value : null;
     
     // Helper functions for formatting
     const formatNumber = (num) => {
@@ -605,7 +593,7 @@ This will show Ethos Network reputation, reviews, and profile data.`);
     
     if (identity) {
       // Escape markdown characters in userkey
-      const safeUserkey = userkey.replace(/[*_`\[\]]/g, '\\$&');
+      const safeUserkey = userkey.replace(/[*_`\\[\\]]/g, '\\$&');
       let response = `🪪 *Ethos Network Identity Report*\n\n`;
       response += `🔍 *User:* \`${safeUserkey}\`\n\n`;
       
@@ -653,7 +641,7 @@ This will show Ethos Network reputation, reviews, and profile data.`);
       
       ctx.replyWithMarkdown(response);
     } else {
-      const safeUserkey = userkey.replace(/[*_`\[\]]/g, '\\$&');
+      const safeUserkey = userkey.replace(/[*_`\\[\\]]/g, '\\$&');
       ctx.replyWithMarkdown(`❌ *Identity Not Found*
 
 No Ethos Network profile found for: \`${safeUserkey}\`
