@@ -87,9 +87,13 @@ const ExplorerPage = () => {
         
         // Fetch real subnet data DIRECTLY from backend API (bypass dataService transformation)
         try {
+          console.log('🚀 STARTING API CALL TO BACKEND')
+          console.log('🔗 Backend URL:', apiClient.API_CONFIG?.BACKEND_BASE_URL)
+          
           const agentsResponse = await apiClient.getAgentsList(1, 118) // Get all subnets directly
           
-          console.log('📊 Explorer page received direct backend data:', agentsResponse)
+          console.log('📊 SUCCESS! Explorer page received direct backend data:', agentsResponse)
+          console.log('📊 Agents array length:', agentsResponse?.agents?.length)
           
           // Handle backend response format: {success: true, agents: [...]}
           const agentsArray = agentsResponse?.agents || []
@@ -123,11 +127,14 @@ const ExplorerPage = () => {
             setSubnets(transformedData)
             console.log('✅ Using real backend data for subnet table with proper brand names')
           } else {
-            console.error('❌ No agents data received from backend - NO FALLBACK TO MOCK')
+            console.error('❌ NO AGENTS DATA RECEIVED FROM BACKEND!')
+            console.error('❌ Response was:', agentsResponse)
+            alert('BACKEND ERROR: No subnet data received!')
             setSubnets([]) // Show empty table instead of mock data
           }
         } catch (apiErr) {
-          console.error('❌ Backend API failed - NO FALLBACK TO MOCK:', apiErr)
+          console.error('❌ BACKEND API COMPLETELY FAILED:', apiErr)
+          alert(`BACKEND ERROR: ${apiErr.message}`)
           setSubnets([]) // Show empty table instead of mock data
         }
         
