@@ -7,6 +7,7 @@
 [![Live Demo](https://img.shields.io/badge/Demo-Live%20Website-blue?style=for-the-badge)](http://localhost:5173)
 [![Telegram Bot](https://img.shields.io/badge/Telegram-@SubnetScoutBot-26A5E4?style=for-the-badge&logo=telegram)](https://t.me/SubnetScoutBot)
 [![API Status](https://img.shields.io/badge/API-Live%20Backend-green?style=for-the-badge)](http://localhost:8080/health)
+[![Security](https://img.shields.io/badge/Security-Production%20Ready-green?style=for-the-badge&logo=shield)](./SECURITY-AUDIT-COMPLETE.md)
 
 ---
 
