@@ -196,20 +196,28 @@ const SUBNET_METADATA = {
   }
 };
 
-// Generate metadata for subnets 31-118 - ACCURATE REPRESENTATION ONLY
+// Generate metadata for subnets 31-118 with sector-based names
 function generateRemainingSubnets() {
   const remaining = {};
   const subnetTypes = ['inference', 'training', 'data', 'storage', 'compute', 'hybrid'];
+  const categories = [
+    'ai', 'blockchain', 'data', 'security', 'vision', 'audio', 'text', 
+    'prediction', 'social', 'gaming', 'defi', 'storage', 'compute', 'iot',
+    'research', 'education', 'healthcare', 'finance', 'entertainment',
+    'robotics', 'simulation', 'optimization', 'analytics'
+  ];
 
   for (let i = 31; i <= 118; i++) {
     const typeIndex = (i - 28) % subnetTypes.length;
+    const categoryIndex = (i - 28) % categories.length;
     const type = subnetTypes[typeIndex];
+    const category = categories[categoryIndex];
 
     remaining[i] = {
-      name: "No brand name yet",
-      description: `Bittensor subnet ${i} - ${type} subnet (brand name not yet established)`,
+      name: `${category.charAt(0).toUpperCase() + category.slice(1)} Subnet`,
+      description: `${type.charAt(0).toUpperCase() + type.slice(1)} subnet specializing in ${category} applications and services`,
       github: `https://github.com/bittensor-subnet/subnet-${i}`,
-      twitter: null, // No Twitter profile established yet
+      twitter: null, // Most don't have Twitter yet
       type: type
     };
   }

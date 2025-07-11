@@ -44,10 +44,20 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
   }
 
   const generateReportData = useCallback((id, apiData) => {
+    // DEBUG: Check what we actually receive
+    console.log('🔍 REPORT CARD - apiData:', apiData)
+    console.log('🔍 REPORT CARD - apiData.subnet:', apiData.subnet)
+    console.log('🔍 REPORT CARD - apiData.subnet?.data:', apiData.subnet?.data)
+    
     // Use backend API data first, fall back to shared metadata
     const metadata = getSubnetMetadata(id)
-    const name = apiData.subnet?.data?.name || metadata.name
+    const backendName = apiData.subnet?.data?.name
+    const name = backendName || metadata.name
     const category = apiData.subnet?.data?.type || metadata.type || 'General'
+    
+    console.log('🔍 REPORT CARD - Final name:', name)
+    console.log('🔍 REPORT CARD - Backend name:', backendName)
+    console.log('🔍 REPORT CARD - Metadata name:', metadata.name)
     
     // Generate realistic data based on subnet ID with some variation
     const basePrice = 0.023 + (id * 0.001)
