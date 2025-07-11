@@ -43,6 +43,72 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     }
   }
 
+  const generateReportData = useCallback((id, apiData) => {
+    // Use backend API data first, fall back to shared metadata
+    const metadata = getSubnetMetadata(id)
+    const name = apiData.subnet?.data?.name || metadata.name
+    const category = apiData.subnet?.data?.type || metadata.type || 'General'
+    
+    // Generate realistic data based on subnet ID with some variation
+    const basePrice = 0.023 + (id * 0.001)
+    const marketCap = basePrice * (800000 + id * 50000)
+    const change24h = (Math.sin(id) * 8)
+    const change7d = (Math.cos(id) * 6)
+    const baseYield = 15.5 + (id % 10)
+    const uptime = 98.5 + (Math.random() * 1.4)
+    const latency = 35 + (id % 30)
+    const stakedTAO = (5000000 + id * 200000 + Math.random() * 2000000)
+    const activeValidators = 30 + (id % 25) + Math.floor(Math.random() * 20)
+    const emissions24h = (100 + id * 5 + Math.random() * 50)
+    const trustScore = 85 + Math.floor(Math.random() * 12)
+
+    return {
+      id,
+      name,
+      category,
+      description: apiData.subnet?.data?.description || metadata.description,
+      
+      // Social/Development Links
+      githubUrl: apiData.subnet?.data?.github_url || metadata.github,
+      twitterUrl: apiData.subnet?.data?.twitter_url || metadata.twitter,
+      
+      // Market data
+      price: `$${basePrice.toFixed(3)}`,
+      marketCap: `$${formatNumber(marketCap)}`,
+      change24h: formatPercent(change24h),
+      change7d: formatPercent(change7d),
+      
+      // Yield data
+      apy: baseYield.toFixed(1),
+      yieldChange24h: formatPercent(Math.random() * 2 - 1),
+      yieldChange7d: formatPercent(Math.random() * 4 - 2),
+      totalWallets: formatNumber(500 + (id * 25) + Math.floor(Math.random() * 500)),
+      
+      // Network health
+      uptime: uptime.toFixed(1),
+      latency: latency,
+      errorRate: (Math.random() * 0.8).toFixed(1),
+      stakedTAO: formatNumber(stakedTAO),
+      validators: activeValidators,
+      emissions24h: emissions24h.toFixed(0),
+      
+      // Scores
+      githubScore: apiData.github?.github_stats?.activity_score || Math.floor(75 + Math.random() * 20),
+      kaitoScore: Math.floor(70 + Math.random() * 25),
+      ethosScore: apiData.ethos?.data?.reputation?.score || Math.floor(80 + Math.random() * 15),
+      trustScore,
+      
+      // Additional metrics
+      emissionStakeRatio: (emissions24h / (stakedTAO / 1000000) * 365).toFixed(1),
+      tvlTrend: Math.random() > 0.6 ? 'Growing' : Math.random() > 0.3 ? 'Stable' : 'Declining',
+      
+      // AI insights
+      aiSummary: apiData.score?.ai_summary || generateAISummary(name, trustScore, latency, uptime),
+      
+      lastUpdated: new Date().toLocaleString()
+    }
+  }, [])
+
   const fetchReportData = useCallback(async () => {
     const cacheKey = `subnet-report-${subnetId}`
     
@@ -116,73 +182,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     } finally {
       setLoading(false)
     }
-  }, [subnetId])
-
-  const generateReportData = (id, apiData) => {
-    // Use shared subnet metadata
-    const metadata = getSubnetMetadata(id)
-    const name = metadata.name
-    const category = metadata.type || 'General'
-    
-    // Generate realistic data based on subnet ID with some variation
-    const basePrice = 0.023 + (id * 0.001)
-    const marketCap = basePrice * (800000 + id * 50000)
-    const change24h = (Math.sin(id) * 8)
-    const change7d = (Math.cos(id) * 6)
-    const baseYield = 15.5 + (id % 10)
-    const uptime = 98.5 + (Math.random() * 1.4)
-    const latency = 35 + (id % 30)
-    const stakedTAO = (5000000 + id * 200000 + Math.random() * 2000000)
-    const activeValidators = 30 + (id % 25) + Math.floor(Math.random() * 20)
-    const emissions24h = (100 + id * 5 + Math.random() * 50)
-    const trustScore = 85 + Math.floor(Math.random() * 12)
-
-    return {
-      id,
-      name,
-      category,
-      description: metadata.description,
-      
-      // Social/Development Links
-      githubUrl: metadata.github,
-      twitterUrl: metadata.twitter,
-      
-      // Market data
-      price: `$${basePrice.toFixed(3)}`,
-      marketCap: `$${formatNumber(marketCap)}`,
-      change24h: formatPercent(change24h),
-      change7d: formatPercent(change7d),
-      
-      // Yield data
-      apy: baseYield.toFixed(1),
-      yieldChange24h: formatPercent(Math.random() * 2 - 1),
-      yieldChange7d: formatPercent(Math.random() * 4 - 2),
-      totalWallets: formatNumber(500 + (id * 25) + Math.floor(Math.random() * 500)),
-      
-      // Network health
-      uptime: uptime.toFixed(1),
-      latency: latency,
-      errorRate: (Math.random() * 0.8).toFixed(1),
-      stakedTAO: formatNumber(stakedTAO),
-      validators: activeValidators,
-      emissions24h: emissions24h.toFixed(0),
-      
-      // Scores
-      githubScore: apiData.github?.github_stats?.activity_score || Math.floor(75 + Math.random() * 20),
-      kaitoScore: Math.floor(70 + Math.random() * 25),
-      ethosScore: apiData.ethos?.data?.reputation?.score || Math.floor(80 + Math.random() * 15),
-      trustScore,
-      
-      // Additional metrics
-      emissionStakeRatio: (emissions24h / (stakedTAO / 1000000) * 365).toFixed(1),
-      tvlTrend: Math.random() > 0.6 ? 'Growing' : Math.random() > 0.3 ? 'Stable' : 'Declining',
-      
-      // AI insights
-      aiSummary: apiData.score?.ai_summary || generateAISummary(name, trustScore, latency, uptime),
-      
-      lastUpdated: new Date().toLocaleString()
-    }
-  }
+  }, [subnetId, generateReportData])
 
   const generateAISummary = (name, trustScore, latency, uptime) => {
     const performanceLevel = trustScore > 90 ? 'exceptional' : trustScore > 80 ? 'strong' : 'moderate'

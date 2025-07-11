@@ -30,13 +30,6 @@ const ExplorerPage = () => {
 
   // Filter and sort subnets
   const filteredAndSortedSubnets = React.useMemo(() => {
-    console.log('🔍 USEMEMO: filteredAndSortedSubnets running with subnets:', subnets.length)
-    if (subnets.length > 0) {
-      console.log('🔍 FIRST 3 SUBNETS IN USEMEMO:')
-      subnets.slice(0, 3).forEach((subnet, index) => {
-        console.log(`Subnet ${index + 1}: id=${subnet.id}, name="${subnet.name}", sector="${subnet.sector}"`)
-      })
-    }
     
     let filtered = selectedSector === 'All' 
       ? subnets 
@@ -93,36 +86,13 @@ const ExplorerPage = () => {
       try {
         setIsLoadingMovers(true)
         
-        // Fetch real subnet data DIRECTLY from backend API (bypass dataService transformation)
+        // Fetch real subnet data from backend API
         try {
-          console.log('🚀 STARTING API CALL TO BACKEND')
-          console.log('🔗 Backend URL:', apiClient.API_CONFIG?.BACKEND_BASE_URL)
-          
-          const agentsResponse = await apiClient.getAgentsList(1, 118) // Get all subnets directly
-          
-          console.log('📊 SUCCESS! Explorer page received direct backend data:', agentsResponse)
-          console.log('📊 Agents array length:', agentsResponse?.agents?.length)
-          
-          // Handle backend response format: {success: true, agents: [...]}
+          const agentsResponse = await apiClient.getAgentsList(1, 118)
           const agentsArray = agentsResponse?.agents || []
           
-          // DEBUG: Log first few agents to see exact structure
-          console.log('🔍 FIRST 3 AGENTS FROM BACKEND:')
-          agentsArray.slice(0, 3).forEach((agent, index) => {
-            console.log(`Agent ${index + 1}:`, agent)
-            console.log(`- ID: ${agent.id}, Subnet ID: ${agent.subnet_id}`)
-            console.log(`- Name: "${agent.name}"`)
-            console.log(`- Type: "${agent.type}"`)
-          })
-          
           if (agentsArray && agentsArray.length > 0) {
-            const transformedData = agentsArray.map((agent, index) => {
-              // DEBUG: Log transformation for first few items
-              if (index < 3) {
-                console.log(`🔄 TRANSFORMING AGENT ${index + 1}:`)
-                console.log(`Input: id=${agent.id}, subnet_id=${agent.subnet_id}, name="${agent.name}", type="${agent.type}"`)
-              }
-              
+            const transformedData = agentsArray.map((agent) => {
               const transformed = {
                 id: agent.subnet_id || agent.id,
                 name: agent.name,
@@ -141,11 +111,6 @@ const ExplorerPage = () => {
                 ethos: agent.ethos_score || Math.floor(40 + Math.random() * 60)
               }
               
-              // DEBUG: Log output for first few items
-              if (index < 3) {
-                console.log(`Output: id=${transformed.id}, name="${transformed.name}", sector="${transformed.sector}"`)
-              }
-              
               return transformed
             })
             
@@ -157,21 +122,12 @@ const ExplorerPage = () => {
             })
             
             setSubnets(transformedData)
-            console.log('✅ Using real backend data for subnet table with proper brand names')
-            console.log('🔍 FIRST 3 TRANSFORMED DATA SET TO STATE:')
-            transformedData.slice(0, 3).forEach((subnet, index) => {
-              console.log(`Transformed ${index + 1}: id=${subnet.id}, name="${subnet.name}", sector="${subnet.sector}"`)
-            })
           } else {
-            console.error('❌ NO AGENTS DATA RECEIVED FROM BACKEND!')
-            console.error('❌ Response was:', agentsResponse)
-            alert('BACKEND ERROR: No subnet data received!')
-            setSubnets([]) // Show empty table instead of mock data
+            setSubnets([])
           }
         } catch (apiErr) {
-          console.error('❌ BACKEND API COMPLETELY FAILED:', apiErr)
-          alert(`BACKEND ERROR: ${apiErr.message}`)
-          setSubnets([]) // Show empty table instead of mock data
+          console.error('Backend API failed:', apiErr)
+          setSubnets([])
         }
         
         // Fetch movers data separately with better error handling
@@ -190,8 +146,8 @@ const ExplorerPage = () => {
         
         setIsLoadingMovers(false)
       } catch (err) {
-        console.error('❌ Error fetching explorer data - NO FALLBACK TO MOCK:', err)
-        setSubnets([]) // Show empty instead of mock data
+        console.error('Error fetching explorer data:', err)
+        setSubnets([])
         setIsLoadingMovers(false)
       }
     }
