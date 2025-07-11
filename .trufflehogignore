@@ -3,24 +3,59 @@
 test-*.js
 *test*.js
 verify-deployment.js
+**/*test*.js
+**/*spec*.js
+**/test/**/*
+**/tests/**/*
+**/__tests__/**/*
+test-agent-profile-validation.js
 
-# Exclude documentation and configuration
+# Exclude documentation and configuration  
 docs/**/*
 config/**/*
+API-SETUP.md
+README.md
+*.md
 
 # Exclude build artifacts  
 dist/**/*
+build/**/*
 node_modules/**/*
+.next/**/*
+.cache/**/*
 
 # Exclude environment variable references (not actual secrets)
 **/env.js
 **/apiClient.js
+**/config.js
+**/*.config.js
+**/environment*.js
 
 # Exclude mock data and generators
 **/mock-*.js
 **/generator.js
+**/mocks/**/*
+**/fixtures/**/*
 
 # Exclude development scripts
 scripts/**/*
-docs/**/*
+tools/**/*
 validateTauV1.js
+validate*.js
+
+# Exclude workflow and CI files
+.github/**/*
+.gitlab-ci.yml
+.circleci/**/*
+
+# Exclude package files
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Exclude common false positives
+**/constants.js
+**/defaults.js
+**/examples/**/*
+**/samples/**/*

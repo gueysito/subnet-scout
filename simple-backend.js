@@ -5,7 +5,6 @@
  */
 
 import http from 'http';
-import url from 'url';
 
 const PORT = process.env.PORT || 8080;
 
@@ -322,9 +321,9 @@ function sendJSON(res, statusCode, data) {
 
 // Main HTTP server
 const server = http.createServer((req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
-  const query = parsedUrl.query;
+  const requestUrl = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = requestUrl.pathname;
+  const query = Object.fromEntries(requestUrl.searchParams);
 
   console.log(`${req.method} ${pathname}`);
 

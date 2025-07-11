@@ -1,5 +1,6 @@
 # 🚀 API Setup Guide - Real Live Data Integration
-*Complete setup for Subnet Scout Agent with TaoStats and io.net APIs*
+
+_Complete setup for Subnet Scout Agent with TaoStats and io.net APIs_
 
 ---
 
@@ -8,6 +9,7 @@
 > **BREAKTHROUGH:** Entire project now operates on **REAL LIVE DATA ONLY** from TaoStats and io.net APIs with realistic fallbacks
 
 ### **Real Data Components:**
+
 - ✅ **TaoStats API**: Bittensor subnet data and metrics
 - ✅ **io.net API**: AI models and distributed computing
 - ✅ **Telegram Bot API**: Multi-platform access
@@ -30,7 +32,7 @@ TAOSTATS_API_USERNAME=tao-7051ffef-a15f-4608-9fea-1142d61f09a1
 TAOSTATS_API_SECRET=92a1cf8a
 
 # io.net API (AI Models & Computing)
-IONET_API_KEY=io-v2-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+IONET_API_KEY=io-v2-[your-actual-token-here]
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
@@ -48,23 +50,27 @@ VITE_BACKEND_URL=http://localhost:8080
 ## 📊 **TaoStats API Setup**
 
 ### **Authentication**
+
 ```javascript
 const headers = {
-  'Authorization': `${TAOSTATS_USERNAME}:${TAOSTATS_PASSWORD}`,
-  'Accept': 'application/json'
+  Authorization: `${TAOSTATS_USERNAME}:${TAOSTATS_PASSWORD}`,
+  Accept: "application/json",
 };
 ```
 
 ### **Base URL**
+
 ```
 https://api.taostats.io
 ```
 
 ### **Key Endpoints**
+
 - `GET /api/dtao/pool/history/v1` - Subnet pool history
 - Parameters: `netuid`, `frequency`, `page`, `order`
 
 ### **Example Request**
+
 ```bash
 curl -H "Authorization: tao-7051ffef-a15f-4608-9fea-1142d61f09a1:92a1cf8a" \
      -H "Accept: application/json" \
@@ -76,27 +82,31 @@ curl -H "Authorization: tao-7051ffef-a15f-4608-9fea-1142d61f09a1:92a1cf8a" \
 ## 🤖 **io.net API Setup**
 
 ### **Authentication**
+
 ```javascript
 const headers = {
-  'Authorization': `Bearer ${IONET_API_KEY}`,
-  'Content-Type': 'application/json'
+  Authorization: `Bearer ${IONET_API_KEY}`,
+  "Content-Type": "application/json",
 };
 ```
 
 ### **Base URL**
+
 ```
 https://api.io.net
 ```
 
 ### **Available Models**
+
 - `meta-llama/Llama-3.3-70B-Instruct` - Sentiment analysis
 - `deepseek-ai/DeepSeek-R1` - Trend prediction
 - `anthropic/claude-3-5-sonnet` - General analysis
 
 ### **Example Request**
+
 ```bash
 curl -X POST "https://api.io.net/v1/inference" \
-     -H "Authorization: Bearer io-v2-..." \
+     -H "Authorization: Bearer io-v2-[your-token]" \
      -H "Content-Type: application/json" \
      -d '{"model": "meta-llama/Llama-3.3-70B-Instruct", "prompt": "Analyze subnet performance"}'
 ```
@@ -106,11 +116,13 @@ curl -X POST "https://api.io.net/v1/inference" \
 ## 📱 **Telegram Bot Setup**
 
 ### **Bot Creation**
+
 1. Message @BotFather on Telegram
 2. Use `/newbot` command
 3. Get bot token: `your_telegram_bot_token_here`
 
 ### **Webhook Configuration**
+
 ```bash
 curl -X POST "https://api.telegram.org/bot{BOT_TOKEN}/setWebhook" \
      -H "Content-Type: application/json" \
@@ -118,6 +130,7 @@ curl -X POST "https://api.telegram.org/bot{BOT_TOKEN}/setWebhook" \
 ```
 
 ### **Available Commands**
+
 - `/start` - Welcome message with examples
 - `/top` - Top 3 performing subnets
 - `/analyze <subnet_id>` - AI-powered subnet analysis
@@ -134,32 +147,34 @@ curl -X POST "https://api.telegram.org/bot{BOT_TOKEN}/setWebhook" \
 // src/config/env.js
 const getEnvVar = (name) => {
   // Cross-platform support (Browser + Node.js)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
+  if (typeof import.meta !== "undefined" && import.meta.env) {
     return import.meta.env[name];
   }
-  if (typeof process !== 'undefined' && process.env) {
+  if (typeof process !== "undefined" && process.env) {
     return process.env[name];
   }
   return undefined;
 };
 
 export const ENV_CONFIG = {
-  USE_MOCK_API: getEnvVar('VITE_USE_MOCK_API') === 'true' || false, // DEFAULT TO REAL DATA!
-  IONET_API_KEY: getEnvVar('VITE_IONET_API_KEY') || getEnvVar('IONET_API_KEY'),
-  TAOSTATS_USERNAME: getEnvVar('VITE_TAOSTATS_USERNAME') || getEnvVar('TAOSTATS_API_USERNAME'),
-  TAOSTATS_PASSWORD: getEnvVar('VITE_TAOSTATS_PASSWORD') || getEnvVar('TAOSTATS_API_SECRET'),
+  USE_MOCK_API: getEnvVar("VITE_USE_MOCK_API") === "true" || false, // DEFAULT TO REAL DATA!
+  IONET_API_KEY: getEnvVar("VITE_IONET_API_KEY") || getEnvVar("IONET_API_KEY"),
+  TAOSTATS_USERNAME:
+    getEnvVar("VITE_TAOSTATS_USERNAME") || getEnvVar("TAOSTATS_API_USERNAME"),
+  TAOSTATS_PASSWORD:
+    getEnvVar("VITE_TAOSTATS_PASSWORD") || getEnvVar("TAOSTATS_API_SECRET"),
 };
 ```
 
 ### **Real Data API Endpoints**
 
-| **Endpoint** | **Method** | **Description** | **Data Source** |
-|--------------|------------|-----------------|-----------------|
-| `/health` | GET | System health check | Real-time |
-| `/api/agents` | GET | Subnet agents list | **TaoStats + Realistic Fallback** |
-| `/api/subnet/:id/data` | GET | Individual subnet data | **TaoStats + Distributed Monitor** |
-| `/api/distributed/monitor` | GET | Full network monitoring | **Real Processing** |
-| `/api/score/enhanced` | POST | io.net AI analysis | **io.net Models** |
+| **Endpoint**               | **Method** | **Description**         | **Data Source**                    |
+| -------------------------- | ---------- | ----------------------- | ---------------------------------- |
+| `/health`                  | GET        | System health check     | Real-time                          |
+| `/api/agents`              | GET        | Subnet agents list      | **TaoStats + Realistic Fallback**  |
+| `/api/subnet/:id/data`     | GET        | Individual subnet data  | **TaoStats + Distributed Monitor** |
+| `/api/distributed/monitor` | GET        | Full network monitoring | **Real Processing**                |
+| `/api/score/enhanced`      | POST       | io.net AI analysis      | **io.net Models**                  |
 
 ---
 
@@ -182,22 +197,24 @@ curl http://localhost:8080/api/distributed/monitor
 ```
 
 ### **Expected Real Data Response**
+
 ```json
 {
   "success": true,
   "subnet_id": 1,
   "data": {
-    "emission_rate": 1.35,  // ✅ Realistic (not 125+)
+    "emission_rate": 1.35, // ✅ Realistic (not 125+)
     "total_stake": 12600000,
     "validator_count": 255,
     "activity_score": 84.2
   },
-  "source": "fallback_realistic",  // ✅ Real data attempt
+  "source": "fallback_realistic", // ✅ Real data attempt
   "timestamp": "2025-07-04T00:25:26.463Z"
 }
 ```
 
 ### **Test Telegram Bot**
+
 1. Send `/analyze 1` to your bot
 2. Expect realistic yield (~28% not 2,629,027%)
 3. Verify AI-powered analysis
@@ -207,19 +224,24 @@ curl http://localhost:8080/api/distributed/monitor
 ## 🚨 **Common Issues & Solutions**
 
 ### **Issue: Mock Data Still Showing**
+
 **Solution:** Verify environment variables:
+
 ```bash
 echo $VITE_USE_MOCK_API  # Should be 'false' or empty
 ```
 
 ### **Issue: API Authentication Errors**
+
 **Solution:** Check credentials format:
+
 ```bash
 # TaoStats format: username:password
 # io.net format: Bearer token
 ```
 
 ### **Issue: Cross-Platform Environment Issues**
+
 **Solution:** Use our environment helper function that supports both Node.js and browser contexts.
 
 ---
@@ -227,11 +249,13 @@ echo $VITE_USE_MOCK_API  # Should be 'false' or empty
 ## 📊 **Data Quality Verification**
 
 ### **Before (Mock Data)**
+
 - Emission Rate: 125+ TAO
 - Annual Yield: 2,629,027%
 - Source: `"mock"`
 
 ### **After (Real Data)**
+
 - Emission Rate: 1.25-1.45 TAO ✅
 - Annual Yield: 28.16% ✅
 - Source: `"fallback_realistic"` ✅
@@ -241,6 +265,7 @@ echo $VITE_USE_MOCK_API  # Should be 'false' or empty
 ## 🏆 **Production Deployment**
 
 ### **Environment Checklist**
+
 - [ ] `VITE_USE_MOCK_API=false` set
 - [ ] All API keys configured
 - [ ] Cross-platform environment support
@@ -249,6 +274,7 @@ echo $VITE_USE_MOCK_API  # Should be 'false' or empty
 - [ ] Error handling verified
 
 ### **Performance Targets**
+
 - ✅ 118 subnets in <60 seconds
 - ✅ Realistic emission rates (1-5 TAO)
 - ✅ Accurate yield calculations (<100%)
@@ -267,4 +293,4 @@ echo $VITE_USE_MOCK_API  # Should be 'false' or empty
 
 ---
 
-*Last Updated: July 4, 2025 - Real Live Data Integration Complete* 
+_Last Updated: July 4, 2025 - Real Live Data Integration Complete_

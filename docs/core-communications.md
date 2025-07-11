@@ -1,9 +1,11 @@
 # Core Communications Documentation
-*Subnet Scout System Architecture & Integration Guide*
+
+_Subnet Scout System Architecture & Integration Guide_
 
 ---
 
 ## Table of Contents
+
 1. [System Architecture Overview](#system-architecture-overview)
 2. [Component Interaction Map](#component-interaction-map)
 3. [Communication Pathways](#communication-pathways)
@@ -72,6 +74,7 @@ Subnet Scout is built as a multi-layer application with clear separation of conc
 ### 1. Frontend Components
 
 **Primary Components:**
+
 - **`App.jsx`** - Main application router and state container
 - **`SubnetCard.jsx`** - Individual subnet display and scoring
 - **`StatsDashboard.jsx`** - System-wide statistics and health
@@ -79,6 +82,7 @@ Subnet Scout is built as a multi-layer application with clear separation of conc
 - **`AgentStatus.jsx`** - Real-time agent monitoring
 
 **Custom Hooks:**
+
 ```javascript
 // Primary API Hook
 useApi() → {
@@ -102,7 +106,7 @@ class ApiClient {
   constructor() {
     this.useMock = API_CONFIG.USE_MOCK
   }
-  
+
   // Core Methods
   fetchWithErrorHandling(url, options)
   getIoNetAgents()
@@ -110,7 +114,7 @@ class ApiClient {
   calculateScore(subnetId, metrics, timeframe)
   getAgentsList(page, limit)
   healthCheck()
-  
+
   // Utility Methods
   toggleMockMode()
   getCurrentMode()
@@ -124,10 +128,10 @@ class ApiClient {
 
 ```javascript
 // Main Express App
-app.post("/ping")           // Claude AI chat endpoint
-app.post("/api/score")      // Single subnet scoring
-app.post("/api/score/batch") // Batch subnet scoring  
-app.get("/health")          // System health check
+app.post("/ping"); // Claude AI chat endpoint
+app.post("/api/score"); // Single subnet scoring
+app.post("/api/score/batch"); // Batch subnet scoring
+app.get("/health"); // System health check
 ```
 
 ### 4. Scoring Engine Components
@@ -139,15 +143,15 @@ class ScoreAgent {
   // Core Scoring Methods
   calculateScore(subnetId, metrics, timeframe)
   calculateBatchScores(subnetMetrics, timeframe)
-  
+
   // Component Calculators
   calculateYieldScore(metrics)
-  calculateActivityScore(metrics) 
+  calculateActivityScore(metrics)
   calculateCredibilityScore(metrics)
-  
+
   // AI Integration
   generateAISummary(subnetId, scores)
-  
+
   // Utility Methods
   validateMetrics(metrics)
   determineRiskLevel(overallScore, metrics)
@@ -159,49 +163,62 @@ class ScoreAgent {
 ## Communication Pathways
 
 ### 1. Frontend → API Client
+
 **Protocol:** HTTP POST/GET requests
 **Data Format:** JSON
 **Error Handling:** Try/catch with state management
 
 ```javascript
 // Example: Subnet score request
-const scoreData = await calculateScore(subnetId, metrics, '24h');
+const scoreData = await calculateScore(subnetId, metrics, "24h");
 ```
 
 ### 2. API Client → Backend/Mock
+
 **Environment Switch Logic:**
+
 ```javascript
-const url = this.useMock 
+const url = this.useMock
   ? `${MOCK_BASE_URL}/api/score`
   : `${BACKEND_BASE_URL}/api/score`;
 ```
 
 **Authentication Patterns:**
+
 - **Mock Mode:** No authentication required
 - **Real Mode:** API keys, Basic Auth, Bearer tokens
 
 ### 3. Backend → Scoring Engine
+
 **Integration Pattern:**
+
 ```javascript
-const scoreResult = await scoreAgent.calculateScore(subnet_id, metrics, timeframe);
+const scoreResult = await scoreAgent.calculateScore(
+  subnet_id,
+  metrics,
+  timeframe,
+);
 ```
 
 ### 4. Scoring Engine → External APIs
+
 **Claude AI Integration:**
+
 ```javascript
 const response = await this.claude.messages.create({
   model: "claude-3-sonnet-20240229",
   max_tokens: 300,
-  messages: [{ role: "user", content: analysisPrompt }]
+  messages: [{ role: "user", content: analysisPrompt }],
 });
 ```
 
 **TaoStats API Integration:**
+
 ```javascript
 const url = `${TAOSTATS_BASE_URL}/api/dtao/pool/history/v1?${params}`;
-const headers = { 
-  'Authorization': `${username}:${password}`,
-  'Accept': 'application/json'
+const headers = {
+  Authorization: `${username}:${password}`,
+  Accept: "application/json",
 };
 ```
 
@@ -210,31 +227,35 @@ const headers = {
 ## Data Flow Protocols
 
 ### 1. Standard Request Flow
+
 ```
-User Action → React Component → Custom Hook → API Client → 
-Environment Switch → Backend/Mock → Response Processing → 
+User Action → React Component → Custom Hook → API Client →
+Environment Switch → Backend/Mock → Response Processing →
 State Update → UI Re-render
 ```
 
 ### 2. Scoring Data Flow
+
 ```
-Frontend Request → API Client → Backend (/api/score) → 
-ScoreAgent.calculateScore() → External API Calls → 
-Claude AI Analysis → Score Calculation → Response Assembly → 
+Frontend Request → API Client → Backend (/api/score) →
+ScoreAgent.calculateScore() → External API Calls →
+Claude AI Analysis → Score Calculation → Response Assembly →
 Backend Response → Frontend State Update
 ```
 
 ### 3. Error Propagation Flow
+
 ```
-External API Error → ScoreAgent Error Handler → 
-Backend Error Response → API Client Error Handler → 
+External API Error → ScoreAgent Error Handler →
+Backend Error Response → API Client Error Handler →
 Custom Hook Error State → Component Error Display
 ```
 
 ### 4. Environment Switching Flow
+
 ```
-Environment Variable (VITE_USE_MOCK_API) → 
-API Client Constructor → useMock Flag → 
+Environment Variable (VITE_USE_MOCK_API) →
+API Client Constructor → useMock Flag →
 URL Selection Logic → Endpoint Routing
 ```
 
@@ -243,11 +264,13 @@ URL Selection Logic → Endpoint Routing
 ## Component Communication Protocols
 
 ### HTTP Request Standards
+
 - **Content-Type:** `application/json`
 - **Methods:** GET (data retrieval), POST (scoring, actions)
 - **Status Codes:** 200 (success), 400 (bad request), 401 (auth), 404 (not found), 500 (server error)
 
 ### Error Response Format
+
 ```json
 {
   "error": {
@@ -259,6 +282,7 @@ URL Selection Logic → Endpoint Routing
 ```
 
 ### Data Validation Patterns
+
 - **Frontend:** React prop types and form validation
 - **API Client:** Request parameter validation
 - **Backend:** Request body schema validation
@@ -276,27 +300,27 @@ The frontend communicates with the backend through the `apiClient.js` centralize
 
 ```javascript
 // 1. Subnet Agents List
-await apiClient.getAgentsList(page = 1, limit = 20)
+await apiClient.getAgentsList((page = 1), (limit = 20));
 // Returns: { agents: [], pagination: {}, total_count: 118, healthy_count: 95 }
 
-// 2. Individual Subnet Scoring  
-await apiClient.calculateScore(subnetId, metrics, timeframe = '24h')
+// 2. Individual Subnet Scoring
+await apiClient.calculateScore(subnetId, metrics, (timeframe = "24h"));
 // Returns: { subnet_id, overall_score, breakdown: {}, metrics: {}, ai_summary }
 
 // 3. External GPU Agents
-await apiClient.getIoNetAgents()
+await apiClient.getIoNetAgents();
 // Returns: { agents: [], total_count: 327000, available_count: 245000 }
 
 // 4. Subnet Historical Data
-await apiClient.getTaoStatsData(netuid = 1, options = {})
+await apiClient.getTaoStatsData((netuid = 1), (options = {}));
 // Returns: [{ netuid, block_number, timestamp, price, emission_rate, ... }]
 
 // 5. System Health Check
-await apiClient.healthCheck()
+await apiClient.healthCheck();
 // Returns: { status: 'healthy', timestamp, uptime, environment }
 
 // 6. Telegram Bot Integration
-await apiClient.sendTelegramMessage(message)
+await apiClient.sendTelegramMessage(message);
 // Returns: { method: 'sendMessage', chat_id, text, parse_mode }
 ```
 
@@ -305,6 +329,7 @@ await apiClient.sendTelegramMessage(message)
 **Base URL:** `http://localhost:8080` (development) | `https://your-domain.com` (production)
 
 #### 1. Subnet Scoring Endpoint
+
 ```http
 POST /api/score
 Content-Type: application/json
@@ -356,6 +381,7 @@ Response (200 OK):
 ```
 
 #### 2. Batch Scoring Endpoint
+
 ```http
 POST /api/score/batch
 Content-Type: application/json
@@ -382,7 +408,7 @@ Response (200 OK):
     {
       "subnet_id": 5,
       "overall_score": 73,
-      "status": "success", 
+      "status": "success",
       "processing_time_ms": 1180
     }
   ],
@@ -404,6 +430,7 @@ Response (200 OK):
 ```
 
 #### 3. Claude AI Chat Endpoint
+
 ```http
 POST /ping
 Content-Type: application/json
@@ -420,6 +447,7 @@ Response (200 OK):
 ```
 
 #### 4. Health Check Endpoint
+
 ```http
 GET /health
 
@@ -440,12 +468,13 @@ Response (200 OK):
 The mock server provides realistic test data for all endpoints during development:
 
 #### Mock Endpoints Overview
+
 ```javascript
 // Mock io.net API
 GET /api/ionet/agents
 // Returns: Realistic GPU agent data with 20 agents
 
-// Mock TaoStats API  
+// Mock TaoStats API
 GET /api/taostats/pool/history?netuid=1&page=1&limit=10
 // Returns: Historical subnet data with proper authentication simulation
 
@@ -469,6 +498,7 @@ GET /health
 ### External API Integration Contracts
 
 #### 1. io.net GPU Agents API
+
 ```http
 GET https://api.io.net/v1/agents
 Authorization: Bearer io-v1-your-key-here
@@ -492,6 +522,7 @@ Response:
 ```
 
 #### 2. TaoStats Historical Data API
+
 ```http
 GET https://api.taostats.io/api/dtao/pool/history/v1?netuid=64&frequency=by_hour&page=1&order=block_number_desc
 Authorization: username:password
@@ -513,19 +544,23 @@ Response:
 ```
 
 #### 3. Claude AI Integration
+
 ```javascript
 // Internal ScoreAgent integration
 const response = await this.claude.messages.create({
   model: "claude-3-sonnet-20240229",
   max_tokens: 300,
-  messages: [{ 
-    role: "user", 
-    content: `Analyze subnet ${subnetId} performance: ${JSON.stringify(scoreData)}` 
-  }]
+  messages: [
+    {
+      role: "user",
+      content: `Analyze subnet ${subnetId} performance: ${JSON.stringify(scoreData)}`,
+    },
+  ],
 });
 ```
 
 #### 4. Telegram Bot Webhook
+
 ```http
 POST /webhook/telegram
 Content-Type: application/json
@@ -554,35 +589,38 @@ Response:
 ### Authentication Patterns
 
 #### Environment-Based Authentication
+
 ```javascript
 // Development Mode (Mock APIs)
 const headers = {
-  'Content-Type': 'application/json'
+  "Content-Type": "application/json",
   // No authentication required for mock endpoints
 };
 
 // Production Mode (Real APIs)
 const headers = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${IONET_API_KEY}`,        // io.net
-  'Authorization': `${USERNAME}:${PASSWORD}`,        // TaoStats
-  'x-api-key': ANTHROPIC_API_KEY                     // Claude (handled by SDK)
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${IONET_API_KEY}`, // io.net
+  Authorization: `${USERNAME}:${PASSWORD}`, // TaoStats
+  "x-api-key": ANTHROPIC_API_KEY, // Claude (handled by SDK)
 };
 ```
 
 #### API Key Management
+
 ```javascript
 // Environment Variables (.env)
-VITE_IONET_API_KEY=io-v1-your-key-here
-VITE_TAOSTATS_USERNAME=your-username
-VITE_TAOSTATS_PASSWORD=your-password
-ANTHROPIC_API_KEY=sk-ant-your-key-here
-TELEGRAM_BOT_TOKEN=your-bot-token-here
+VITE_IONET_API_KEY = io - v1 - your - key - here;
+VITE_TAOSTATS_USERNAME = your - username;
+VITE_TAOSTATS_PASSWORD = your - password;
+ANTHROPIC_API_KEY = sk - ant - api03 - [your - actual - key - here];
+TELEGRAM_BOT_TOKEN = your - bot - token - here;
 ```
 
 ### Error Handling Patterns
 
 #### Standard Error Response Format
+
 ```json
 {
   "error": {
@@ -595,6 +633,7 @@ TELEGRAM_BOT_TOKEN=your-bot-token-here
 ```
 
 #### HTTP Status Code Patterns
+
 ```javascript
 // Success Responses
 200 OK              // Successful operation
@@ -614,45 +653,48 @@ TELEGRAM_BOT_TOKEN=your-bot-token-here
 ```
 
 #### Error Propagation Chain
+
 ```
-External API Error (503) → 
-ScoreAgent Error Handler → 
-Backend Error Response (500) → 
-API Client Error Handler → 
-Custom Hook Error State → 
+External API Error (503) →
+ScoreAgent Error Handler →
+Backend Error Response (500) →
+API Client Error Handler →
+Custom Hook Error State →
 Component Error Display
 ```
 
 ### Request/Response Validation
 
 #### Frontend Validation
+
 ```javascript
 // Custom Hook Parameter Validation
 const validateScoreRequest = (subnetId, metrics) => {
-  if (!subnetId || typeof subnetId !== 'number') {
-    throw new Error('Invalid subnet_id: must be a positive number');
+  if (!subnetId || typeof subnetId !== "number") {
+    throw new Error("Invalid subnet_id: must be a positive number");
   }
-  
-  const required = ['emission_rate', 'total_stake', 'validator_count'];
-  const missing = required.filter(field => !(field in metrics));
-  
+
+  const required = ["emission_rate", "total_stake", "validator_count"];
+  const missing = required.filter((field) => !(field in metrics));
+
   if (missing.length > 0) {
-    throw new Error(`Missing required metrics: ${missing.join(', ')}`);
+    throw new Error(`Missing required metrics: ${missing.join(", ")}`);
   }
 };
 ```
 
 #### Backend Validation
+
 ```javascript
 // ScoreAgent Metrics Validation
 validateMetrics(metrics) {
   const required = ['emission_rate', 'total_stake', 'validator_count', 'activity_score'];
   const missing = required.filter(field => !(field in metrics) || metrics[field] == null);
-  
+
   if (missing.length > 0) {
     throw new Error(`Missing required metrics: ${missing.join(', ')}`);
   }
-  
+
   // Validate numeric values
   const numeric = ['emission_rate', 'total_stake', 'validator_count', 'activity_score'];
   for (const field of numeric) {
@@ -665,7 +707,7 @@ validateMetrics(metrics) {
 
 ---
 
-*This completes Task 2: API Contracts Documentation. Comprehensive endpoint inventory with schemas, authentication patterns, and error handling documentation has been added to provide complete API reference for all system integrations.*
+_This completes Task 2: API Contracts Documentation. Comprehensive endpoint inventory with schemas, authentication patterns, and error handling documentation has been added to provide complete API reference for all system integrations._
 
 ---
 
@@ -676,29 +718,31 @@ validateMetrics(metrics) {
 Subnet Scout uses a comprehensive environment configuration system that supports seamless switching between development (mock) and production (real API) modes.
 
 #### Primary Configuration File
+
 **File:** `src/config/env.js`
 
 ```javascript
 export const ENV_CONFIG = {
   // API Mode Configuration
-  USE_MOCK_API: import.meta.env.VITE_USE_MOCK_API === 'true' || true,
-  
+  USE_MOCK_API: import.meta.env.VITE_USE_MOCK_API === "true" || true,
+
   // API Endpoints
-  MOCK_API_URL: import.meta.env.VITE_MOCK_API_URL || 'http://localhost:3001',
-  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080',
-  
+  MOCK_API_URL: import.meta.env.VITE_MOCK_API_URL || "http://localhost:3001",
+  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || "http://localhost:8080",
+
   // External API Keys
   IONET_API_KEY: import.meta.env.VITE_IONET_API_KEY,
   TAOSTATS_USERNAME: import.meta.env.VITE_TAOSTATS_USERNAME,
   TAOSTATS_PASSWORD: import.meta.env.VITE_TAOSTATS_PASSWORD,
-  
+
   // Development Settings
-  NODE_ENV: import.meta.env.NODE_ENV || 'development',
-  DEV_MODE: import.meta.env.NODE_ENV === 'development',
-  
+  NODE_ENV: import.meta.env.NODE_ENV || "development",
+  DEV_MODE: import.meta.env.NODE_ENV === "development",
+
   // Feature Flags
-  ENABLE_DEBUG_LOGS: import.meta.env.VITE_ENABLE_DEBUG_LOGS === 'true' || false,
-  ENABLE_ERROR_SIMULATION: import.meta.env.VITE_ENABLE_ERROR_SIMULATION === 'true' || false,
+  ENABLE_DEBUG_LOGS: import.meta.env.VITE_ENABLE_DEBUG_LOGS === "true" || false,
+  ENABLE_ERROR_SIMULATION:
+    import.meta.env.VITE_ENABLE_ERROR_SIMULATION === "true" || false,
 };
 ```
 
@@ -707,6 +751,7 @@ export const ENV_CONFIG = {
 #### Required Environment Variables
 
 **`.env` File Template:**
+
 ```bash
 # ===========================================
 # SUBNET SCOUT ENVIRONMENT CONFIGURATION
@@ -724,7 +769,7 @@ MOCK_SERVER_PORT=3001
 # Backend server
 VITE_BACKEND_URL=http://localhost:8080
 
-# Frontend development server  
+# Frontend development server
 VITE_FRONTEND_URL=http://localhost:5173
 
 # ============= EXTERNAL API KEYS =============
@@ -736,7 +781,7 @@ VITE_TAOSTATS_USERNAME=your-username
 VITE_TAOSTATS_PASSWORD=your-password
 
 # Claude AI (Backend only - not prefixed with VITE_)
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+ANTHROPIC_API_KEY=sk-ant-api03-[your-actual-key-here]
 
 # Telegram Bot (Backend only)
 TELEGRAM_BOT_TOKEN=your-bot-token-here
@@ -755,21 +800,25 @@ NODE_ENV=development
 #### Environment Variable Categories
 
 **1. API Mode Control**
+
 - `VITE_USE_MOCK_API` - Master switch for mock vs real APIs
 - Controls routing in `apiClient.js`
 
 **2. Server Configuration**
+
 - `VITE_MOCK_API_URL` - Mock server endpoint
 - `VITE_BACKEND_URL` - Express backend endpoint
 - `MOCK_SERVER_PORT` - Port for mock server
 
 **3. External API Credentials**
+
 - `VITE_IONET_API_KEY` - io.net authentication
 - `VITE_TAOSTATS_USERNAME/PASSWORD` - TaoStats authentication
 - `ANTHROPIC_API_KEY` - Claude AI (backend only)
 - `TELEGRAM_BOT_TOKEN` - Telegram bot (backend only)
 
 **4. Development Features**
+
 - `VITE_ENABLE_DEBUG_LOGS` - Console logging control
 - `VITE_ENABLE_ERROR_SIMULATION` - Error testing features
 - `NODE_ENV` - Environment detection
@@ -777,12 +826,13 @@ NODE_ENV=development
 ### Mock vs Real API Switching
 
 #### Development Mode (Mock APIs)
+
 ```javascript
 // Configuration
 VITE_USE_MOCK_API=true
 
 // API Client Behavior
-const url = this.useMock 
+const url = this.useMock
   ? `${MOCK_BASE_URL}/api/score`           // → http://localhost:3001/api/score
   : `${BACKEND_BASE_URL}/api/score`;       // Ignored in mock mode
 
@@ -797,13 +847,14 @@ Mock Server (localhost:3001) → Generates realistic test data
 ```
 
 #### Production Mode (Real APIs)
+
 ```javascript
 // Configuration
 VITE_USE_MOCK_API=false
 
 // API Client Behavior
-const url = this.useMock 
-  ? `${MOCK_BASE_URL}/api/score`           // Ignored in real mode  
+const url = this.useMock
+  ? `${MOCK_BASE_URL}/api/score`           // Ignored in real mode
   : `${BACKEND_BASE_URL}/api/score`;       // → http://localhost:8080/api/score
 
 // Authentication
@@ -820,11 +871,12 @@ Backend Server → External APIs (io.net, TaoStats, Claude)
 ### Configuration Management
 
 #### Environment Detection Logic
+
 ```javascript
 // Automatic environment detection
-const isProduction = process.env.NODE_ENV === 'production';
-const isDevelopment = process.env.NODE_ENV === 'development';
-const useMockApis = process.env.VITE_USE_MOCK_API === 'true';
+const isProduction = process.env.NODE_ENV === "production";
+const isDevelopment = process.env.NODE_ENV === "development";
+const useMockApis = process.env.VITE_USE_MOCK_API === "true";
 
 // Environment validation
 export const validateEnvironment = () => {
@@ -834,13 +886,13 @@ export const validateEnvironment = () => {
   // Production without API keys
   if (!useMockApis && isProduction) {
     if (!process.env.VITE_IONET_API_KEY) {
-      errors.push('VITE_IONET_API_KEY required in production');
+      errors.push("VITE_IONET_API_KEY required in production");
     }
   }
 
   // Mock APIs in production (warning)
   if (useMockApis && isProduction) {
-    warnings.push('Using mock APIs in production');
+    warnings.push("Using mock APIs in production");
   }
 
   return { warnings, errors };
@@ -848,18 +900,21 @@ export const validateEnvironment = () => {
 ```
 
 #### Runtime Environment Information
+
 ```javascript
 // Get current environment status
 export const getEnvironmentInfo = () => {
   return {
     nodeEnv: ENV_CONFIG.NODE_ENV,
-    apiMode: ENV_CONFIG.USE_MOCK_API ? 'mock' : 'real',
+    apiMode: ENV_CONFIG.USE_MOCK_API ? "mock" : "real",
     mockApiUrl: ENV_CONFIG.MOCK_API_URL,
     backendUrl: ENV_CONFIG.BACKEND_URL,
     hasIoNetKey: !!ENV_CONFIG.IONET_API_KEY,
-    hasTaoStatsCredentials: !!(ENV_CONFIG.TAOSTATS_USERNAME && ENV_CONFIG.TAOSTATS_PASSWORD),
+    hasTaoStatsCredentials: !!(
+      ENV_CONFIG.TAOSTATS_USERNAME && ENV_CONFIG.TAOSTATS_PASSWORD
+    ),
     debugEnabled: ENV_CONFIG.ENABLE_DEBUG_LOGS,
-    errorSimulationEnabled: ENV_CONFIG.ENABLE_ERROR_SIMULATION
+    errorSimulationEnabled: ENV_CONFIG.ENABLE_ERROR_SIMULATION,
   };
 };
 ```
@@ -867,6 +922,7 @@ export const getEnvironmentInfo = () => {
 ### Deployment Patterns
 
 #### Development Deployment
+
 ```bash
 # 1. Install dependencies
 npm install
@@ -881,16 +937,17 @@ npm run mock-server
 # 4. Start backend (separate terminal)
 npm run server
 
-# 5. Start frontend (separate terminal) 
+# 5. Start frontend (separate terminal)
 npm run dev
 
 # All services running:
 # - Frontend: http://localhost:5173
-# - Backend: http://localhost:8080  
+# - Backend: http://localhost:8080
 # - Mock Server: http://localhost:3001
 ```
 
 #### Production Deployment
+
 ```bash
 # 1. Environment setup
 export VITE_USE_MOCK_API=false
@@ -912,6 +969,7 @@ npm run start
 ```
 
 #### Docker Deployment
+
 ```dockerfile
 # Dockerfile.production
 FROM node:18-alpine
@@ -936,6 +994,7 @@ CMD ["npm", "run", "start"]
 #### Common Issues and Solutions
 
 **1. "API Client initialized - Using MOCK APIs" in Production**
+
 ```bash
 # Problem: Mock APIs enabled in production
 # Solution: Check environment variable
@@ -947,6 +1006,7 @@ export VITE_USE_MOCK_API=false
 ```
 
 **2. "Network connection failed" Errors**
+
 ```bash
 # Problem: Services not running or wrong URLs
 # Check service status:
@@ -959,6 +1019,7 @@ echo $VITE_BACKEND_URL     # Should match running backend
 ```
 
 **3. "Invalid authentication credentials" Errors**
+
 ```bash
 # Problem: Missing or incorrect API keys
 # Check API keys are set:
@@ -971,6 +1032,7 @@ curl -H "Authorization: Bearer $VITE_IONET_API_KEY" https://api.io.net/v1/agents
 ```
 
 **4. "Frontend showing old data" Issues**
+
 ```bash
 # Problem: Environment changes not reflected
 # Solution: Clear and restart all services
@@ -982,32 +1044,34 @@ rm -rf .vite
 
 # 3. Restart in correct order
 npm run mock-server    # Terminal 1 (if using mocks)
-npm run server         # Terminal 2  
+npm run server         # Terminal 2
 npm run dev           # Terminal 3
 ```
 
 #### Environment Validation Commands
 
 **Check Environment Status:**
+
 ```javascript
 // Run in browser console or Node.js
-import { getEnvironmentInfo, validateEnvironment } from './src/config/env.js';
+import { getEnvironmentInfo, validateEnvironment } from "./src/config/env.js";
 
 // Get current configuration
-console.log('Environment Info:', getEnvironmentInfo());
+console.log("Environment Info:", getEnvironmentInfo());
 
 // Validate configuration
 const { warnings, errors } = validateEnvironment();
-console.log('Warnings:', warnings);
-console.log('Errors:', errors);
+console.log("Warnings:", warnings);
+console.log("Errors:", errors);
 ```
 
 **API Connection Testing:**
+
 ```bash
 # Test mock server
 curl http://localhost:3001/health
 
-# Test backend server  
+# Test backend server
 curl http://localhost:8080/health
 
 # Test API client mode
@@ -1017,6 +1081,7 @@ curl http://localhost:5173  # Should show React app
 #### Debug Mode Configuration
 
 **Enable Comprehensive Logging:**
+
 ```bash
 # Set in .env file
 VITE_ENABLE_DEBUG_LOGS=true
@@ -1024,12 +1089,13 @@ NODE_ENV=development
 
 # Will enable:
 # - API request/response logging
-# - Environment configuration logging  
+# - Environment configuration logging
 # - Error details in console
 # - Performance timing logs
 ```
 
 **Debug Information Available:**
+
 ```javascript
 // Console outputs when debug enabled:
 🔧 API Client initialized - Using MOCK APIs
@@ -1041,12 +1107,14 @@ NODE_ENV=development
 ### Environment Security Best Practices
 
 #### Development Security
+
 - ✅ Mock server only accessible locally
 - ✅ Debug logs disabled in production builds
 - ✅ API keys properly prefixed with `VITE_` for frontend
 - ✅ Backend API keys (Claude, Telegram) not exposed to frontend
 
 #### Production Security
+
 - ✅ Environment variable validation before startup
 - ✅ API keys stored in secure environment variables
 - ✅ No hardcoded credentials in source code
@@ -1055,7 +1123,7 @@ NODE_ENV=development
 
 ---
 
-*This completes Task 3: Environment Configuration Guide. Comprehensive documentation of environment variables, mock/real API switching, deployment patterns, and troubleshooting guide has been added to ensure smooth development and production operations.*
+_This completes Task 3: Environment Configuration Guide. Comprehensive documentation of environment variables, mock/real API switching, deployment patterns, and troubleshooting guide has been added to ensure smooth development and production operations._
 
 ---
 
@@ -1070,18 +1138,19 @@ Subnet Scout uses a sophisticated custom hooks system that provides clean abstra
 **Purpose:** Generic API wrapper providing centralized loading states, error handling, and API mode management.
 
 **Usage Pattern:**
+
 ```javascript
-import { useApi } from '../hooks/useApi.js';
+import { useApi } from "../hooks/useApi.js";
 
 const MyComponent = () => {
-  const { 
-    loading, 
-    error, 
+  const {
+    loading,
+    error,
     apiMode,
-    getAgentsList, 
-    calculateScore, 
-    toggleApiMode, 
-    clearError 
+    getAgentsList,
+    calculateScore,
+    toggleApiMode,
+    clearError,
   } = useApi();
 
   const handleFetchData = async () => {
@@ -1090,7 +1159,7 @@ const MyComponent = () => {
       // Handle success
     } catch (err) {
       // Error already set in hook state
-      console.error('Fetch failed:', err);
+      console.error("Fetch failed:", err);
     }
   };
 
@@ -1100,7 +1169,7 @@ const MyComponent = () => {
       {error && <div>Error: {error}</div>}
       <button onClick={handleFetchData}>Fetch Data</button>
       <button onClick={toggleApiMode}>
-        Switch to {apiMode === 'mock' ? 'Real' : 'Mock'}
+        Switch to {apiMode === "mock" ? "Real" : "Mock"}
       </button>
     </div>
   );
@@ -1108,6 +1177,7 @@ const MyComponent = () => {
 ```
 
 **State Management:**
+
 ```javascript
 // Internal hook state
 const [loading, setLoading] = useState(false);
@@ -1118,7 +1188,7 @@ const [apiMode, setApiMode] = useState(apiClient.getCurrentMode());
 const apiCall = useCallback(async (apiFunction, ...args) => {
   setLoading(true);
   setError(null);
-  
+
   try {
     const result = await apiFunction(...args);
     setLoading(false);
@@ -1136,20 +1206,21 @@ const apiCall = useCallback(async (apiFunction, ...args) => {
 **Purpose:** Manages subnet agents data with pagination, statistics, and auto-fetching capabilities.
 
 **Usage Pattern:**
+
 ```javascript
-import { useSubnetAgents } from '../hooks/useApi.js';
+import { useSubnetAgents } from "../hooks/useApi.js";
 
 const AgentsList = () => {
-  const { 
-    agents, 
-    pagination, 
-    stats, 
-    loading, 
-    error, 
-    fetchAgents, 
-    refreshAgents, 
+  const {
+    agents,
+    pagination,
+    stats,
+    loading,
+    error,
+    fetchAgents,
+    refreshAgents,
     changePage,
-    apiMode 
+    apiMode,
   } = useSubnetAgents(true); // autoFetch = true
 
   return (
@@ -1162,21 +1233,23 @@ const AgentsList = () => {
 
       {/* Agents Grid */}
       <div className="grid">
-        {agents.map(agent => (
+        {agents.map((agent) => (
           <SubnetCard key={agent.subnet_id} agent={agent} />
         ))}
       </div>
 
       {/* Pagination */}
       <div>
-        <button 
+        <button
           onClick={() => changePage(pagination.page - 1)}
           disabled={pagination.page <= 1}
         >
           Previous
         </button>
-        <span>Page {pagination.page} of {pagination.total_pages}</span>
-        <button 
+        <span>
+          Page {pagination.page} of {pagination.total_pages}
+        </span>
+        <button
           onClick={() => changePage(pagination.page + 1)}
           disabled={pagination.page >= pagination.total_pages}
         >
@@ -1186,7 +1259,7 @@ const AgentsList = () => {
 
       {/* Manual Refresh */}
       <button onClick={refreshAgents} disabled={loading}>
-        {loading ? 'Refreshing...' : 'Refresh'}
+        {loading ? "Refreshing..." : "Refresh"}
       </button>
     </div>
   );
@@ -1194,6 +1267,7 @@ const AgentsList = () => {
 ```
 
 **Advanced State Management:**
+
 ```javascript
 // Multi-state management pattern
 const [agents, setAgents] = useState([]);
@@ -1201,11 +1275,11 @@ const [pagination, setPagination] = useState({
   page: 1,
   limit: 20,
   total_pages: 1,
-  total_count: 0
+  total_count: 0,
 });
 const [stats, setStats] = useState({
   healthy_count: 0,
-  average_score: 0
+  average_score: 0,
 });
 
 // Auto-fetch with dependency management
@@ -1221,11 +1295,13 @@ useEffect(() => {
 **Purpose:** Manages individual subnet scoring with automatic data fetching and score calculation.
 
 **Usage Pattern:**
+
 ```javascript
-import { useSubnetScore } from '../hooks/useApi.js';
+import { useSubnetScore } from "../hooks/useApi.js";
 
 const SubnetScoreCard = ({ subnetId }) => {
-  const { score, loading, error, fetchScore, refetch } = useSubnetScore(subnetId);
+  const { score, loading, error, fetchScore, refetch } =
+    useSubnetScore(subnetId);
 
   return (
     <div>
@@ -1245,9 +1321,7 @@ const SubnetScoreCard = ({ subnetId }) => {
               <p>Current Yield: {score.metrics.current_yield}%</p>
               <p>Risk Level: {score.metrics.risk_level}</p>
             </div>
-            <div className="ai-summary">
-              {score.ai_summary}
-            </div>
+            <div className="ai-summary">{score.ai_summary}</div>
           </div>
           <button onClick={refetch}>Recalculate</button>
         </div>
@@ -1258,37 +1332,41 @@ const SubnetScoreCard = ({ subnetId }) => {
 ```
 
 **Data Pipeline Pattern:**
+
 ```javascript
 // Complex data fetching with multiple API calls
-const fetchScore = useCallback(async (timeframe = '24h') => {
-  if (!subnetId) return;
+const fetchScore = useCallback(
+  async (timeframe = "24h") => {
+    if (!subnetId) return;
 
-  try {
-    // Step 1: Get subnet data from TaoStats
-    const subnetData = await getTaoStatsData(subnetId, { limit: 1 });
-    
-    if (subnetData && subnetData.length > 0) {
-      const data = subnetData[0];
-      
-      // Step 2: Transform data for scoring
-      const metrics = {
-        emission_rate: data.emission_rate,
-        total_stake: data.total_stake,
-        validator_count: data.validator_count,
-        activity_score: data.activity_score,
-        price_history: [data.price]
-      };
+    try {
+      // Step 1: Get subnet data from TaoStats
+      const subnetData = await getTaoStatsData(subnetId, { limit: 1 });
 
-      // Step 3: Calculate score using ScoreAgent
-      const scoreData = await calculateScore(subnetId, metrics, timeframe);
-      setScore(scoreData);
-      return scoreData;
+      if (subnetData && subnetData.length > 0) {
+        const data = subnetData[0];
+
+        // Step 2: Transform data for scoring
+        const metrics = {
+          emission_rate: data.emission_rate,
+          total_stake: data.total_stake,
+          validator_count: data.validator_count,
+          activity_score: data.activity_score,
+          price_history: [data.price],
+        };
+
+        // Step 3: Calculate score using ScoreAgent
+        const scoreData = await calculateScore(subnetId, metrics, timeframe);
+        setScore(scoreData);
+        return scoreData;
+      }
+    } catch (err) {
+      console.error("Failed to fetch subnet score:", err);
+      setScore(null);
     }
-  } catch (err) {
-    console.error('Failed to fetch subnet score:', err);
-    setScore(null);
-  }
-}, [subnetId, calculateScore, getTaoStatsData]);
+  },
+  [subnetId, calculateScore, getTaoStatsData],
+);
 ```
 
 #### 4. Health Monitoring Hook: `useApiHealth()`
@@ -1296,26 +1374,21 @@ const fetchScore = useCallback(async (timeframe = '24h') => {
 **Purpose:** Provides real-time API health monitoring with periodic checks and status tracking.
 
 **Usage Pattern:**
+
 ```javascript
-import { useApiHealth } from '../hooks/useApi.js';
+import { useApiHealth } from "../hooks/useApi.js";
 
 const SystemStatus = () => {
-  const { 
-    health, 
-    lastCheck, 
-    loading, 
-    error, 
-    checkHealth, 
-    isHealthy 
-  } = useApiHealth();
+  const { health, lastCheck, loading, error, checkHealth, isHealthy } =
+    useApiHealth();
 
   return (
-    <div className={`status-bar ${isHealthy ? 'healthy' : 'unhealthy'}`}>
+    <div className={`status-bar ${isHealthy ? "healthy" : "unhealthy"}`}>
       <div className="status-indicator">
-        <div className={`dot ${isHealthy ? 'green' : 'red'}`}></div>
-        <span>API Status: {isHealthy ? 'Healthy' : 'Offline'}</span>
+        <div className={`dot ${isHealthy ? "green" : "red"}`}></div>
+        <span>API Status: {isHealthy ? "Healthy" : "Offline"}</span>
       </div>
-      
+
       {health && (
         <div className="health-details">
           <span>Uptime: {Math.floor(health.uptime)}s</span>
@@ -1323,9 +1396,9 @@ const SystemStatus = () => {
           <span>Last Check: {lastCheck?.toLocaleTimeString()}</span>
         </div>
       )}
-      
+
       <button onClick={checkHealth} disabled={loading}>
-        {loading ? 'Checking...' : 'Check Now'}
+        {loading ? "Checking..." : "Check Now"}
       </button>
     </div>
   );
@@ -1333,6 +1406,7 @@ const SystemStatus = () => {
 ```
 
 **Periodic Monitoring Pattern:**
+
 ```javascript
 // Automatic health checks with cleanup
 useEffect(() => {
@@ -1350,14 +1424,19 @@ useEffect(() => {
 **Pattern:** Components that receive data via props and communicate via callback functions.
 
 **Example: `SubnetCard.jsx`**
+
 ```javascript
 const SubnetCard = ({ agent, onScoreClick }) => {
   const getStatusColor = (status) => {
     switch (status) {
-      case 'healthy': return 'bg-green-500';
-      case 'warning': return 'bg-yellow-500';
-      case 'critical': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case "healthy":
+        return "bg-green-500";
+      case "warning":
+        return "bg-yellow-500";
+      case "critical":
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
@@ -1367,7 +1446,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
       <div className={`status ${getStatusColor(agent.status)}`}>
         {agent.status}
       </div>
-      
+
       {/* Metrics Display */}
       <div className="metrics">
         <div className="score">{agent.score}/100</div>
@@ -1375,7 +1454,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
         <div className="activity">{agent.activity}</div>
         <div className="credibility">{agent.credibility}</div>
       </div>
-      
+
       {/* Actions */}
       <button onClick={() => onScoreClick?.(agent.subnet_id)}>
         View Details
@@ -1385,10 +1464,10 @@ const SubnetCard = ({ agent, onScoreClick }) => {
 };
 
 // Usage in parent component
-<SubnetCard 
-  agent={agent} 
-  onScoreClick={(subnetId) => setSelectedSubnet(subnetId)} 
-/>
+<SubnetCard
+  agent={agent}
+  onScoreClick={(subnetId) => setSelectedSubnet(subnetId)}
+/>;
 ```
 
 #### 2. Hook-Integrated Components
@@ -1396,6 +1475,7 @@ const SubnetCard = ({ agent, onScoreClick }) => {
 **Pattern:** Components that use custom hooks for data management and state handling.
 
 **Example: `StatsDashboard.jsx`**
+
 ```javascript
 const StatsDashboard = ({ stats, loading, apiMode, onToggleApiMode }) => {
   // Hook integration for health monitoring
@@ -1405,14 +1485,12 @@ const StatsDashboard = ({ stats, loading, apiMode, onToggleApiMode }) => {
     <div className="stats-dashboard">
       {/* API Status Bar with hook data */}
       <div className="api-status">
-        <div className={`indicator ${isHealthy ? 'healthy' : 'offline'}`}>
-          API Status: {isHealthy ? 'Healthy' : 'Offline'}
+        <div className={`indicator ${isHealthy ? "healthy" : "offline"}`}>
+          API Status: {isHealthy ? "Healthy" : "Offline"}
         </div>
-        <div className="mode-info">
-          Mode: {apiMode}
-        </div>
+        <div className="mode-info">Mode: {apiMode}</div>
         <button onClick={onToggleApiMode}>
-          Switch to {apiMode === 'mock' ? 'Real' : 'Mock'}
+          Switch to {apiMode === "mock" ? "Real" : "Mock"}
         </button>
       </div>
 
@@ -1440,6 +1518,7 @@ const StatsDashboard = ({ stats, loading, apiMode, onToggleApiMode }) => {
 **Pattern:** Components that manage their own API calls and state for specialized functionality.
 
 **Example: `ScoreAgentDemo.jsx`**
+
 ```javascript
 const ScoreAgentDemo = () => {
   // Local state management
@@ -1447,7 +1526,7 @@ const ScoreAgentDemo = () => {
   const [scoreResult, setScoreResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Hook for API mode management
   const { apiMode, toggleApiMode } = useApi();
 
@@ -1458,13 +1537,13 @@ const ScoreAgentDemo = () => {
     setScoreResult(null);
 
     try {
-      const response = await fetch('http://localhost:8080/api/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:8080/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subnet_id: subnetId,
           metrics: sampleMetrics,
-          timeframe: '24h'
+          timeframe: "24h",
         }),
       });
 
@@ -1486,13 +1565,13 @@ const ScoreAgentDemo = () => {
     <div className="score-demo">
       {/* Input controls */}
       <div className="controls">
-        <input 
-          type="number" 
-          value={subnetId} 
-          onChange={(e) => setSubnetId(parseInt(e.target.value))} 
+        <input
+          type="number"
+          value={subnetId}
+          onChange={(e) => setSubnetId(parseInt(e.target.value))}
         />
         <button onClick={calculateScore} disabled={loading}>
-          {loading ? 'Calculating...' : 'Calculate Score'}
+          {loading ? "Calculating..." : "Calculate Score"}
         </button>
       </div>
 
@@ -1508,9 +1587,7 @@ const ScoreAgentDemo = () => {
       {scoreResult && (
         <div className="results">
           <div className="overall-score">{scoreResult.overall_score}/100</div>
-          <div className="breakdown">
-            {/* Score breakdown display */}
-          </div>
+          <div className="breakdown">{/* Score breakdown display */}</div>
           <div className="ai-summary">{scoreResult.ai_summary}</div>
         </div>
       )}
@@ -1530,7 +1607,7 @@ const ScoreAgentDemo = () => {
 const apiCall = useCallback(async (apiFunction, ...args) => {
   setLoading(true);
   setError(null);
-  
+
   try {
     const result = await apiFunction(...args);
     setLoading(false);
@@ -1539,10 +1616,10 @@ const apiCall = useCallback(async (apiFunction, ...args) => {
     // Centralized error handling
     setError(err.message);
     setLoading(false);
-    
+
     // Error logging
-    console.error('API call failed:', err);
-    
+    console.error("API call failed:", err);
+
     // Re-throw for component handling if needed
     throw err;
   }
@@ -1553,7 +1630,7 @@ return {
   loading,
   error,
   clearError: () => setError(null),
-  apiCall
+  apiCall,
 };
 ```
 
@@ -1572,7 +1649,7 @@ const MyComponent = () => {
       setData(result);
     } catch (err) {
       // Error already handled by hook, just log locally if needed
-      console.error('Component fetch failed:', err);
+      console.error("Component fetch failed:", err);
     }
   };
 
@@ -1597,7 +1674,7 @@ const MyComponent = () => {
 
       {/* Action Button */}
       <button onClick={fetchData} disabled={loading}>
-        {loading ? 'Loading...' : 'Fetch Data'}
+        {loading ? "Loading..." : "Fetch Data"}
       </button>
     </div>
   );
@@ -1614,35 +1691,41 @@ const useSubnetScore = (subnetId) => {
   const [retryCount, setRetryCount] = useState(0);
   const { loading, error, calculateScore, getTaoStatsData } = useApi();
 
-  const fetchScore = useCallback(async (timeframe = '24h') => {
-    if (!subnetId) return;
+  const fetchScore = useCallback(
+    async (timeframe = "24h") => {
+      if (!subnetId) return;
 
-    try {
-      // Primary data source
-      const subnetData = await getTaoStatsData(subnetId, { limit: 1 });
-      
-      if (subnetData && subnetData.length > 0) {
-        const scoreData = await calculateScore(subnetId, metrics, timeframe);
-        setScore(scoreData);
-        setRetryCount(0); // Reset retry count on success
-        return scoreData;
-      } else {
-        throw new Error('No subnet data available');
+      try {
+        // Primary data source
+        const subnetData = await getTaoStatsData(subnetId, { limit: 1 });
+
+        if (subnetData && subnetData.length > 0) {
+          const scoreData = await calculateScore(subnetId, metrics, timeframe);
+          setScore(scoreData);
+          setRetryCount(0); // Reset retry count on success
+          return scoreData;
+        } else {
+          throw new Error("No subnet data available");
+        }
+      } catch (err) {
+        console.error("Failed to fetch subnet score:", err);
+
+        // Retry logic for transient errors
+        if (retryCount < 3 && err.message.includes("network")) {
+          setTimeout(
+            () => {
+              setRetryCount((prev) => prev + 1);
+              fetchScore(timeframe);
+            },
+            1000 * Math.pow(2, retryCount),
+          ); // Exponential backoff
+        } else {
+          setScore(null);
+        }
       }
-    } catch (err) {
-      console.error('Failed to fetch subnet score:', err);
-      
-      // Retry logic for transient errors
-      if (retryCount < 3 && err.message.includes('network')) {
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          fetchScore(timeframe);
-        }, 1000 * Math.pow(2, retryCount)); // Exponential backoff
-      } else {
-        setScore(null);
-      }
-    }
-  }, [subnetId, calculateScore, getTaoStatsData, retryCount]);
+    },
+    [subnetId, calculateScore, getTaoStatsData, retryCount],
+  );
 
   return {
     score,
@@ -1653,7 +1736,7 @@ const useSubnetScore = (subnetId) => {
     refetch: () => {
       setRetryCount(0);
       fetchScore();
-    }
+    },
   };
 };
 ```
@@ -1668,25 +1751,25 @@ const useSubnetScore = (subnetId) => {
 const ScoreAgentDemo = () => {
   // Form state
   const [subnetId, setSubnetId] = useState(1);
-  const [timeframe, setTimeframe] = useState('24h');
-  
+  const [timeframe, setTimeframe] = useState("24h");
+
   // Result state
   const [scoreResult, setScoreResult] = useState(null);
-  
+
   // UI state
   const [showDetails, setShowDetails] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   return (
     <div>
       {/* Form controls update local state */}
-      <input 
+      <input
         value={subnetId}
         onChange={(e) => setSubnetId(parseInt(e.target.value))}
       />
-      
+
       {/* UI state controls display */}
-      <div className={`details ${showDetails ? 'expanded' : 'collapsed'}`}>
+      <div className={`details ${showDetails ? "expanded" : "collapsed"}`}>
         {/* Content */}
       </div>
     </div>
@@ -1702,23 +1785,25 @@ const ScoreAgentDemo = () => {
 const App = () => {
   // Lifted state for shared data
   const [selectedSubnet, setSelectedSubnet] = useState(null);
-  const [apiMode, setApiMode] = useState('mock');
-  
+  const [apiMode, setApiMode] = useState("mock");
+
   return (
     <div>
       {/* Parent manages state, children receive props */}
-      <StatsDashboard 
+      <StatsDashboard
         apiMode={apiMode}
-        onToggleApiMode={() => setApiMode(prev => prev === 'mock' ? 'real' : 'mock')}
+        onToggleApiMode={() =>
+          setApiMode((prev) => (prev === "mock" ? "real" : "mock"))
+        }
       />
-      
-      <SubnetsList 
+
+      <SubnetsList
         onSubnetSelect={setSelectedSubnet}
         selectedSubnet={selectedSubnet}
       />
-      
+
       {selectedSubnet && (
-        <SubnetDetails 
+        <SubnetDetails
           subnetId={selectedSubnet}
           onClose={() => setSelectedSubnet(null)}
         />
@@ -1736,7 +1821,7 @@ const App = () => {
 // Shared API mode hook
 const useApiMode = () => {
   const [apiMode, setApiMode] = useState(apiClient.getCurrentMode());
-  
+
   const toggleApiMode = useCallback(() => {
     apiClient.toggleMockMode();
     setApiMode(apiClient.getCurrentMode());
@@ -1766,28 +1851,32 @@ const ComponentB = () => {
 ```javascript
 const SubnetsList = ({ onSubnetSelect }) => {
   const { agents, loading, fetchAgents } = useSubnetAgents();
-  
+
   // Memoize expensive calculations
-  const healthyAgents = useMemo(() => 
-    agents.filter(agent => agent.status === 'healthy'), 
-    [agents]
+  const healthyAgents = useMemo(
+    () => agents.filter((agent) => agent.status === "healthy"),
+    [agents],
   );
-  
+
   // Memoize callback functions
-  const handleAgentClick = useCallback((agentId) => {
-    onSubnetSelect?.(agentId);
-  }, [onSubnetSelect]);
-  
+  const handleAgentClick = useCallback(
+    (agentId) => {
+      onSubnetSelect?.(agentId);
+    },
+    [onSubnetSelect],
+  );
+
   // Memoize rendered components
-  const agentCards = useMemo(() => 
-    agents.map(agent => (
-      <SubnetCard 
-        key={agent.subnet_id}
-        agent={agent}
-        onClick={handleAgentClick}
-      />
-    )), 
-    [agents, handleAgentClick]
+  const agentCards = useMemo(
+    () =>
+      agents.map((agent) => (
+        <SubnetCard
+          key={agent.subnet_id}
+          agent={agent}
+          onClick={handleAgentClick}
+        />
+      )),
+    [agents, handleAgentClick],
   );
 
   return <div className="agents-grid">{agentCards}</div>;
@@ -1802,15 +1891,15 @@ const SubnetsList = ({ onSubnetSelect }) => {
 const useConditionalData = (subnetId, enabled = true) => {
   const [data, setData] = useState(null);
   const { fetchData, loading } = useApi();
-  
+
   const shouldFetch = enabled && subnetId && !loading;
-  
+
   useEffect(() => {
     if (shouldFetch) {
       fetchData(subnetId).then(setData);
     }
   }, [shouldFetch, subnetId, fetchData]);
-  
+
   return { data, loading: loading && shouldFetch };
 };
 
@@ -1818,16 +1907,16 @@ const useConditionalData = (subnetId, enabled = true) => {
 const SubnetDetails = ({ subnetId, isVisible }) => {
   // Only fetch when component is visible
   const { data, loading } = useConditionalData(subnetId, isVisible);
-  
+
   if (!isVisible) return null;
-  
-  return <div>{loading ? 'Loading...' : data?.name}</div>;
+
+  return <div>{loading ? "Loading..." : data?.name}</div>;
 };
 ```
 
 ---
 
-*This completes Task 4: Integration Patterns Documentation. Comprehensive documentation of React hooks architecture, component integration patterns, error handling strategies, and state management approaches has been added to provide complete guidance for frontend development and maintenance.*
+_This completes Task 4: Integration Patterns Documentation. Comprehensive documentation of React hooks architecture, component integration patterns, error handling strategies, and state management approaches has been added to provide complete guidance for frontend development and maintenance._
 
 ---
 
@@ -1842,11 +1931,12 @@ Subnet Scout provides multiple user interaction paths, each with distinct commun
 **User Story:** First-time user arrives at Home page, tests Claude integration, explores API testing, and views scoring demo.
 
 **Communication Flow:**
+
 ```
 User → Home Page → Claude Query → Backend → Claude API → Response Chain
 
 Detailed Flow:
-1. User loads Home page (/) 
+1. User loads Home page (/)
    └── React Router → Home.jsx component
    └── Initial state: input="", reply=""
 
@@ -1870,6 +1960,7 @@ Detailed Flow:
 ```
 
 **Request/Response Example:**
+
 ```javascript
 // Frontend Request
 const handleSend = async () => {
@@ -1905,6 +1996,7 @@ app.post('/ping', async (req, res) => {
 **User Story:** Experienced user navigates to Explore page, toggles API modes, analyzes multiple subnets, and monitors real-time data.
 
 **Communication Flow:**
+
 ```
 User → Explore Page → Subnet Data → Scoring → Analytics → Monitoring
 
@@ -1936,14 +2028,21 @@ Detailed Flow:
 ```
 
 **Multi-API Coordination Example:**
+
 ```javascript
 // Explore.jsx component integration
 const Explore = () => {
-  const { 
-    agents, pagination, stats, loading, error, 
-    changePage, refreshAgents, apiMode 
+  const {
+    agents,
+    pagination,
+    stats,
+    loading,
+    error,
+    changePage,
+    refreshAgents,
+    apiMode,
   } = useSubnetAgents();
-  
+
   const { toggleApiMode } = useApi();
 
   // Coordinated state management
@@ -1954,14 +2053,14 @@ const Explore = () => {
 
   return (
     <div>
-      <StatsDashboard 
+      <StatsDashboard
         stats={stats}
         apiMode={apiMode}
         onToggleApiMode={handleToggleApiMode}
       />
       <div className="subnet-grid">
-        {agents.map(agent => (
-          <SubnetCard 
+        {agents.map((agent) => (
+          <SubnetCard
             key={agent.subnet_id}
             agent={agent}
             onScoreClick={handleScoreClick}
@@ -1978,6 +2077,7 @@ const Explore = () => {
 **User Story:** Developer uses ScoreAgent Demo to analyze specific subnet performance with AI-powered insights.
 
 **Communication Flow:**
+
 ```
 User → ScoreAgent Demo → Subnet Selection → Score Calculation → AI Analysis → Results
 
@@ -2009,6 +2109,7 @@ Detailed Flow:
 ```
 
 **Comprehensive Scoring Flow:**
+
 ```javascript
 // Frontend request with rich metrics
 const calculateScore = async () => {
@@ -2027,7 +2128,7 @@ const calculateScore = async () => {
       timeframe: '24h'
     })
   });
-  
+
   const result = await response.json();
   // Complex response structure with multiple data layers
 };
@@ -2109,6 +2210,7 @@ User Recovery Actions
 **Context:** System deployed to production with real API endpoints and monitoring.
 
 **Integration Pattern:**
+
 ```javascript
 // Environment-aware configuration
 const config = {
@@ -2116,40 +2218,39 @@ const config = {
   apiEndpoints: {
     backend: process.env.VITE_BACKEND_URL,
     taostats: process.env.VITE_TAOSTATS_URL,
-    ionet: process.env.VITE_IONET_URL
+    ionet: process.env.VITE_IONET_URL,
   },
   monitoring: {
     healthChecks: true,
     errorReporting: true,
-    performanceTracking: true
-  }
+    performanceTracking: true,
+  },
 };
 
 // Production API client setup
 class ProductionApiClient extends ApiClient {
   constructor() {
     super();
-    this.mode = 'real';
+    this.mode = "real";
     this.enableHealthChecks();
     this.enableErrorReporting();
   }
-  
+
   async makeRequest(endpoint, options) {
     const startTime = performance.now();
-    
+
     try {
       const response = await fetch(endpoint, {
         ...options,
         headers: {
           ...options.headers,
-          'X-API-Version': '1.0',
-          'Authorization': `Bearer ${this.getAuthToken()}`
-        }
+          "X-API-Version": "1.0",
+          Authorization: `Bearer ${this.getAuthToken()}`,
+        },
       });
-      
+
       this.trackPerformance(endpoint, performance.now() - startTime);
       return response;
-      
     } catch (error) {
       this.reportError(error, endpoint);
       throw error;
@@ -2163,41 +2264,47 @@ class ProductionApiClient extends ApiClient {
 **Context:** Multiple developers working with shared mock data and API contracts.
 
 **Integration Pattern:**
+
 ```javascript
 // Shared mock data contracts
 const mockDataContracts = {
   subnet_agents: {
     schema: {
-      subnet_id: 'number',
-      name: 'string',
-      status: 'enum[healthy,warning,critical]',
-      score: 'number[0-100]',
-      yield: 'number',
-      activity: 'string',
-      credibility: 'string'
+      subnet_id: "number",
+      name: "string",
+      status: "enum[healthy,warning,critical]",
+      score: "number[0-100]",
+      yield: "number",
+      activity: "string",
+      credibility: "string",
     },
     samples: [
-      { subnet_id: 1, name: 'Text Prompting', status: 'healthy', score: 85 },
-      { subnet_id: 2, name: 'Machine Translation', status: 'warning', score: 72 }
-    ]
-  }
+      { subnet_id: 1, name: "Text Prompting", status: "healthy", score: 85 },
+      {
+        subnet_id: 2,
+        name: "Machine Translation",
+        status: "warning",
+        score: 72,
+      },
+    ],
+  },
 };
 
 // Development API client with contract validation
 class DevelopmentApiClient extends ApiClient {
   constructor() {
     super();
-    this.mode = 'mock';
+    this.mode = "mock";
     this.validateContracts = true;
   }
-  
+
   async getAgentsList(page, limit) {
     const data = await super.getAgentsList(page, limit);
-    
+
     if (this.validateContracts) {
-      this.validateAgainstContract(data, 'subnet_agents');
+      this.validateAgainstContract(data, "subnet_agents");
     }
-    
+
     return data;
   }
 }
@@ -2208,6 +2315,7 @@ class DevelopmentApiClient extends ApiClient {
 **Context:** System operating with redundancy, failover, and real-time monitoring.
 
 **Integration Pattern:**
+
 ```javascript
 // Resilient API client with failover
 class ResilientApiClient extends ApiClient {
@@ -2216,29 +2324,31 @@ class ResilientApiClient extends ApiClient {
     this.endpoints = {
       primary: process.env.VITE_PRIMARY_API,
       secondary: process.env.VITE_SECONDARY_API,
-      tertiary: process.env.VITE_TERTIARY_API
+      tertiary: process.env.VITE_TERTIARY_API,
     };
-    this.currentEndpoint = 'primary';
+    this.currentEndpoint = "primary";
     this.failoverEnabled = true;
   }
-  
+
   async makeRequest(path, options) {
-    const endpoints = ['primary', 'secondary', 'tertiary'];
-    
+    const endpoints = ["primary", "secondary", "tertiary"];
+
     for (const endpoint of endpoints) {
       try {
-        const response = await fetch(`${this.endpoints[endpoint]}${path}`, options);
-        
+        const response = await fetch(
+          `${this.endpoints[endpoint]}${path}`,
+          options,
+        );
+
         if (response.ok) {
           this.currentEndpoint = endpoint;
           return response;
         }
-        
       } catch (error) {
         console.warn(`Endpoint ${endpoint} failed:`, error.message);
-        
-        if (endpoint === 'tertiary') {
-          throw new Error('All endpoints failed');
+
+        if (endpoint === "tertiary") {
+          throw new Error("All endpoints failed");
         }
       }
     }
@@ -2248,45 +2358,49 @@ class ResilientApiClient extends ApiClient {
 // Health monitoring with automatic recovery
 const useSystemHealth = () => {
   const [health, setHealth] = useState({
-    status: 'checking',
+    status: "checking",
     endpoints: {},
-    lastCheck: null
+    lastCheck: null,
   });
-  
+
   const checkAllEndpoints = async () => {
-    const endpoints = ['primary', 'secondary', 'tertiary'];
+    const endpoints = ["primary", "secondary", "tertiary"];
     const results = {};
-    
+
     for (const endpoint of endpoints) {
       try {
-        const response = await fetch(`${process.env[`VITE_${endpoint.toUpperCase()}_API`]}/health`);
+        const response = await fetch(
+          `${process.env[`VITE_${endpoint.toUpperCase()}_API`]}/health`,
+        );
         results[endpoint] = {
-          status: response.ok ? 'healthy' : 'unhealthy',
-          responseTime: response.headers.get('X-Response-Time'),
-          lastCheck: new Date()
+          status: response.ok ? "healthy" : "unhealthy",
+          responseTime: response.headers.get("X-Response-Time"),
+          lastCheck: new Date(),
         };
       } catch (error) {
         results[endpoint] = {
-          status: 'error',
+          status: "error",
           error: error.message,
-          lastCheck: new Date()
+          lastCheck: new Date(),
         };
       }
     }
-    
+
     setHealth({
-      status: Object.values(results).some(r => r.status === 'healthy') ? 'operational' : 'degraded',
+      status: Object.values(results).some((r) => r.status === "healthy")
+        ? "operational"
+        : "degraded",
       endpoints: results,
-      lastCheck: new Date()
+      lastCheck: new Date(),
     });
   };
-  
+
   useEffect(() => {
     checkAllEndpoints();
     const interval = setInterval(checkAllEndpoints, 30000); // Every 30 seconds
     return () => clearInterval(interval);
   }, []);
-  
+
   return health;
 };
 ```
@@ -2298,25 +2412,26 @@ const useSystemHealth = () => {
 **Symptoms:** Data not loading after toggling between mock and real APIs.
 
 **Diagnosis Flow:**
+
 ```javascript
 // Step 1: Check API mode state
 const debugApiMode = () => {
-  console.log('Current API mode:', apiClient.getCurrentMode());
-  console.log('Mock mode enabled:', apiClient.isMockMode());
-  console.log('Environment:', process.env.NODE_ENV);
+  console.log("Current API mode:", apiClient.getCurrentMode());
+  console.log("Mock mode enabled:", apiClient.isMockMode());
+  console.log("Environment:", process.env.NODE_ENV);
 };
 
 // Step 2: Verify endpoint connectivity
 const testEndpoints = async () => {
   const endpoints = {
-    mock: 'http://localhost:3001/health',
-    real: 'http://localhost:8080/health'
+    mock: "http://localhost:3001/health",
+    real: "http://localhost:8080/health",
   };
-  
+
   for (const [mode, endpoint] of Object.entries(endpoints)) {
     try {
       const response = await fetch(endpoint);
-      console.log(`${mode} endpoint:`, response.ok ? 'OK' : 'FAILED');
+      console.log(`${mode} endpoint:`, response.ok ? "OK" : "FAILED");
     } catch (error) {
       console.log(`${mode} endpoint ERROR:`, error.message);
     }
@@ -2328,13 +2443,14 @@ const forceRefresh = () => {
   // Clear cached data
   setAgents([]);
   setStats({ healthy_count: 0, average_score: 0 });
-  
+
   // Trigger new fetch
   fetchAgents(1, 20);
 };
 ```
 
 **Resolution Steps:**
+
 1. Verify both mock server (port 3001) and backend (port 8080) are running
 2. Check environment URLs are correct
 3. Clear browser cache and local storage
@@ -2346,43 +2462,46 @@ const forceRefresh = () => {
 **Symptoms:** ScoreAgent Demo hangs on "Calculating Score..." state.
 
 **Diagnosis Flow:**
+
 ```javascript
 // Enhanced error handling with timeout
 const calculateScoreWithTimeout = async () => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-  
+
   try {
-    const response = await fetch('http://localhost:8080/api/score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("http://localhost:8080/api/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(scoreData),
-      signal: controller.signal
+      signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`HTTP ${response.status}: ${errorData.error?.message || 'Unknown error'}`);
+      throw new Error(
+        `HTTP ${response.status}: ${errorData.error?.message || "Unknown error"}`,
+      );
     }
-    
+
     const result = await response.json();
     return result;
-    
   } catch (error) {
     clearTimeout(timeoutId);
-    
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out after 10 seconds');
+
+    if (error.name === "AbortError") {
+      throw new Error("Request timed out after 10 seconds");
     }
-    
+
     throw error;
   }
 };
 ```
 
 **Resolution Steps:**
+
 1. Check Claude API key is valid and has credits
 2. Verify backend server is running and responding
 3. Test with simpler scoring requests first
@@ -2394,11 +2513,12 @@ const calculateScoreWithTimeout = async () => {
 **Symptoms:** Components not re-rendering when data changes, infinite re-render loops.
 
 **Diagnosis Flow:**
+
 ```javascript
 // Debug hook dependencies
 const useDebugHook = (hookName, dependencies) => {
   const previousDeps = useRef();
-  
+
   useEffect(() => {
     if (previousDeps.current) {
       const changedDeps = dependencies.reduce((acc, dep, index) => {
@@ -2406,17 +2526,17 @@ const useDebugHook = (hookName, dependencies) => {
           acc.push({
             index,
             previous: previousDeps.current[index],
-            current: dep
+            current: dep,
           });
         }
         return acc;
       }, []);
-      
+
       if (changedDeps.length > 0) {
         console.log(`${hookName} dependencies changed:`, changedDeps);
       }
     }
-    
+
     previousDeps.current = dependencies;
   });
 };
@@ -2424,20 +2544,21 @@ const useDebugHook = (hookName, dependencies) => {
 // Usage in custom hooks
 const useSubnetAgents = (autoFetch = true) => {
   // ... existing code ...
-  
-  useDebugHook('useSubnetAgents', [autoFetch, fetchAgents, apiMode]);
-  
+
+  useDebugHook("useSubnetAgents", [autoFetch, fetchAgents, apiMode]);
+
   useEffect(() => {
     if (autoFetch) {
       fetchAgents();
     }
   }, [autoFetch, fetchAgents, apiMode]);
-  
+
   // ... rest of hook
 };
 ```
 
 **Resolution Steps:**
+
 1. Use React DevTools Profiler to identify re-render causes
 2. Wrap functions in useCallback with proper dependencies
 3. Memoize expensive calculations with useMemo
@@ -2449,48 +2570,50 @@ const useSubnetAgents = (autoFetch = true) => {
 **Symptoms:** Different behavior between development and production environments.
 
 **Diagnosis Flow:**
+
 ```javascript
 // Environment validation utility
 const validateEnvironment = () => {
   const requiredVars = [
-    'VITE_BACKEND_URL',
-    'VITE_ANTHROPIC_API_KEY',
-    'VITE_TAOSTATS_API_KEY',
-    'VITE_IONET_API_KEY'
+    "VITE_BACKEND_URL",
+    "VITE_ANTHROPIC_API_KEY",
+    "VITE_TAOSTATS_API_KEY",
+    "VITE_IONET_API_KEY",
   ];
-  
-  const missing = requiredVars.filter(key => !process.env[key]);
-  const present = requiredVars.filter(key => process.env[key]);
-  
-  console.log('Environment validation:');
-  console.log('✅ Present:', present);
-  console.log('❌ Missing:', missing);
-  console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
-  console.log('🌐 API Mode:', apiClient.getCurrentMode());
-  
+
+  const missing = requiredVars.filter((key) => !process.env[key]);
+  const present = requiredVars.filter((key) => process.env[key]);
+
+  console.log("Environment validation:");
+  console.log("✅ Present:", present);
+  console.log("❌ Missing:", missing);
+  console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
+  console.log("🌐 API Mode:", apiClient.getCurrentMode());
+
   if (missing.length > 0) {
-    console.warn('Missing environment variables may cause API failures');
+    console.warn("Missing environment variables may cause API failures");
   }
-  
+
   return { valid: missing.length === 0, missing, present };
 };
 
 // Runtime environment debug
 const debugRuntime = () => {
-  console.log('Runtime configuration:');
-  console.log('• Frontend URL:', window.location.origin);
-  console.log('• Backend URL:', process.env.VITE_BACKEND_URL);
-  console.log('• Mock Server:', process.env.VITE_MOCK_SERVER_URL);
-  console.log('• API Client Mode:', apiClient.getCurrentMode());
-  
+  console.log("Runtime configuration:");
+  console.log("• Frontend URL:", window.location.origin);
+  console.log("• Backend URL:", process.env.VITE_BACKEND_URL);
+  console.log("• Mock Server:", process.env.VITE_MOCK_SERVER_URL);
+  console.log("• API Client Mode:", apiClient.getCurrentMode());
+
   // Test connectivity
   fetch(`${process.env.VITE_BACKEND_URL}/health`)
-    .then(res => console.log('✅ Backend connectivity:', res.ok))
-    .catch(err => console.log('❌ Backend connectivity:', err.message));
+    .then((res) => console.log("✅ Backend connectivity:", res.ok))
+    .catch((err) => console.log("❌ Backend connectivity:", err.message));
 };
 ```
 
 **Resolution Steps:**
+
 1. Run environment validation on app startup
 2. Compare .env files between environments
 3. Verify API endpoints are accessible from deployment environment
@@ -2499,7 +2622,7 @@ const debugRuntime = () => {
 
 ---
 
-*This completes Task 5: Communication Flow Examples. Comprehensive documentation of end-to-end user journeys, request/response flows, real-world integration scenarios, and troubleshooting workflows has been added to provide complete guidance for system operations and maintenance.*
+_This completes Task 5: Communication Flow Examples. Comprehensive documentation of end-to-end user journeys, request/response flows, real-world integration scenarios, and troubleshooting workflows has been added to provide complete guidance for system operations and maintenance._
 
 ---
 
@@ -2508,22 +2631,25 @@ const debugRuntime = () => {
 This document provides comprehensive coverage of all communication patterns, integration flows, and operational procedures for the Subnet Scout system. The documentation is organized into five main sections:
 
 1. **System Architecture** - Visual overview and component interactions
-2. **API Contracts** - Detailed endpoint specifications and data schemas  
+2. **API Contracts** - Detailed endpoint specifications and data schemas
 3. **Environment Configuration** - Setup, deployment, and troubleshooting
 4. **Integration Patterns** - React hooks, state management, and error handling
 5. **Communication Flow Examples** - Real-world scenarios and debugging workflows
 
 **For Development Teams:**
+
 - Use the API contracts section for frontend-backend coordination
 - Reference integration patterns for consistent React development
 - Follow environment configuration for local development setup
 
 **For DevOps Teams:**
+
 - Use deployment patterns for production configuration
 - Reference troubleshooting workflows for issue resolution
 - Monitor system health using documented patterns
 
 **For New Team Members:**
+
 - Start with system architecture to understand overall design
 - Review communication flow examples for practical usage patterns
 - Use troubleshooting section for common issue resolution

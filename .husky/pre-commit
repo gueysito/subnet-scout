@@ -6,14 +6,51 @@ echo "🔒 Running pre-commit security checks..."
 # Run lint-staged for code formatting and linting
 npx lint-staged
 
-# Security: Check for secrets in staged files
+# Security: Check for secrets in staged files (excluding patterns in .secretsignore)
 echo "🔍 Scanning for secrets..."
-git diff --cached --name-only | xargs grep -l -i -E "(api_key|secret|password|token|private_key)" && {
+temp_file=$(mktemp)
+git diff --cached --name-only | xargs grep -i -E "(api_key|secret|password|token|private_key)" 2>/dev/null > "$temp_file" || true
+
+if [ -s "$temp_file" ] && [ -f ".secretsignore" ]; then
+  # Filter out patterns from .secretsignore
+  filtered_results=""
+  while IFS= read -r line; do
+    if [ -n "$line" ] && [ "${line#\#}" = "$line" ]; then  # Skip empty lines and comments
+      # Check if this pattern should be ignored
+      pattern_found=false
+      while IFS= read -r ignore_pattern; do
+        if [ -n "$ignore_pattern" ] && [ "${ignore_pattern#\#}" = "$ignore_pattern" ]; then
+          if echo "$line" | grep -q "$ignore_pattern" 2>/dev/null; then
+            pattern_found=true
+            break
+          fi
+        fi
+      done < .secretsignore
+      
+      if [ "$pattern_found" = false ]; then
+        filtered_results="$filtered_results$line\n"
+      fi
+    fi
+  done < "$temp_file"
+  
+  if [ -n "$filtered_results" ]; then
+    echo "❌ Potential secrets detected in staged files!"
+    echo "$filtered_results"
+    echo "Please review and ensure no real secrets are committed."
+    echo "If these are intentional (like variable names), add them to .secretsignore"
+    rm "$temp_file"
+    exit 1
+  fi
+elif [ -s "$temp_file" ]; then
   echo "❌ Potential secrets detected in staged files!"
+  cat "$temp_file"
   echo "Please review and ensure no real secrets are committed."
-  echo "If these are intentional (like variable names), add them to .secretsignore"
+  rm "$temp_file"
   exit 1
-} || echo "✅ No secrets detected"
+fi
+
+rm -f "$temp_file"
+echo "✅ No secrets detected"
 
 # Security: Check for .env files
 if git diff --cached --name-only | grep -q "\.env$"; then
