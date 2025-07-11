@@ -295,16 +295,27 @@ function generateSubnetData(subnetId) {
   };
 }
 
-// Helper to send JSON response
+// Helper to send JSON response with comprehensive security headers
 function sendJSON(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    
+    // Security Headers
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block'
+    'X-XSS-Protection': '1; mode=block',
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self'; object-src 'none'; media-src 'self'; frame-src 'none'",
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+    'X-DNS-Prefetch-Control': 'off',
+    'Expect-CT': 'max-age=86400, enforce',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   });
   res.end(JSON.stringify(data));
 }
@@ -336,11 +347,26 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Main subnet agents endpoint
+  // Main subnet agents endpoint with input validation
   if (pathname === '/api/agents') {
     try {
-      const page = parseInt(query.page) || 1;
-      const limit = parseInt(query.limit) || 20;
+      // Enhanced input validation for pagination parameters
+      let page = 1;
+      let limit = 20;
+      
+      if (query.page) {
+        const pageNum = parseInt(query.page, 10);
+        if (!isNaN(pageNum) && pageNum > 0 && pageNum <= 1000) {
+          page = pageNum;
+        }
+      }
+      
+      if (query.limit) {
+        const limitNum = parseInt(query.limit, 10);
+        if (!isNaN(limitNum) && limitNum > 0 && limitNum <= 100) {
+          limit = limitNum;
+        }
+      }
       
       console.log(`🎯 Serving agents list - page ${page}, limit ${limit}`);
       
@@ -437,16 +463,30 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Individual subnet data endpoint - using regex to match pattern
+  // Individual subnet data endpoint - using regex to match pattern with input validation
   const subnetMatch = pathname.match(/^\/api\/subnet\/(\d+)\/data$/);
   if (subnetMatch) {
     try {
-      const subnetId = parseInt(subnetMatch[1]);
+      // Enhanced input validation and sanitization
+      const subnetIdStr = subnetMatch[1];
       
-      if (isNaN(subnetId) || subnetId < 1 || subnetId > 118) {
+      // Check for potential injection attempts
+      if (!/^\d+$/.test(subnetIdStr)) {
         sendJSON(res, 400, {
           success: false,
-          error: 'Invalid subnet ID. Must be between 1-118.',
+          error: 'Invalid subnet ID format. Only numeric values allowed.',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+      
+      const subnetId = parseInt(subnetIdStr, 10);
+      
+      // Strict range validation
+      if (isNaN(subnetId) || subnetId < 1 || subnetId > 118 || subnetId !== parseFloat(subnetIdStr)) {
+        sendJSON(res, 400, {
+          success: false,
+          error: 'Invalid subnet ID. Must be an integer between 1-118.',
           timestamp: new Date().toISOString()
         });
         return;
