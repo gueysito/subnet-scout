@@ -73,9 +73,17 @@ class DataService {
 
     try {
       const agentsData = await apiClient.getAgentsList(page, limit)
+      console.log('📊 Raw agents data from backend:', agentsData)
+      
+      // Handle both possible response formats
+      const agentsArray = agentsData.agents || agentsData.data?.agents || agentsData
+      if (!agentsArray || !Array.isArray(agentsArray)) {
+        console.error('❌ Invalid agents data format:', agentsData)
+        throw new Error('Invalid agents data format from backend')
+      }
       
       // Transform agents data to subnet format
-      const subnets = agentsData.agents?.map(agent => ({
+      const subnets = agentsArray.map(agent => ({
         id: agent.subnet_id || agent.id,
         name: agent.name || `Subnet ${agent.subnet_id || agent.id}`,
         category: agent.category || agent.subnet_type || 'Other',
@@ -102,16 +110,8 @@ class DataService {
       this.setCachedData(cacheKey, result)
       return result
     } catch (error) {
-      console.warn('Failed to fetch subnet list:', error)
-      // Return fallback data
-      return {
-        subnets: [
-          { id: 1, name: 'Subnet 1', category: 'Training', marketCap: '$2.3M', health: '89%', commits: 150 },
-          { id: 2, name: 'Subnet 2', category: 'Inference', marketCap: '$1.8M', health: '93%', commits: 172 },
-          { id: 3, name: 'Subnet 3', category: 'Other', marketCap: '$950K', health: '76%', commits: 48 }
-        ],
-        pagination: { page: 1, limit: 20, total: 3, totalPages: 1 }
-      }
+      console.error('❌ Failed to fetch subnet list - NO FALLBACK TO MOCK DATA:', error)
+      throw error // Let the calling component handle the error
     }
   }
 

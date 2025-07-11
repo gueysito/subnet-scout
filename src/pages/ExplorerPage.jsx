@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import dataService from '../services/dataService'
+import apiClient from '../../shared/utils/apiClient.js'
 import { getSubnetMetadata } from '../../shared/data/subnets.js'
 
 const ExplorerPage = () => {
@@ -84,18 +85,20 @@ const ExplorerPage = () => {
       try {
         setIsLoadingMovers(true)
         
-        // Fetch real subnet data from backend API
+        // Fetch real subnet data DIRECTLY from backend API (bypass dataService transformation)
         try {
-          const subnetListData = searchQuery 
-            ? await dataService.searchSubnets(searchQuery)
-            : await dataService.getSubnetList(1, 118) // Get all subnets
+          const agentsResponse = await apiClient.getAgentsList(1, 118) // Get all subnets directly
           
-          // Transform API data to match table format
-          if (subnetListData?.agents && subnetListData.agents.length > 0) {
-            const transformedData = subnetListData.agents.map(agent => ({
+          console.log('📊 Explorer page received direct backend data:', agentsResponse)
+          
+          // Handle backend response format: {success: true, agents: [...]}
+          const agentsArray = agentsResponse?.agents || []
+          
+          if (agentsArray && agentsArray.length > 0) {
+            const transformedData = agentsArray.map(agent => ({
               id: agent.subnet_id || agent.id,
               name: agent.name,
-              sector: agent.type,
+              sector: agent.type || 'Other',
               price: agent.price || '$0.00',
               marketCap: agent.market_cap || '$0.0M',
               fdv: agent.market_cap || '$0.0M', // Use market cap as fallback
