@@ -330,6 +330,35 @@ Powered by Subnet Scout & io.net
                     <div className="text-lg font-medium">{reportData.name}</div>
                     <div className="text-gray-400">Subnet #{reportData.id}</div>
                     <div className="text-sm text-purple-400">[{reportData.category}]</div>
+                    
+                    {/* Social Links */}
+                    <div className="flex gap-2 mt-2">
+                      {reportData.githubUrl && (
+                        <a 
+                          href={reportData.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-xs text-white transition-colors"
+                          title="View GitHub Repository"
+                        >
+                          <Github className="w-3 h-3" />
+                          GitHub
+                        </a>
+                      )}
+                      
+                      {reportData.twitterUrl && (
+                        <a 
+                          href={reportData.twitterUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-xs text-white transition-colors"
+                          title="Follow on Twitter"
+                        >
+                          <Twitter className="w-3 h-3" />
+                          Twitter
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div className="text-sm text-gray-300">
                     {reportData.description}

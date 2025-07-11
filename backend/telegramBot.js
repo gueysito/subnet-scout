@@ -365,7 +365,20 @@ bot.command('analyze', async (ctx) => {
     // 🔹 SUBNET INFO
     response += `🔹 **Subnet Info**\n`;
     response += `**${metadata.name}** — Subnet #${subnetId}\n`;
-    response += `[${metadata.category || 'General'}] — ${metadata.description}\n\n`;
+    response += `[${metadata.category || 'General'}] — ${metadata.description}\n`;
+    
+    // Add social links
+    const socialLinks = [];
+    if (metadata.github) {
+      socialLinks.push(`🔗 [GitHub](${metadata.github})`);
+    }
+    if (metadata.twitter) {
+      socialLinks.push(`🐦 [Twitter](${metadata.twitter})`);
+    }
+    if (socialLinks.length > 0) {
+      response += `**Links:** ${socialLinks.join(' • ')}\n`;
+    }
+    response += `\n`;
 
     // 💰 MARKET SNAPSHOT
     response += `💰 **Market Snapshot**\n`;
