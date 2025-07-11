@@ -8,7 +8,7 @@ export const SUBNET_METADATA = {
     name: "Text Prompting", 
     description: "Advanced text generation and prompting subnet for natural language processing",
     github: "https://github.com/macrocosm-os/prompting",
-    twitter: "https://twitter.com/macrocosmos_ai",
+    twitter: "https://twitter.com/opentensor", // Verified: OpenTensor Foundation official account
     type: "inference"
   },
   2: { 
@@ -33,14 +33,14 @@ export const SUBNET_METADATA = {
     name: "OpenKaito", 
     description: "Open-source conversational AI search and knowledge subnet",
     github: "https://github.com/openkaito/openkaito",
-    twitter: "https://twitter.com/OpenKaito",
+    twitter: "https://twitter.com/_kaitoai", // Verified: Kaito AI official account
     type: "inference"
   },
   6: { 
     name: "Masa", 
     description: "Social data processing and analytics subnet",
     github: "https://github.com/masa-finance/masa-subnet",
-    twitter: "https://twitter.com/getmasa",
+    twitter: "https://twitter.com/getmasa", // Verified: Masa Finance official account
     type: "data"
   },
   7: { 
@@ -53,6 +53,7 @@ export const SUBNET_METADATA = {
     name: "Taoshi", 
     description: "Financial prediction and market analysis subnet for proprietary trading",
     github: "https://github.com/taoshidev/proprietary-trading-network",
+    twitter: "https://twitter.com/taoshiio", // Verified: Taoshi official account
     type: "inference"
   },
   9: { 
