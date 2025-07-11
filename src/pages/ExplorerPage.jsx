@@ -30,6 +30,14 @@ const ExplorerPage = () => {
 
   // Filter and sort subnets
   const filteredAndSortedSubnets = React.useMemo(() => {
+    console.log('🔍 USEMEMO: filteredAndSortedSubnets running with subnets:', subnets.length)
+    if (subnets.length > 0) {
+      console.log('🔍 FIRST 3 SUBNETS IN USEMEMO:')
+      subnets.slice(0, 3).forEach((subnet, index) => {
+        console.log(`Subnet ${index + 1}: id=${subnet.id}, name="${subnet.name}", sector="${subnet.sector}"`)
+      })
+    }
+    
     let filtered = selectedSector === 'All' 
       ? subnets 
       : subnets.filter(subnet => subnet.sector === selectedSector)
@@ -150,6 +158,10 @@ const ExplorerPage = () => {
             
             setSubnets(transformedData)
             console.log('✅ Using real backend data for subnet table with proper brand names')
+            console.log('🔍 FIRST 3 TRANSFORMED DATA SET TO STATE:')
+            transformedData.slice(0, 3).forEach((subnet, index) => {
+              console.log(`Transformed ${index + 1}: id=${subnet.id}, name="${subnet.name}", sector="${subnet.sector}"`)
+            })
           } else {
             console.error('❌ NO AGENTS DATA RECEIVED FROM BACKEND!')
             console.error('❌ Response was:', agentsResponse)
