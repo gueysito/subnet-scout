@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import dataService from '../services/dataService'
-import { getSubnetMetadata, getAllSubnetMetadata } from '../../shared/data/subnets.js'
+import { getSubnetMetadata } from '../../shared/data/subnets.js'
 
 const ExplorerPage = () => {
   const location = useLocation()
@@ -77,45 +77,8 @@ const ExplorerPage = () => {
     }
   }, [location])
 
-  // Generate comprehensive subnet data
+  // REAL DATA ONLY - NO MOCK DATA GENERATION
   useEffect(() => {
-    const generateSubnetData = () => {
-      const allMetadata = getAllSubnetMetadata()
-      const subnetsData = Object.entries(allMetadata).map(([id, metadata]) => {
-        const numId = parseInt(id)
-        // Generate realistic mock data based on subnet ID
-        const basePrice = 50 + (numId * 3.7) % 200
-        const marketCap = basePrice * 1000000 * (1 + Math.sin(numId) * 0.3)
-        const fdv = marketCap * (1.2 + Math.cos(numId) * 0.2)
-        
-        return {
-          id: numId,
-          name: metadata.name,
-          sector: metadata.type,
-          price: `$${basePrice.toFixed(2)}`,
-          marketCap: `$${(marketCap / 1000000).toFixed(1)}M`,
-          fdv: `$${(fdv / 1000000).toFixed(1)}M`,
-          change1d: `${((Math.sin(numId * 0.1) * 15)).toFixed(1)}%`,
-          change7d: `${((Math.cos(numId * 0.2) * 25)).toFixed(1)}%`,
-          change1m: `${((Math.sin(numId * 0.05) * 40)).toFixed(1)}%`,
-          vol1d: `$${((marketCap * 0.1 * (1 + Math.sin(numId * 0.3))) / 1000000).toFixed(1)}M`,
-          taoLiq: `${(50 + (numId * 2.1) % 100).toFixed(0)}K TAO`,
-          emissions: `${(10 + (numId * 0.8) % 50).toFixed(1)} TAO/day`,
-          github: Math.max(0, Math.floor(100 + Math.sin(numId * 0.4) * 80)),
-          kaito: Math.max(0, Math.floor(50 + Math.cos(numId * 0.6) * 40)),
-          ethos: Math.max(0, Math.floor(70 + Math.sin(numId * 0.8) * 25))
-        }
-      })
-      
-      // Sort by market cap (descending)
-      subnetsData.sort((a, b) => {
-        const aVal = parseFloat(a.marketCap.replace('$', '').replace('M', ''))
-        const bVal = parseFloat(b.marketCap.replace('$', '').replace('M', ''))
-        return bVal - aVal
-      })
-      
-      setSubnets(subnetsData)
-    }
 
     const fetchData = async () => {
       try {
@@ -157,12 +120,12 @@ const ExplorerPage = () => {
             setSubnets(transformedData)
             console.log('✅ Using real backend data for subnet table with proper brand names')
           } else {
-            console.warn('No agents data received, falling back to generated data')
-            generateSubnetData() // Fallback to mock data
+            console.error('❌ No agents data received from backend - NO FALLBACK TO MOCK')
+            setSubnets([]) // Show empty table instead of mock data
           }
         } catch (apiErr) {
-          console.warn('Backend API failed, falling back to generated data:', apiErr)
-          generateSubnetData() // Fallback to mock data
+          console.error('❌ Backend API failed - NO FALLBACK TO MOCK:', apiErr)
+          setSubnets([]) // Show empty table instead of mock data
         }
         
         // Fetch movers data separately with better error handling
@@ -181,13 +144,13 @@ const ExplorerPage = () => {
         
         setIsLoadingMovers(false)
       } catch (err) {
-        console.error('Error fetching explorer data:', err)
-        generateSubnetData() // Final fallback
+        console.error('❌ Error fetching explorer data - NO FALLBACK TO MOCK:', err)
+        setSubnets([]) // Show empty instead of mock data
         setIsLoadingMovers(false)
       }
     }
 
-    generateSubnetData()
+    // NO MOCK DATA - only fetch real data from backend
     fetchData()
   }, [searchQuery])
 
