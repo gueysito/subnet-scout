@@ -98,24 +98,48 @@ const ExplorerPage = () => {
           // Handle backend response format: {success: true, agents: [...]}
           const agentsArray = agentsResponse?.agents || []
           
+          // DEBUG: Log first few agents to see exact structure
+          console.log('🔍 FIRST 3 AGENTS FROM BACKEND:')
+          agentsArray.slice(0, 3).forEach((agent, index) => {
+            console.log(`Agent ${index + 1}:`, agent)
+            console.log(`- ID: ${agent.id}, Subnet ID: ${agent.subnet_id}`)
+            console.log(`- Name: "${agent.name}"`)
+            console.log(`- Type: "${agent.type}"`)
+          })
+          
           if (agentsArray && agentsArray.length > 0) {
-            const transformedData = agentsArray.map(agent => ({
-              id: agent.subnet_id || agent.id,
-              name: agent.name,
-              sector: agent.type || 'Other',
-              price: agent.price || '$0.00',
-              marketCap: agent.market_cap || '$0.0M',
-              fdv: agent.market_cap || '$0.0M', // Use market cap as fallback
-              change1d: agent.change_24h || '0.0%',
-              change7d: `${((Math.cos(agent.id * 0.2) * 25)).toFixed(1)}%`, // Generated for now
-              change1m: `${((Math.sin(agent.id * 0.05) * 40)).toFixed(1)}%`, // Generated for now
-              vol1d: `$${((parseFloat(agent.market_cap?.replace(/[$M,]/g, '') || 0) * 0.1) || 0).toFixed(1)}M`,
-              taoLiq: `${agent.total_stake ? (agent.total_stake / 1000).toFixed(0) : '0'}K TAO`,
-              emissions: agent.emission_rate ? `${agent.emission_rate.toFixed(1)} TAO/day` : '0.0 TAO/day',
-              github: agent.github_activity || Math.floor(50 + Math.random() * 50),
-              kaito: agent.kaito_score || Math.floor(30 + Math.random() * 70),
-              ethos: agent.ethos_score || Math.floor(40 + Math.random() * 60)
-            }))
+            const transformedData = agentsArray.map((agent, index) => {
+              // DEBUG: Log transformation for first few items
+              if (index < 3) {
+                console.log(`🔄 TRANSFORMING AGENT ${index + 1}:`)
+                console.log(`Input: id=${agent.id}, subnet_id=${agent.subnet_id}, name="${agent.name}", type="${agent.type}"`)
+              }
+              
+              const transformed = {
+                id: agent.subnet_id || agent.id,
+                name: agent.name,
+                sector: agent.type || 'Other',
+                price: agent.price || '$0.00',
+                marketCap: agent.market_cap || '$0.0M',
+                fdv: agent.market_cap || '$0.0M', // Use market cap as fallback
+                change1d: agent.change_24h || '0.0%',
+                change7d: `${((Math.cos(agent.id * 0.2) * 25)).toFixed(1)}%`, // Generated for now
+                change1m: `${((Math.sin(agent.id * 0.05) * 40)).toFixed(1)}%`, // Generated for now
+                vol1d: `$${((parseFloat(agent.market_cap?.replace(/[$M,]/g, '') || 0) * 0.1) || 0).toFixed(1)}M`,
+                taoLiq: `${agent.total_stake ? (agent.total_stake / 1000).toFixed(0) : '0'}K TAO`,
+                emissions: agent.emission_rate ? `${agent.emission_rate.toFixed(1)} TAO/day` : '0.0 TAO/day',
+                github: agent.github_activity || Math.floor(50 + Math.random() * 50),
+                kaito: agent.kaito_score || Math.floor(30 + Math.random() * 70),
+                ethos: agent.ethos_score || Math.floor(40 + Math.random() * 60)
+              }
+              
+              // DEBUG: Log output for first few items
+              if (index < 3) {
+                console.log(`Output: id=${transformed.id}, name="${transformed.name}", sector="${transformed.sector}"`)
+              }
+              
+              return transformed
+            })
             
             // Sort by market cap (descending)
             transformedData.sort((a, b) => {
