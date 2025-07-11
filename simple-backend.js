@@ -219,10 +219,12 @@ app.get('/api/agents', (req, res) => {
   }
 });
 
-// Individual subnet data endpoint
-app.get('/api/subnet/:id/data', (req, res) => {
+// Individual subnet data endpoint (using wildcard to avoid path-to-regexp issues)
+app.get('/api/subnet/*/data', (req, res) => {
   try {
-    const subnetId = parseInt(req.params.id);
+    // Extract ID manually from URL path
+    const pathParts = req.path.split('/');
+    const subnetId = parseInt(pathParts[3]); // /api/subnet/[ID]/data
     
     if (isNaN(subnetId) || subnetId < 1 || subnetId > 118) {
       return res.status(400).json({
@@ -238,7 +240,7 @@ app.get('/api/subnet/:id/data', (req, res) => {
     res.json(subnetData);
     
   } catch (error) {
-    console.error(`Error in /api/subnet/${req.params.id}/data:`, error);
+    console.error(`Error in /api/subnet/*/data:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch subnet data',
