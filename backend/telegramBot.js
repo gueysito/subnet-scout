@@ -1,13 +1,40 @@
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
 import fetch from 'node-fetch';
-import { getSubnetMetadata } from '../shared/data/subnets.js';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-const BACKEND_URL = 'http://localhost:8080';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://subnet-scout-production.up.railway.app';
 
 // In-memory storage for user alerts (in production, use a database)
 const userAlerts = new Map();
+
+// Helper function to get subnet metadata from backend API
+async function getSubnetMetadata(subnetId) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/subnet/${subnetId}/data`);
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data) {
+        return {
+          name: result.data.name || `Subnet ${subnetId}`,
+          description: result.data.description || `Bittensor subnet ${subnetId}`,
+          type: result.data.type || 'inference',
+          github: result.data.github_url || null
+        };
+      }
+    }
+  } catch (error) {
+    console.warn(`Failed to get metadata for subnet ${subnetId}:`, error.message);
+  }
+  
+  // Fallback metadata
+  return {
+    name: `Subnet ${subnetId}`,
+    description: `Bittensor subnet ${subnetId} - real-time monitoring`,
+    type: 'inference',
+    github: `https://github.com/bittensor-subnet/subnet-${subnetId}`
+  };
+}
 
 // Helper function to call backend API
 async function callBackendAPI(endpoint, method = 'GET', body = null) {
@@ -65,9 +92,9 @@ async function getRealSubnetData(subnetId) {
 }
 
 // Helper function to format subnet data for display
-function formatSubnetInfo(subnet) {
+async function formatSubnetInfo(subnet) {
   const emoji = subnet.overall_score >= 80 ? '🟢' : subnet.overall_score >= 60 ? '🟡' : '🔴';
-  const metadata = getSubnetMetadata(subnet.subnet_id);
+  const metadata = await getSubnetMetadata(subnet.subnet_id);
   return `${emoji} **${metadata.name}** (#${subnet.subnet_id})
 📝 ${metadata.description}
 📊 Score: ${subnet.overall_score}/100
@@ -205,7 +232,7 @@ bot.command('top', async (ctx) => {
       const subnetId = subnet.subnet_id || index + 1; // Fallback to position if ID missing
       
       response += `${medal} **#${index + 1} - ${subnet.name || `Subnet ${subnetId}`}**\n`;
-      response += formatSubnetInfo(subnet);
+      response += await formatSubnetInfo(subnet);
       
       // Try to get GitHub activity (non-blocking)
       try {
@@ -266,7 +293,7 @@ bot.command('analyze', async (ctx) => {
       return;
     }
     
-    const metadata = getSubnetMetadata(subnetId);
+    const metadata = await getSubnetMetadata(subnetId);
     ctx.reply(`🧾 Generating complete report card for ${metadata.name} (#${subnetId})...`);
     
     // FIXED: Get subnet metrics first, then use it in API call
@@ -461,8 +488,10 @@ bot.command('compare', async (ctx) => {
       return;
     }
     
-    const metadata1 = getSubnetMetadata(subnet1);
-    const metadata2 = getSubnetMetadata(subnet2);
+    const [metadata1, metadata2] = await Promise.all([
+      getSubnetMetadata(subnet1),
+      getSubnetMetadata(subnet2)
+    ]);
     ctx.reply(`⚖️ Comparing ${metadata1.name} vs ${metadata2.name} with AI analysis...`);
     
     // Get real data for both subnets (with fallback to realistic values)

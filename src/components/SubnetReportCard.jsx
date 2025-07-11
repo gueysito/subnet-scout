@@ -9,12 +9,13 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
   const [error, setError] = useState(null)
   const [copySuccess, setCopySuccess] = useState(false)
 
-  // Check cache first, then fetch data
+  // Check cache first, then fetch data  
   useEffect(() => {
     if (isOpen && subnetId) {
       fetchReportData()
     }
-  }, [isOpen, subnetId, fetchReportData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, subnetId])
 
   const getCachedData = (key) => {
     try {

@@ -175,7 +175,7 @@ class ApiClient {
   }
 
   // 8. Distributed monitoring (key differentiator)
-  async getDistributedMonitorData(subnetCount = 118, workers = 8) {
+  async getDistributedMonitorData() {
     const url = this.useMock
       ? `${API_CONFIG.MOCK_BASE_URL}/api/distributed/monitor`
       : `${API_CONFIG.BACKEND_BASE_URL}/api/distributed/monitor`;
