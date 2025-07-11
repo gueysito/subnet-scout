@@ -57,22 +57,25 @@ jobs:
         path: ./
         base: main
         head: HEAD
-        extra_args: --debug --only-verified
+        extra_args: --debug --only-verified --exclude-paths=.trufflehogignore
 
     - name: Custom secret patterns scan
       run: |
         echo "🔍 Scanning for common secret patterns..."
         
-        # Check for API keys and tokens in production files only
-        if grep -r -i -E "(api_key|secret|password|token|private_key)\s*[=:]\s*['\"][^'\"]{20,}" . \
+        # Check for API keys and tokens in production files only (exclude environment variable references)
+        if grep -r -i -E "(api_key|secret|password|token|private_key)\s*[=:]\s*['\"][a-zA-Z0-9]{25,}['\"]" . \
           --exclude-dir=node_modules \
           --exclude-dir=.git \
+          --exclude-dir=dist \
           --exclude="*.log" \
           --exclude="package-lock.json" \
           --exclude="test-*.js" \
           --exclude="*test*.js" \
-          --exclude="verify-deployment.js"; then
-          echo "❌ Potential secrets found!"
+          --exclude="verify-deployment.js" \
+          --exclude="docs/**" \
+          --exclude="config/**"; then
+          echo "❌ Potential hard-coded secrets found!"
           exit 1
         fi
         

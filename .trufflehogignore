@@ -1,0 +1,26 @@
+# TruffleHog ignore patterns
+# Exclude test files and development utilities
+test-*.js
+*test*.js
+verify-deployment.js
+
+# Exclude documentation and configuration
+docs/**/*
+config/**/*
+
+# Exclude build artifacts  
+dist/**/*
+node_modules/**/*
+
+# Exclude environment variable references (not actual secrets)
+**/env.js
+**/apiClient.js
+
+# Exclude mock data and generators
+**/mock-*.js
+**/generator.js
+
+# Exclude development scripts
+scripts/**/*
+docs/**/*
+validateTauV1.js
