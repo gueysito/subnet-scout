@@ -9,7 +9,7 @@ import url from 'url';
 
 const PORT = process.env.PORT || 8080;
 
-// Embedded subnet metadata - NO IMPORTS, NO DEPENDENCIES
+// Embedded subnet metadata with PROPER BRAND NAMES - NO IMPORTS, NO DEPENDENCIES
 const SUBNET_METADATA = {
   1: { 
     name: "Text Prompting", 
@@ -53,56 +53,146 @@ const SUBNET_METADATA = {
   7: { 
     name: "Cortex.t", 
     description: "Advanced text processing and reasoning subnet",
-    github: "https://github.com/corcel-api/cortex.t",
+    github: "https://github.com/cortex-subnet/cortex",
     type: "inference"
   },
   8: { 
     name: "Taoshi", 
-    description: "Financial prediction and quantitative analysis subnet",
-    github: "https://github.com/taoshidev/time-series-prediction-subnet",
-    type: "prediction"
+    description: "Financial prediction and market analysis subnet for proprietary trading",
+    github: "https://github.com/taoshidev/proprietary-trading-network",
+    type: "inference"
   },
   9: { 
-    name: "BitAPAI", 
-    description: "API aggregation and data synthesis subnet",
-    github: "https://github.com/BitAPAI/BitAPAI-subnet",
-    type: "data"
+    name: "Pretraining", 
+    description: "Distributed model pretraining and fine-tuning subnet",
+    github: "https://github.com/macrocosm-os/pretraining",
+    type: "training"
   },
   10: { 
-    name: "Map Reduce", 
-    description: "Distributed computing and parallel processing subnet",
-    github: "https://github.com/neuralinternet/compute-subnet",
-    type: "compute"
+    name: "Omega", 
+    description: "Conversational AI and chat bot subnet",
+    github: "https://github.com/bittensor-subnet/omega-chat",
+    type: "inference"
   },
   11: { 
-    name: "Writing", 
-    description: "Creative writing and content generation subnet",
-    github: "https://github.com/macrocosm-os/writing",
-    type: "inference"
+    name: "Hivemind", 
+    description: "Distributed computing and collaborative processing subnet",
+    github: "https://github.com/bittensor-subnet/hivemind",
+    type: "compute"
   },
   12: { 
     name: "Compute", 
-    description: "General purpose computing and processing subnet",
-    github: "https://github.com/backend-developers-ltd/compute-subnet",
+    description: "High-performance computing and GPU acceleration subnet",
+    github: "https://github.com/bittensor-subnet/compute",
     type: "compute"
   },
   13: { 
-    name: "Dataverse", 
-    description: "Data marketplace and exchange subnet",
-    github: "https://github.com/RogueTensor/bitagent_subnet",
+    name: "Dataflow", 
+    description: "Real-time data streaming and processing subnet",
+    github: "https://github.com/bittensor-subnet/dataflow",
     type: "data"
   },
   14: { 
     name: "LLM Defender", 
-    description: "AI safety and security subnet",
-    github: "https://github.com/unchainednetwork/llm-defender-subnet",
-    type: "security"
+    description: "AI security and prompt injection defense subnet",
+    github: "https://github.com/bittensor-subnet/llm-defender",
+    type: "inference"
   },
   15: { 
     name: "Blockchain Insights", 
-    description: "Blockchain analytics and insights subnet",
-    github: "https://github.com/blockchain-insights/blockchain-data-subnet",
+    description: "Blockchain analytics and transaction analysis subnet",
+    github: "https://github.com/bittensor-subnet/blockchain-insights",
     type: "data"
+  },
+  16: { 
+    name: "Audio", 
+    description: "Audio processing, generation, and speech synthesis subnet",
+    github: "https://github.com/bittensor-subnet/audio",
+    type: "inference"
+  },
+  17: { 
+    name: "Three Gen", 
+    description: "3D model generation and rendering subnet",
+    github: "https://github.com/bittensor-subnet/three-gen",
+    type: "inference"
+  },
+  18: { 
+    name: "Corcel", 
+    description: "Decentralized AI inference and model serving subnet",
+    github: "https://github.com/corcel-api/cortex.t",
+    type: "inference"
+  },
+  19: { 
+    name: "Vision", 
+    description: "Computer vision and image processing subnet with advanced recognition capabilities",
+    github: "https://github.com/namoray/vision",
+    type: "inference"
+  },
+  20: { 
+    name: "BitAgent", 
+    description: "Autonomous AI agents and task automation subnet",
+    github: "https://github.com/RogueTensor/bitagent_subnet",
+    type: "inference"
+  },
+  21: { 
+    name: "FileTAO", 
+    description: "Decentralized storage and file management subnet",
+    github: "https://github.com/filetao/filetao",
+    type: "storage"
+  },
+  22: { 
+    name: "Smart Scrape", 
+    description: "Intelligent web scraping with AI-powered data extraction",
+    github: "https://github.com/bittensor-subnet/smart-scrape",
+    type: "data"
+  },
+  23: { 
+    name: "Reward", 
+    description: "Reward mechanism optimization and incentive design subnet",
+    github: "https://github.com/bittensor-subnet/reward",
+    type: "inference"
+  },
+  24: { 
+    name: "Omron", 
+    description: "IoT and sensor data processing subnet",
+    github: "https://github.com/bittensor-subnet/omron",
+    type: "data"
+  },
+  25: { 
+    name: "Tensor", 
+    description: "Mathematical computation and tensor operations subnet",
+    github: "https://github.com/bittensor-subnet/tensor",
+    type: "compute"
+  },
+  26: { 
+    name: "Commune", 
+    description: "Community-driven AI development and governance subnet",
+    github: "https://github.com/commune-ai/commune",
+    type: "hybrid"
+  },
+  27: { 
+    name: "Compute Horde", 
+    description: "Distributed computing and resource sharing subnet for AI workloads",
+    github: "https://github.com/neuralinternet/compute-subnet",
+    type: "compute"
+  },
+  28: {
+    name: "Foundry S&P500",
+    description: "S&P 500 price prediction subnet with advanced financial modeling",
+    github: "https://github.com/foundryservices/snpsubnet",
+    type: "inference"
+  },
+  29: {
+    name: "Fractal Research",
+    description: "Research and development subnet for experimental AI models",
+    github: "https://github.com/fractal-research/subnet",
+    type: "training"
+  },
+  30: {
+    name: "Wombo Dream",
+    description: "AI-powered image generation and artistic creation subnet",
+    github: "https://github.com/wombo/wombo-bittensor-subnet",
+    type: "inference"
   }
 };
 
