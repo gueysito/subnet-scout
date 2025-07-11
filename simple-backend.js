@@ -1,28 +1,15 @@
 /**
- * Simple Backend API Server for Subnet Scout
- * Standalone Express server with embedded subnet metadata
- * Avoids complex imports that cause Railway deployment issues
+ * Ultra-Simple Backend API Server for Subnet Scout
+ * Pure Node.js HTTP server with ZERO external dependencies
+ * Avoids ALL npm package issues that cause Railway deployment failures
  */
 
-import express from 'express';
-import cors from 'cors';
+import http from 'http';
+import url from 'url';
 
-const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Add security headers
-app.use((req, res, next) => {
-  res.header('X-Content-Type-Options', 'nosniff');
-  res.header('X-Frame-Options', 'DENY');
-  res.header('X-XSS-Protection', '1; mode=block');
-  next();
-});
-
-// Embedded subnet metadata to avoid import issues
+// Embedded subnet metadata - NO IMPORTS, NO DEPENDENCIES
 const SUBNET_METADATA = {
   1: { 
     name: "Text Prompting", 
@@ -86,6 +73,36 @@ const SUBNET_METADATA = {
     description: "Distributed computing and parallel processing subnet",
     github: "https://github.com/neuralinternet/compute-subnet",
     type: "compute"
+  },
+  11: { 
+    name: "Writing", 
+    description: "Creative writing and content generation subnet",
+    github: "https://github.com/macrocosm-os/writing",
+    type: "inference"
+  },
+  12: { 
+    name: "Compute", 
+    description: "General purpose computing and processing subnet",
+    github: "https://github.com/backend-developers-ltd/compute-subnet",
+    type: "compute"
+  },
+  13: { 
+    name: "Dataverse", 
+    description: "Data marketplace and exchange subnet",
+    github: "https://github.com/RogueTensor/bitagent_subnet",
+    type: "data"
+  },
+  14: { 
+    name: "LLM Defender", 
+    description: "AI safety and security subnet",
+    github: "https://github.com/unchainednetwork/llm-defender-subnet",
+    type: "security"
+  },
+  15: { 
+    name: "Blockchain Insights", 
+    description: "Blockchain analytics and insights subnet",
+    github: "https://github.com/blockchain-insights/blockchain-data-subnet",
+    type: "data"
   }
 };
 
@@ -147,111 +164,142 @@ function generateSubnetData(subnetId) {
   };
 }
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    service: 'simple-backend',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+// Helper to send JSON response
+function sendJSON(res, statusCode, data) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block'
   });
-});
+  res.end(JSON.stringify(data));
+}
 
-// Main subnet agents endpoint
-app.get('/api/agents', (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    
-    console.log(`🎯 Serving agents list - page ${page}, limit ${limit}`);
-    
-    const agents = [];
-    const startSubnet = (page - 1) * limit + 1;
-    const endSubnet = Math.min(startSubnet + limit - 1, 118);
-    
-    for (let i = startSubnet; i <= endSubnet; i++) {
-      const subnetData = generateSubnetData(i);
-      const data = subnetData.data;
-      
-      agents.push({
-        id: i,
-        subnet_id: i,
-        name: data.name,
-        description: data.description,
-        type: data.type,
-        github_url: data.github_url,
-        twitter_url: data.twitter_url,
-        status: data.status,
-        score: data.activity_score,
-        yield: data.yield_percentage,
-        activity: data.activity_score,
-        credibility: data.credibility_score,
-        market_cap: data.market_cap,
-        price: data.price,
-        change_24h: data.change_24h,
-        validator_count: data.validator_count,
-        total_stake: data.total_stake,
-        emission_rate: data.emission_rate,
-        last_updated: data.last_updated
-      });
-    }
-    
-    res.json({
-      success: true,
-      agents: agents,
-      pagination: {
-        page: page,
-        limit: limit,
-        total: 118,
-        pages: Math.ceil(118 / limit)
-      },
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('Error in /api/agents:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch agents data',
-      timestamp: new Date().toISOString()
-    });
+// Main HTTP server
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+  const pathname = parsedUrl.pathname;
+  const query = parsedUrl.query;
+
+  console.log(`${req.method} ${pathname}`);
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    sendJSON(res, 200, { success: true });
+    return;
   }
-});
 
-// Individual subnet data endpoint (using wildcard to avoid path-to-regexp issues)
-app.get('/api/subnet/*/data', (req, res) => {
-  try {
-    // Extract ID manually from URL path
-    const pathParts = req.path.split('/');
-    const subnetId = parseInt(pathParts[3]); // /api/subnet/[ID]/data
-    
-    if (isNaN(subnetId) || subnetId < 1 || subnetId > 118) {
-      return res.status(400).json({
+  // Health check endpoint
+  if (pathname === '/health') {
+    sendJSON(res, 200, {
+      status: 'healthy',
+      service: 'simple-backend-pure-nodejs',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      dependencies: 'ZERO - Pure Node.js'
+    });
+    return;
+  }
+
+  // Main subnet agents endpoint
+  if (pathname === '/api/agents') {
+    try {
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 20;
+      
+      console.log(`🎯 Serving agents list - page ${page}, limit ${limit}`);
+      
+      const agents = [];
+      const startSubnet = (page - 1) * limit + 1;
+      const endSubnet = Math.min(startSubnet + limit - 1, 118);
+      
+      for (let i = startSubnet; i <= endSubnet; i++) {
+        const subnetData = generateSubnetData(i);
+        const data = subnetData.data;
+        
+        agents.push({
+          id: i,
+          subnet_id: i,
+          name: data.name,
+          description: data.description,
+          type: data.type,
+          github_url: data.github_url,
+          twitter_url: data.twitter_url,
+          status: data.status,
+          score: data.activity_score,
+          yield: data.yield_percentage,
+          activity: data.activity_score,
+          credibility: data.credibility_score,
+          market_cap: data.market_cap,
+          price: data.price,
+          change_24h: data.change_24h,
+          validator_count: data.validator_count,
+          total_stake: data.total_stake,
+          emission_rate: data.emission_rate,
+          last_updated: data.last_updated
+        });
+      }
+      
+      sendJSON(res, 200, {
+        success: true,
+        agents: agents,
+        pagination: {
+          page: page,
+          limit: limit,
+          total: 118,
+          pages: Math.ceil(118 / limit)
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('Error in /api/agents:', error);
+      sendJSON(res, 500, {
         success: false,
-        error: 'Invalid subnet ID. Must be between 1-118.',
+        error: 'Failed to fetch agents data',
         timestamp: new Date().toISOString()
       });
     }
-    
-    console.log(`📊 Serving individual subnet data for subnet ${subnetId}`);
-    
-    const subnetData = generateSubnetData(subnetId);
-    res.json(subnetData);
-    
-  } catch (error) {
-    console.error(`Error in /api/subnet/*/data:`, error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch subnet data',
-      timestamp: new Date().toISOString()
-    });
+    return;
   }
-});
 
-// Catch-all for undefined routes
-app.use('*', (req, res) => {
-  res.status(404).json({
+  // Individual subnet data endpoint - using regex to match pattern
+  const subnetMatch = pathname.match(/^\/api\/subnet\/(\d+)\/data$/);
+  if (subnetMatch) {
+    try {
+      const subnetId = parseInt(subnetMatch[1]);
+      
+      if (isNaN(subnetId) || subnetId < 1 || subnetId > 118) {
+        sendJSON(res, 400, {
+          success: false,
+          error: 'Invalid subnet ID. Must be between 1-118.',
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+      
+      console.log(`📊 Serving individual subnet data for subnet ${subnetId}`);
+      
+      const subnetData = generateSubnetData(subnetId);
+      sendJSON(res, 200, subnetData);
+      
+    } catch (error) {
+      console.error(`Error in /api/subnet/*/data:`, error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Failed to fetch subnet data',
+        timestamp: new Date().toISOString()
+      });
+    }
+    return;
+  }
+
+  // 404 for all other routes
+  sendJSON(res, 404, {
     success: false,
     error: 'Endpoint not found',
     available_endpoints: [
@@ -263,23 +311,31 @@ app.use('*', (req, res) => {
   });
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Unhandled error:', error);
-  res.status(500).json({
-    success: false,
-    error: 'Internal server error',
-    timestamp: new Date().toISOString()
-  });
-});
-
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Simple Backend API Server running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`🚀 Pure Node.js Backend API Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📋 Available endpoints:`);
   console.log(`   GET /health - Health check`);
   console.log(`   GET /api/agents - Subnet agents list`);
   console.log(`   GET /api/subnet/:id/data - Individual subnet data`);
-  console.log(`✅ Server ready to serve subnet data!`);
+  console.log(`✅ ZERO DEPENDENCIES - Pure Node.js HTTP server ready!`);
+  console.log(`🔧 No Express, no path-to-regexp, no crashes!`);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed successfully');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('Received SIGINT, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed successfully');
+    process.exit(0);
+  });
 });
