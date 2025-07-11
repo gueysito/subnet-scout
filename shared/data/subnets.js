@@ -251,7 +251,7 @@ export function getAllSubnetMetadata() {
  */
 export function getSubnetsByType(type) {
   return Object.entries(SUBNET_METADATA)
-    .filter(([_, metadata]) => metadata.type === type)
+    .filter(([, metadata]) => metadata.type === type)
     .map(([id, metadata]) => ({ id: parseInt(id), ...metadata }));
 }
 

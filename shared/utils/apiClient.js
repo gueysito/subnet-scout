@@ -1,20 +1,22 @@
 // Central API client that switches between mock and real endpoints
+import { ENV_CONFIG } from '../../src/config/env.js'
+
 const API_CONFIG = {
   // USE REAL BACKEND - Connecting to actual pingAgent.js server
-  USE_MOCK: false, // Switch to real backend integration
+  USE_MOCK: ENV_CONFIG.USE_MOCK_API, // Use environment configuration
   
   // Mock endpoints (local mock server)
-  MOCK_BASE_URL: 'http://localhost:3001',
+  MOCK_BASE_URL: ENV_CONFIG.MOCK_API_URL,
   
   // Real API endpoints
   IONET_BASE_URL: 'https://api.io.net',
   TAOSTATS_BASE_URL: 'https://api.taostats.io',
-  BACKEND_BASE_URL: 'http://localhost:8080',
+  BACKEND_BASE_URL: ENV_CONFIG.BACKEND_URL, // Use environment variable
   
   // API Keys
-  IONET_API_KEY: import.meta.env.VITE_IONET_API_KEY,
-  TAOSTATS_USERNAME: import.meta.env.VITE_TAOSTATS_USERNAME,
-  TAOSTATS_PASSWORD: import.meta.env.VITE_TAOSTATS_PASSWORD,
+  IONET_API_KEY: ENV_CONFIG.IONET_API_KEY,
+  TAOSTATS_USERNAME: ENV_CONFIG.TAOSTATS_USERNAME,
+  TAOSTATS_PASSWORD: ENV_CONFIG.TAOSTATS_PASSWORD,
 };
 
 class ApiClient {

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { X, Copy, Download, ExternalLink, Github, Twitter } from 'lucide-react'
 import { getSubnetMetadata } from '../../shared/data/subnets.js'
+import { ENV_CONFIG } from '../config/env.js'
 
 const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
   const [reportData, setReportData] = useState(null)
@@ -13,7 +14,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     if (isOpen && subnetId) {
       fetchReportData()
     }
-  }, [isOpen, subnetId])
+  }, [isOpen, subnetId, fetchReportData])
 
   const getCachedData = (key) => {
     try {
@@ -41,7 +42,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     }
   }
 
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     const cacheKey = `subnet-report-${subnetId}`
     
     // Check cache first
@@ -56,7 +57,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
 
     try {
       // Make parallel API calls to gather comprehensive data
-      const backendUrl = 'http://localhost:8080'
+      const backendUrl = ENV_CONFIG.BACKEND_URL
       
       const [
         subnetResponse,
@@ -114,7 +115,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [subnetId])
 
   const generateReportData = (id, apiData) => {
     // Use shared subnet metadata
