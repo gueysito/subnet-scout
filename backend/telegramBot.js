@@ -19,7 +19,8 @@ async function getSubnetMetadata(subnetId) {
           name: result.data.name || `Subnet ${subnetId}`,
           description: result.data.description || `Bittensor subnet ${subnetId}`,
           type: result.data.type || 'inference',
-          github: result.data.github_url || null
+          github: result.data.github_url || null,
+          twitter: result.data.twitter_url || null
         };
       }
     }
@@ -32,7 +33,8 @@ async function getSubnetMetadata(subnetId) {
     name: `Subnet ${subnetId}`,
     description: `Bittensor subnet ${subnetId} - real-time monitoring`,
     type: 'inference',
-    github: `https://github.com/bittensor-subnet/subnet-${subnetId}`
+    github: `https://github.com/bittensor-subnet/subnet-${subnetId}`,
+    twitter: null
   };
 }
 
