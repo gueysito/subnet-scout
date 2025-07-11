@@ -8,7 +8,7 @@ export default defineConfig([
   globalIgnores(['dist']),
   {
     files: ['**/*.{js,jsx}'],
-    ignores: ['simple-backend.js'], // Ignore pure Node.js backend server
+    ignores: ['simple-backend.js', 'backend/telegramBot.js'], // Ignore Node.js backend files
     extends: [
       js.configs.recommended,
       reactHooks.configs['recommended-latest'],
