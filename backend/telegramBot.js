@@ -235,11 +235,14 @@ bot.start((ctx) => {
 🔔 \`/alerts\` - Enable/disable performance alerts
 ❓ \`/help\` - Show this help message
 
+**💬 NEW: Chat Feature**
+Ask me any TAO or subnet question directly! Just type your question.
+
 **Examples:**
 • \`/analyze 1\` - Analyze subnet 1
 • \`/compare 1 21\` - Compare subnets 1 and 21
-• \`/identity 0x742d35Cc\` - Check wallet identity
-• \`/top\` - See top performers
+• \`What's the yield on subnet 8?\` - Chat question
+• \`Which subnet has the most GitHub activity?\` - Chat question
 
 Powered by io.net distributed computing with 83% cost savings! 💰`;
 
@@ -258,15 +261,21 @@ bot.help((ctx) => {
 🔔 \`/alerts\` - Manage performance alerts
 ❓ \`/help\` - This help message
 
+**💬 NEW: Chat Feature**
+Ask me any TAO or subnet question directly! No commands needed.
+Just type your question and I'll provide AI-powered analysis.
+
 **Tips:**
 • Subnet IDs range from 1-118
 • Analysis includes AI insights from io.net models
-• Alerts notify you of major performance changes
+• Chat works with natural language questions
 • All data updates in real-time from our distributed monitoring system
 
 **Examples:**
 \`/analyze 21\` - Analyze FileTAO storage subnet
-\`/compare 1 8\` - Compare Text Prompting vs Taoshi`);
+\`/compare 1 8\` - Compare Text Prompting vs Taoshi
+\`What's the yield on subnet 8?\` - Chat question
+\`Which subnet has the best GitHub activity?\` - Chat question`);
 });
 
 // Command: /top - Get top 3 subnets ranked by performance with comprehensive data
@@ -762,16 +771,78 @@ To customize thresholds, contact @SubnetScoutBot`);
   }
 });
 
-// Handle unknown commands
-bot.on('text', (ctx) => {
-  const text = ctx.message.text.toLowerCase();
+// Handle text messages and TAO questions (NEW CHAT FEATURE)
+bot.on('text', async (ctx) => {
+  const text = ctx.message.text;
+  const textLower = text.toLowerCase();
   
-  if (text.includes('ping')) {
+  // Skip if it's a command (starts with /)
+  if (text.startsWith('/')) {
+    return;
+  }
+  
+  // Handle special cases first
+  if (textLower.includes('ping')) {
     ctx.reply('🏓 Pong! Subnet Scout Bot is online and monitoring 118 Bittensor subnets!');
-  } else if (text.includes('status')) {
+    return;
+  }
+  
+  if (textLower.includes('status')) {
     ctx.reply('✅ Bot Status: Online\n🔍 Monitoring: 118 Bittensor subnets\n⚡ Backend: Connected\n🤖 AI Models: io.net powered');
-  } else {
-    ctx.reply('❓ I didn\'t understand that command. Use /help to see available commands.');
+    return;
+  }
+  
+  // Check if it's a TAO/Bittensor related question
+  const taoKeywords = ['tao', 'subnet', 'bittensor', 'staking', 'emissions', 'validators', 'mining', 'yield', 'performance'];
+  const hasTaoContent = taoKeywords.some(keyword => textLower.includes(keyword));
+  
+  if (!hasTaoContent) {
+    ctx.reply('🤖 I specialize in Bittensor subnet analysis! Try asking about:\n• Subnet performance or staking\n• TAO emissions and yields\n• Validator activity and rankings\n• Development progress on GitHub\n\nOr use /help for available commands.');
+    return;
+  }
+  
+  try {
+    // Show typing indicator
+    await ctx.replyWithChatAction('typing');
+    
+    console.log(`🤖 Processing TAO question from Telegram: "${text}"`);
+    
+    // Send question to enhanced backend API (same as web app)
+    const response = await callBackendAPI('/api/tao/question', 'POST', {
+      question: text,
+      timestamp: new Date().toISOString(),
+      source: 'telegram_chat'
+    });
+    
+    if (response && response.success && response.response) {
+      const aiResponse = response.response;
+      
+      // Format response for Telegram with enhanced structure
+      let formattedResponse = `🤖 **AI Analysis** (${aiResponse.agent})\n\n`;
+      formattedResponse += aiResponse.answer;
+      
+      // Add data source indicators if available
+      if (aiResponse.data_available) {
+        formattedResponse += `\n\n📊 **Data**: Live TaoStats`;
+        if (aiResponse.subnet_info) {
+          formattedResponse += ` • Subnet ${aiResponse.subnet_info.id}`;
+        }
+      }
+      
+      // Add processing info
+      if (aiResponse.processing_time) {
+        formattedResponse += `\n⚡ Processed in ${aiResponse.processing_time}ms`;
+      }
+      
+      await ctx.replyWithMarkdown(formattedResponse);
+      
+    } else {
+      throw new Error('Invalid response from backend');
+    }
+    
+  } catch (error) {
+    console.error('Telegram TAO question error:', error);
+    await ctx.reply('❌ I encountered an issue processing that question. Please try:\n• Using specific subnet numbers (1-118)\n• Asking about staking, yields, or performance\n• Using /help for available commands');
   }
 });
 

@@ -20,7 +20,7 @@ import healthMonitor from '../shared/utils/healthMonitor.js';
 import database from '../shared/utils/database.js';
 import kaitoYapsService from '../shared/utils/kaitoYapsService.js';
 import ethosService from '../shared/utils/ethosService.js';
-import { authenticateToken, optionalAuth, requireAdmin } from '../shared/middleware/auth.js';
+import { authenticateToken, requireAdmin } from '../shared/middleware/auth.js';
 import { csrfProtection, getCSRFToken } from '../shared/middleware/csrf.js';
 import { httpsRedirect, startServer, gracefulShutdown as httpsGracefulShutdown } from '../shared/config/https.js';
 import session from 'express-session';
@@ -288,17 +288,47 @@ async function processQuestionWithIONetAgents(question) {
       }
     }
     
-    // Create direct, concise prompt for io.net agent
-    const unifiedPrompt = `Answer directly and briefly. ${subnetData ? `SUBNET ${subnetInfo.id} (${subnetData.metadata?.name}): ${subnetData.metrics?.total_stake} TAO staked, ${subnetData.metrics?.current_yield}% yield, ${subnetData.metrics?.emissions} TAO/day emissions.` : ''} 
+    // Create enhanced prompt with data source integration
+    const dataContext = subnetData ? {
+      subnet: `${subnetData.metadata?.name || `Subnet ${subnetInfo.id}`} (#${subnetInfo.id})`,
+      sector: subnetData.metadata?.sector || 'Unknown',
+      metrics: {
+        total_stake: subnetData.metrics?.total_stake,
+        yield: subnetData.metrics?.current_yield,
+        emissions: subnetData.metrics?.emissions,
+        validators: subnetData.breakdown?.validator_count,
+        activity_score: subnetData.breakdown?.activity_score,
+        risk_level: subnetData.metrics?.risk_level
+      },
+      links: {
+        github: subnetData.metadata?.github,
+        website: subnetData.metadata?.website,
+        twitter: subnetData.metadata?.twitter
+      }
+    } : null;
 
-Question: "${question}"
+    const unifiedPrompt = `You are an expert Bittensor subnet analyst. Provide a comprehensive, structured response using all available data sources.
 
-Rules: Answer in 1-2 short sentences. Use bullet points for multiple data. No fluff.`;
+${dataContext ? `**SUBNET DATA (TaoStats Live):**
+🏷️ ${dataContext.subnet} - ${dataContext.sector}
+📊 **Metrics**: ${dataContext.metrics.total_stake} TAO staked • ${dataContext.metrics.yield}% yield • ${dataContext.metrics.emissions} TAO/day emissions
+🔍 **Performance**: ${dataContext.metrics.activity_score}/100 activity • ${dataContext.metrics.validators} validators • Risk: ${dataContext.metrics.risk_level}
+🔗 **Links**: ${dataContext.links.github ? 'GitHub ✓' : ''} ${dataContext.links.website ? 'Website ✓' : ''} ${dataContext.links.twitter ? 'Twitter ✓' : ''}` : ''}
 
-    // Single io.net API call optimized for brevity
+**Question**: "${question}"
+
+**Response Format**:
+🎯 **Direct Answer** (key insight with specific numbers)
+📈 **Analysis** (2-3 key points with reasoning)
+💡 **Insight** (practical recommendation or context)
+
+**Data Sources**: Include relevant data from TaoStats, GitHub activity, Kaito sentiment, Ethos reputation as applicable.
+**Style**: Professional but accessible, use emojis and bullet points, include confidence indicators.`;
+
+    // Enhanced io.net API call with better token allocation
     const response = await enhancedScoreAgent.ionetClient.generateText(unifiedPrompt, {
-      temperature: 0.2, // Lower for more factual, consistent responses
-      max_tokens: 100, // Force brevity
+      temperature: 0.3, // Balanced for factual yet engaging responses
+      max_tokens: 400, // 4x improvement for comprehensive responses
       model: 'meta-llama/Llama-3.3-70B-Instruct'
     });
 
@@ -335,8 +365,8 @@ Try one of these for detailed TAO and subnet analysis!`,
   }
 }
 
-// Classification Agent - Categorize question type
-async function classifyQuestion(question) {
+// Classification Agent - Categorize question type (reserved for future use)
+async function _classifyQuestion(question) {
   try {
     const prompt = `Classify this TAO/subnet question into one of these categories:
 - news: Latest announcements, updates, releases
@@ -364,8 +394,8 @@ Respond with just the category name:`;
   }
 }
 
-// Moderation Agent - Ensure TAO/subnet focus
-async function moderateQuestion(question) {
+// Moderation Agent - Ensure TAO/subnet focus (reserved for future use)
+async function _moderateQuestion(question) {
   try {
     const taoKeywords = ['tao', 'subnet', 'bittensor', 'staking', 'emissions', 'validators', 'mining'];
     const questionLower = question.toLowerCase();
@@ -382,8 +412,8 @@ async function moderateQuestion(question) {
   }
 }
 
-// Summary Agent - Process news/announcements
-async function processNewsQuestion(question) {
+// Summary Agent - Process news/announcements (reserved for future use)
+async function _processNewsQuestion(question) {
   try {
     console.log('🔍 Processing news question with Summary Agent');
     
@@ -498,8 +528,8 @@ async function getSubnetDataInternal(subnetId) {
   }
 }
 
-// Named Entity Recognizer - Process data questions with REAL DATA
-async function processDataQuestion(question) {
+// Named Entity Recognizer - Process data questions with REAL DATA (reserved for future use)
+async function _processDataQuestion(question) {
   try {
     console.log('📊 Processing data question with Named Entity Recognizer - Fetching REAL DATA');
     
@@ -563,8 +593,8 @@ Provide a comprehensive answer about the TAO staking and performance metrics. In
   }
 }
 
-// Sentiment Analysis Agent - Process community questions
-async function processSentimentQuestion(question) {
+// Sentiment Analysis Agent - Process community questions (reserved for future use)
+async function _processSentimentQuestion(question) {
   try {
     console.log('💭 Processing sentiment question with Sentiment Analysis Agent');
     
@@ -592,22 +622,43 @@ Provide a balanced perspective on the topic:`;
 // Custom Agent - Process general questions
 async function processGeneralQuestion(question) {
   try {
-    console.log('🔧 Processing general question with Custom Agent');
+    console.log('🔧 Processing general question with Enhanced Custom Agent');
     
-    const prompt = `You are the io.net Custom Agent specializing in TAO and Bittensor subnet information. Answer this question helpfully and concisely.
+    const prompt = `You are an expert Bittensor ecosystem analyst powered by io.net Intelligence. Provide comprehensive insights on TAO and subnet-related questions.
 
-Question: "${question}"
+**Question**: "${question}"
 
-Provide a clear, informative response:`;
+**Available Data Sources**: 
+- TaoStats (real-time subnet metrics, validator counts, emissions)
+- GitHub (development activity, commit history, code quality)
+- Kaito (social sentiment, community attention, reputation)  
+- Ethos (identity verification, trust scores, reviews)
+
+**Response Structure**:
+🎯 **Core Answer** (direct response to the question)
+📊 **Key Insights** (relevant data points and context)
+💡 **Additional Context** (market implications, recommendations, or related opportunities)
+
+**Guidelines**:
+- Include specific data when available (numbers, percentages, rankings)
+- Reference relevant subnets by number and name when applicable
+- Provide actionable insights for investors, validators, or developers
+- Use structured formatting with emojis and clear sections
+- Indicate confidence levels and data freshness when relevant
+
+**Focus Areas**: Subnet performance, staking strategies, development activity, market trends, risk assessment, validator economics, ecosystem growth.`;
 
     const response = await enhancedScoreAgent.ionetClient.generateText(prompt, {
-      max_tokens: 150,
+      temperature: 0.4, // Slightly higher for more engaging general responses
+      max_tokens: 350, // Increased from 150 for comprehensive responses
       model: 'meta-llama/Llama-3.3-70B-Instruct'
     });
     
     return {
       answer: response,
-      agent: 'Custom Agent'
+      agent: 'Enhanced Custom Agent (io.net Intelligence)',
+      model: 'meta-llama/Llama-3.3-70B-Instruct',
+      processing_method: 'comprehensive_analysis'
     };
   } catch (error) {
     console.error('Custom Agent failed:', error);
@@ -634,7 +685,7 @@ function extractSubnetFromQuestion(question) {
   }
   
   // Check for "subnet x" or similar placeholder patterns
-  const placeholderMatch = questionLower.match(/subnet\s*[x|xx|xxx|\?]/);
+  const placeholderMatch = questionLower.match(/subnet\s*[x|xx|xxx|?]/);
   if (placeholderMatch) {
     return { id: null, type: 'placeholder', placeholder: true };
   }
@@ -1079,7 +1130,7 @@ app.post("/api/insights/forecast", authenticateToken, computeIntensiveLimiter, a
     const { 
       subnet_id, 
       current_metrics = {}, 
-      forecast_options = {},
+      // forecast_options = {}, // Reserved for future use
       include_market_context = true 
     } = req.body;
 
@@ -1247,7 +1298,7 @@ app.get("/api/health/enhancement", async (req, res) => {
 // TAO Question Processing with io.net Multi-Agent System
 app.post("/api/tao/question", async (req, res) => {
   try {
-    const { question, timestamp } = req.body;
+    const { question } = req.body;
 
     // Validate required fields
     if (!question || typeof question !== 'string') {
