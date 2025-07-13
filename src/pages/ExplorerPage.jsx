@@ -4,6 +4,7 @@ import { MessageCircle, Twitter } from 'lucide-react'
 import dataService from '../services/dataService'
 import apiClient from '../../shared/utils/apiClient.js'
 import { getSubnetMetadata, getAllSectors } from '../../shared/data/subnets.js'
+import { SUBNET_SECTORS } from '../../shared/data/enhancedSubnets.js'
 import { ENV_CONFIG } from '../config/env.js'
 
 const ExplorerPage = () => {
@@ -33,16 +34,35 @@ const ExplorerPage = () => {
 
   // Filter and sort subnets
   const filteredAndSortedSubnets = React.useMemo(() => {
+    console.log('🔍 Filtering subnets:', {
+      totalSubnets: subnets.length,
+      selectedSector
+    });
     
     let filtered = subnets;
     
+    // Apply search query filtering first
+    if (searchQuery) {
+      filtered = filtered.filter(subnet => 
+        subnet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (subnet.id && subnet.id.toString().includes(searchQuery))
+      );
+    }
+    
     // Apply sector filtering using enhanced metadata
     if (selectedSector !== 'All') {
-      filtered = subnets.filter(subnet => {
+      filtered = filtered.filter(subnet => {
         try {
           const metadata = getSubnetMetadata(subnet.id || subnet.subnet_id);
           if (!metadata) return false;
           
+          // Check if the metadata sector is included in the selected broad category
+          const selectedSectorSubnets = SUBNET_SECTORS[selectedSector];
+          if (selectedSectorSubnets && selectedSectorSubnets.includes(metadata.sector)) {
+            return true;
+          }
+          
+          // Fallback: direct match or type-based matching
           return metadata.sector === selectedSector || 
                  (metadata.type && selectedSector.toLowerCase().includes(metadata.type.toLowerCase()));
         } catch (error) {
@@ -84,8 +104,9 @@ const ExplorerPage = () => {
       })
     }
     
+    console.log(`🎯 Final filtered result: ${filtered.length} subnets`);
     return filtered
-  }, [subnets, selectedSector, sortConfig])
+  }, [subnets, selectedSector, sortConfig, searchQuery])
 
   useEffect(() => {
     // Extract search query from URL parameters
@@ -101,14 +122,22 @@ const ExplorerPage = () => {
 
     const fetchData = async () => {
       try {
+        console.log('🚀 ExplorerPage: Starting data fetch...');
         setIsLoadingMovers(true)
         
         // Fetch real subnet data from backend API
         try {
+          console.log('📡 ExplorerPage: Calling apiClient.getAgentsList(1, 118)...');
           const agentsResponse = await apiClient.getAgentsList(1, 118)
+          console.log('📊 ExplorerPage: API Response received:', {
+            hasAgents: !!agentsResponse?.agents,
+            agentsCount: agentsResponse?.agents?.length || 0,
+            responseType: typeof agentsResponse
+          });
           const agentsArray = agentsResponse?.agents || []
           
           if (agentsArray && agentsArray.length > 0) {
+            console.log('✅ ExplorerPage: Processing', agentsArray.length, 'agents...');
             const transformedData = agentsArray.map((agent) => {
               const transformed = {
                 id: agent.subnet_id || agent.id,
@@ -138,12 +167,15 @@ const ExplorerPage = () => {
               return bVal - aVal
             })
             
+            console.log('🎯 ExplorerPage: Setting subnets state with', transformedData.length, 'items');
             setSubnets(transformedData)
+            console.log(`📊 Loaded ${transformedData.length} subnets successfully`)
           } else {
+            console.warn('⚠️ ExplorerPage: No agents in response, setting empty array');
             setSubnets([])
           }
         } catch (apiErr) {
-          console.error('Backend API failed:', apiErr)
+          console.error('❌ ExplorerPage: Backend API failed:', apiErr)
           setSubnets([])
         }
         
@@ -171,7 +203,7 @@ const ExplorerPage = () => {
 
     // NO MOCK DATA - only fetch real data from backend
     fetchData()
-  }, [searchQuery])
+  }, []) // Remove searchQuery dependency - API call should happen on mount
 
   return (
     <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans min-h-screen px-6 py-12">
@@ -271,7 +303,7 @@ const ExplorerPage = () => {
         
         <section className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h2 className="text-xl font-bold">All Subnets ({filteredAndSortedSubnets.length})</h2>
+            <h2 className="text-xl font-bold">All Subnets ({filteredAndSortedSubnets.length}) [Debug: Raw={subnets.length}, Sector={selectedSector}]</h2>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
               {availableSectors.map(sector => (
                 <button
@@ -288,6 +320,16 @@ const ExplorerPage = () => {
               ))}
             </div>
           </div>
+          
+          {/* Debug Information */}
+          {import.meta.env.DEV && (
+            <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded text-xs">
+              <strong>Debug Info:</strong> Raw subnets: {subnets.length}, Filtered: {filteredAndSortedSubnets.length}, Selected: {selectedSector}
+              {subnets.length > 0 && (
+                <div>First 3 raw: {subnets.slice(0, 3).map(s => `${s.id}:${s.name}`).join(', ')}</div>
+              )}
+            </div>
+          )}
           
           <div className="overflow-x-auto">
             <table className="min-w-full table-auto text-sm text-left text-white">
@@ -335,7 +377,25 @@ const ExplorerPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-700">
-                {filteredAndSortedSubnets.map((subnet) => (
+                {filteredAndSortedSubnets.length === 0 ? (
+                  <tr>
+                    <td colSpan="13" className="px-3 py-8 text-center text-gray-400">
+                      {subnets.length === 0 ? (
+                        <div>
+                          <div className="text-lg mb-2">🔄 Loading subnet data...</div>
+                          <div className="text-sm">Fetching data from backend API</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-lg mb-2">🔍 No subnets match the current filter</div>
+                          <div className="text-sm">Try selecting "All" or a different sector</div>
+                          <div className="text-xs mt-2 opacity-60">Filter: {selectedSector}, Available: {subnets.length} subnets</div>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAndSortedSubnets.map((subnet) => (
                   <tr key={subnet.id} className="hover:bg-zinc-800/50 transition-colors">
                     <td className="px-3 py-2">
                       <div className="font-medium">
@@ -414,7 +474,8 @@ const ExplorerPage = () => {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
