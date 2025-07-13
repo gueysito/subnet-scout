@@ -8,9 +8,30 @@ const BACKEND_URL = process.env.BACKEND_URL || 'https://simple-backend-productio
 // In-memory storage for user alerts (in production, use a database)
 const userAlerts = new Map();
 
-// Helper function to get subnet metadata from backend API
+// Import enhanced subnet metadata functions
+const { getSubnetMetadata: getEnhancedMetadata } = await import('../shared/data/subnets.js');
+
+// Helper function to get subnet metadata with enhanced data
 async function getSubnetMetadata(subnetId) {
   try {
+    // First try enhanced metadata
+    const enhanced = getEnhancedMetadata(subnetId);
+    if (enhanced && enhanced.name !== `Subnet ${subnetId}`) {
+      return {
+        name: enhanced.brandName || enhanced.name,
+        description: enhanced.description,
+        type: enhanced.type,
+        sector: enhanced.sector,
+        specialization: enhanced.specialization,
+        builtBy: enhanced.builtBy,
+        github: enhanced.github,
+        twitter: enhanced.twitter,
+        website: enhanced.website,
+        status: enhanced.status
+      };
+    }
+
+    // Then try backend API
     const response = await fetch(`${BACKEND_URL}/api/subnet/${subnetId}/data`);
     if (response.ok) {
       const result = await response.json();
@@ -99,13 +120,41 @@ async function getRealSubnetData(subnetId) {
 async function formatSubnetInfo(subnet) {
   const emoji = subnet.overall_score >= 80 ? '🟢' : subnet.overall_score >= 60 ? '🟡' : '🔴';
   const metadata = await getSubnetMetadata(subnet.subnet_id);
-  return `${emoji} **${metadata.name}** (#${subnet.subnet_id})
-📝 ${metadata.description}
-📊 Score: ${subnet.overall_score}/100
+  
+  let info = `${emoji} **${metadata.name}** (#${subnet.subnet_id})`;
+  
+  // Add sector and built by info if available
+  if (metadata.sector) {
+    info += `\n🏷️ ${metadata.sector}`;
+  }
+  if (metadata.builtBy) {
+    info += `\n👥 Built by: ${metadata.builtBy}`;
+  }
+  
+  info += `\n📝 ${metadata.description}`;
+  
+  // Add specialization if available
+  if (metadata.specialization) {
+    info += `\n🎯 ${metadata.specialization}`;
+  }
+  
+  info += `\n📊 Score: ${subnet.overall_score}/100
 💰 Yield: ${subnet.metrics?.current_yield || 'N/A'}%
 ⚡ Activity: ${subnet.breakdown?.activity_score || 'N/A'}/100
 🛡️ Credibility: ${subnet.breakdown?.credibility_score || 'N/A'}/100
 📈 Trend: ${subnet.metrics?.yield_change_24h > 0 ? '↗️' : '↘️'} ${Math.abs(subnet.metrics?.yield_change_24h || 0).toFixed(1)}%`;
+
+  // Add social links if available
+  const links = [];
+  if (metadata.github) links.push(`[GitHub](${metadata.github})`);
+  if (metadata.twitter) links.push(`[Twitter](${metadata.twitter})`);
+  if (metadata.website) links.push(`[Website](${metadata.website})`);
+  
+  if (links.length > 0) {
+    info += `\n🔗 ${links.join(' • ')}`;
+  }
+
+  return info;
 }
 
 // Helper function to get Ethos identity data for a user

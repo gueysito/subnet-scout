@@ -3,13 +3,14 @@ import { useLocation } from 'react-router-dom'
 import { MessageCircle, Twitter } from 'lucide-react'
 import dataService from '../services/dataService'
 import apiClient from '../../shared/utils/apiClient.js'
-import { getSubnetMetadata } from '../../shared/data/subnets.js'
+import { getSubnetMetadata, getAllSectors } from '../../shared/data/subnets.js'
 import { ENV_CONFIG } from '../config/env.js'
 
 const ExplorerPage = () => {
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSector, setSelectedSector] = useState('All')
+  const [availableSectors] = useState(getAllSectors())
   const [sortConfig, setSortConfig] = useState({ key: 'marketCap', direction: 'desc' })
   const [subnets, setSubnets] = useState([])
   const [topMovers, setTopMovers] = useState([
@@ -33,9 +34,23 @@ const ExplorerPage = () => {
   // Filter and sort subnets
   const filteredAndSortedSubnets = React.useMemo(() => {
     
-    let filtered = selectedSector === 'All' 
-      ? subnets 
-      : subnets.filter(subnet => subnet.sector === selectedSector)
+    let filtered = subnets;
+    
+    // Apply sector filtering using enhanced metadata
+    if (selectedSector !== 'All') {
+      filtered = subnets.filter(subnet => {
+        try {
+          const metadata = getSubnetMetadata(subnet.id || subnet.subnet_id);
+          if (!metadata) return false;
+          
+          return metadata.sector === selectedSector || 
+                 (metadata.type && selectedSector.toLowerCase().includes(metadata.type.toLowerCase()));
+        } catch (error) {
+          console.warn('Error getting metadata for subnet:', subnet.id || subnet.subnet_id, error);
+          return false;
+        }
+      });
+    }
     
     // Sort the filtered results
     if (sortConfig.key) {
@@ -257,18 +272,18 @@ const ExplorerPage = () => {
         <section className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 className="text-xl font-bold">All Subnets ({filteredAndSortedSubnets.length})</h2>
-            <div className="flex flex-wrap gap-2">
-              {['All', 'inference', 'training', 'data', 'storage', 'compute', 'hybrid'].map(sector => (
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+              {availableSectors.map(sector => (
                 <button
                   key={sector}
                   onClick={() => setSelectedSector(sector)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                     selectedSector === sector 
                       ? 'bg-blue-600 text-white' 
                       : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
                   }`}
                 >
-                  {sector === 'All' ? 'All' : sector.charAt(0).toUpperCase() + sector.slice(1)}
+                  {sector}
                 </button>
               ))}
             </div>
@@ -323,8 +338,32 @@ const ExplorerPage = () => {
                 {filteredAndSortedSubnets.map((subnet) => (
                   <tr key={subnet.id} className="hover:bg-zinc-800/50 transition-colors">
                     <td className="px-3 py-2">
-                      <div className="font-medium">{subnet.name}</div>
-                      <div className="text-xs text-gray-400">#{subnet.id}</div>
+                      <div className="font-medium">
+                        {(() => {
+                          try {
+                            const metadata = getSubnetMetadata(subnet.id || subnet.subnet_id);
+                            const displayName = metadata?.brandName || metadata?.name || subnet.name;
+                            return displayName;
+                          } catch (error) {
+                            console.warn('Error displaying subnet name:', subnet.id, error);
+                            return subnet.name || `Subnet ${subnet.id || subnet.subnet_id}`;
+                          }
+                        })()}
+                      </div>
+                      <div className="text-xs text-gray-400">#{subnet.id || subnet.subnet_id}</div>
+                      {(() => {
+                        try {
+                          const metadata = getSubnetMetadata(subnet.id || subnet.subnet_id);
+                          return metadata?.sector && (
+                            <div className="text-xs text-blue-400 mt-1">
+                              {metadata.sector}
+                            </div>
+                          );
+                        } catch (error) {
+                          console.warn('Error displaying sector:', subnet.id, error);
+                          return null;
+                        }
+                      })()}
                     </td>
                     <td className="px-3 py-2 text-right font-mono">{subnet.price}</td>
                     <td className="px-3 py-2 text-right font-mono">{subnet.marketCap}</td>

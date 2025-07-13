@@ -1,7 +1,14 @@
 /**
  * Bittensor Subnet Metadata Database
  * Contains names, descriptions, and GitHub repository URLs for all 118+ subnets
+ * Enhanced with comprehensive data from final_subnet_database.md
  */
+
+import { 
+  getEnhancedSubnetMetadata, 
+  getAllEnhancedSubnetMetadata,
+  ENHANCED_SUBNET_DATABASE 
+} from './enhancedSubnets.js';
 
 export const SUBNET_METADATA = {
   1: { 
@@ -233,9 +240,28 @@ const generatedSubnets = generateRemainingSubnets();
 Object.assign(SUBNET_METADATA, generatedSubnets);
 
 /**
- * Get subnet metadata by ID
+ * Get subnet metadata by ID with enhanced data and backwards compatibility
  */
 export function getSubnetMetadata(subnetId) {
+  // First try enhanced database for comprehensive metadata
+  const enhanced = getEnhancedSubnetMetadata(subnetId);
+  if (enhanced && enhanced.name !== `Subnet ${subnetId}`) {
+    // Convert enhanced format to legacy format for backwards compatibility
+    return {
+      name: enhanced.brandName || enhanced.name,
+      description: enhanced.description,
+      github: enhanced.github,
+      twitter: enhanced.twitter,
+      website: enhanced.website,
+      type: enhanced.type,
+      sector: enhanced.sector,
+      specialization: enhanced.specialization,
+      builtBy: enhanced.builtBy,
+      status: enhanced.status
+    };
+  }
+  
+  // Fallback to legacy metadata
   const metadata = SUBNET_METADATA[subnetId];
   if (!metadata) {
     return {
@@ -249,9 +275,14 @@ export function getSubnetMetadata(subnetId) {
 }
 
 /**
- * Get all subnet metadata
+ * Get all subnet metadata (enhanced version preferred)
  */
 export function getAllSubnetMetadata() {
+  // Return enhanced metadata if available, fallback to legacy
+  const enhanced = getAllEnhancedSubnetMetadata();
+  if (Object.keys(enhanced).length > 0) {
+    return enhanced;
+  }
   return SUBNET_METADATA;
 }
 
@@ -270,4 +301,14 @@ export function getSubnetsByType(type) {
 export function getSubnetGithubUrl(subnetId) {
   const metadata = getSubnetMetadata(subnetId);
   return metadata.github;
-} 
+}
+
+// Re-export enhanced functions for easy access
+export { 
+  getEnhancedSubnetMetadata,
+  getSubnetsBySector,
+  getAllSectors,
+  searchEnhancedSubnets,
+  getSubnetStats,
+  SUBNET_SECTORS
+} from './enhancedSubnets.js'; 

@@ -1,6 +1,7 @@
 // EnhancedScoreAgent.js - ScoreAgent with IO.net inference integration
 import ScoreAgent from './ScoreAgent.js';
 import IONetClient from './IONetClient.js';
+import { getSubnetMetadata } from '../data/subnets.js';
 
 class EnhancedScoreAgent extends ScoreAgent {
   constructor(claudeApiKey, ionetApiKey) {
@@ -37,11 +38,16 @@ class EnhancedScoreAgent extends ScoreAgent {
 
       console.log(`🤖 Enhancing score analysis with IO.net for subnet ${subnetId}`);
       
+      // Get subnet metadata for sector context
+      const metadata = getSubnetMetadata(subnetId);
+      console.log(`🏷️ Subnet ${subnetId} sector: ${metadata.sector || 'Unknown'}`);
+
       // Enhanced analysis options
       const {
         includeMarketSentiment = true,
         includeTrendPrediction = true,
         includeRiskRefinement = true,
+        includeSectorContext = true,
         historicalData = null,
         networkContext = {}
       } = options;
@@ -79,8 +85,18 @@ class EnhancedScoreAgent extends ScoreAgent {
         );
       }
 
+      if (includeSectorContext && metadata.sector) {
+        enhancementPromises.push(
+          this.getSectorContextAnalysis(baseScore, metadata)
+            .catch(error => {
+              console.warn('Sector context analysis failed:', error.message);
+              return null;
+            })
+        );
+      }
+
       // Wait for all enhancements to complete
-      const [sentimentResult, trendsResult, riskResult] = await Promise.all(enhancementPromises);
+      const [sentimentResult, trendsResult, riskResult, sectorResult] = await Promise.all(enhancementPromises);
 
       // Combine base score with enhanced analysis
       const enhancedScore = {
@@ -89,13 +105,21 @@ class EnhancedScoreAgent extends ScoreAgent {
           market_sentiment: sentimentResult,
           performance_trends: trendsResult,
           refined_risk_assessment: riskResult,
+          sector_context: sectorResult,
+          subnet_metadata: {
+            sector: metadata.sector,
+            specialization: metadata.specialization,
+            built_by: metadata.builtBy,
+            brand_name: metadata.brandName || metadata.name
+          },
           enhancement_timestamp: new Date().toISOString(),
-          ionet_models_used: this.getModelsUsed([sentimentResult, trendsResult, riskResult])
+          ionet_models_used: this.getModelsUsed([sentimentResult, trendsResult, riskResult, sectorResult])
         },
         enhancement_status: {
           market_sentiment: !!sentimentResult,
           trend_prediction: !!trendsResult,
           risk_refinement: !!riskResult,
+          sector_context: !!sectorResult,
           enhancement_level: this.calculateEnhancementLevel(sentimentResult, trendsResult, riskResult)
         }
       };
@@ -203,7 +227,7 @@ class EnhancedScoreAgent extends ScoreAgent {
       throw new Error('IO.net client not available for subnet comparison');
     }
 
-    const { metrics = ['yield', 'activity', 'credibility'], includeRiskAnalysis = true } = options;
+    const { metrics = ['yield', 'activity', 'credibility'] } = options;
 
     try {
       const comparisonResponse = await this.ionetClient.compareSubnets(
@@ -402,15 +426,97 @@ class EnhancedScoreAgent extends ScoreAgent {
 
   calculateAnalysisCompleteness(enhancedScore, comparisonAnalysis) {
     let completeness = 0;
-    const maxScore = 5;
+    const maxScore = 6; // Updated to include sector context
 
     if (enhancedScore.enhanced_analysis?.market_sentiment) completeness++;
     if (enhancedScore.enhanced_analysis?.performance_trends) completeness++;
     if (enhancedScore.enhanced_analysis?.refined_risk_assessment) completeness++;
+    if (enhancedScore.enhanced_analysis?.sector_context) completeness++;
     if (comparisonAnalysis) completeness++;
     if (enhancedScore.ai_summary) completeness++;
 
     return Math.round((completeness / maxScore) * 100);
+  }
+
+  /**
+   * Get sector-specific context analysis using IO.net
+   * @param {Object} baseScore - Base scoring results
+   * @param {Object} metadata - Enhanced subnet metadata
+   * @returns {Object} Sector context analysis
+   */
+  async getSectorContextAnalysis(baseScore, metadata) {
+    try {
+      console.log(`🏭 Analyzing sector context for ${metadata.sector} subnet`);
+
+      const sectorPrompt = `Analyze this ${metadata.sector} subnet with the following context:
+        
+Subnet Information:
+- Name: ${metadata.brandName || metadata.name}
+- Sector: ${metadata.sector}
+- Specialization: ${metadata.specialization || 'Not specified'}
+- Built by: ${metadata.builtBy || 'Unknown'}
+- Current Score: ${baseScore.overall_score}/100
+
+Performance Metrics:
+- Yield: ${baseScore.metrics?.current_yield || 'N/A'}%
+- Activity Score: ${baseScore.breakdown?.activity_score || 'N/A'}/100
+- Credibility Score: ${baseScore.breakdown?.credibility_score || 'N/A'}/100
+
+Please provide sector-specific analysis covering:
+1. How this subnet's performance compares to typical ${metadata.sector} expectations
+2. Sector-specific risks and opportunities
+3. Competitive positioning within the ${metadata.sector} space
+4. Specialization alignment with market demands
+5. Sector growth potential and trends
+
+Format response as JSON with keys: sector_performance_rating (1-10), sector_risks, sector_opportunities, competitive_position, specialization_assessment, and growth_outlook.`;
+
+      const result = await this.ionetClient.chat(sectorPrompt, {
+        model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+        temperature: 0.3,
+        max_tokens: 800
+      });
+
+      if (result?.choices?.[0]?.message?.content) {
+        try {
+          const analysis = JSON.parse(result.choices[0].message.content);
+          
+          return {
+            sector_performance_rating: analysis.sector_performance_rating || 5,
+            sector_risks: analysis.sector_risks || 'No specific risks identified',
+            sector_opportunities: analysis.sector_opportunities || 'Standard market opportunities',
+            competitive_position: analysis.competitive_position || 'Position unclear',
+            specialization_assessment: analysis.specialization_assessment || 'Specialization not assessed',
+            growth_outlook: analysis.growth_outlook || 'Neutral outlook',
+            sector_context: {
+              sector: metadata.sector,
+              specialization: metadata.specialization,
+              analysis_model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'
+            }
+          };
+        } catch {
+          console.warn('Failed to parse sector analysis JSON, using fallback');
+          return {
+            sector_performance_rating: 5,
+            sector_risks: 'Analysis parsing failed',
+            sector_opportunities: 'Standard opportunities expected',
+            competitive_position: 'Unable to assess',
+            specialization_assessment: `${metadata.sector} subnet with standard expectations`,
+            growth_outlook: 'Moderate growth potential',
+            sector_context: {
+              sector: metadata.sector,
+              specialization: metadata.specialization,
+              analysis_model: 'fallback'
+            }
+          };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Sector context analysis failed:', error.message);
+      return null;
+    }
   }
 }
 

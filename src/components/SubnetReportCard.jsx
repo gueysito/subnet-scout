@@ -37,15 +37,17 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     console.log('🔍 REPORT CARD - apiData.subnet:', apiData.subnet)
     console.log('🔍 REPORT CARD - apiData.subnet?.data:', apiData.subnet?.data)
     
-    // Use backend API data first, fall back to shared metadata
+    // Use enhanced metadata first, then backend API data, fall back to basic metadata
     const metadata = getSubnetMetadata(id)
     const backendName = apiData.subnet?.data?.name
-    const name = backendName || metadata.name
-    const category = apiData.subnet?.data?.type || metadata.type || 'General'
+    const enhancedName = metadata.brandName || metadata.name
+    const name = backendName || enhancedName
+    const category = apiData.subnet?.data?.type || metadata.sector || metadata.type || 'General'
     
     console.log('🔍 REPORT CARD - Final name:', name)
     console.log('🔍 REPORT CARD - Backend name:', backendName)
-    console.log('🔍 REPORT CARD - Metadata name:', metadata.name)
+    console.log('🔍 REPORT CARD - Enhanced name:', enhancedName)
+    console.log('🔍 REPORT CARD - Metadata:', metadata)
     
     // Generate realistic data based on subnet ID with some variation
     const basePrice = 0.023 + (id * 0.001)
@@ -65,11 +67,14 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
       name,
       category,
       description: apiData.subnet?.data?.description || metadata.description,
+      specialization: metadata.specialization,
+      builtBy: metadata.builtBy,
+      sector: metadata.sector,
       
-      // Social/Development Links
-      githubUrl: apiData.subnet?.data?.github_url || metadata.github,
-      twitterUrl: apiData.subnet?.data?.twitter_url || metadata.twitter,
-      websiteUrl: apiData.subnet?.data?.website_url || metadata.website,
+      // Social/Development Links (enhanced metadata preferred)
+      githubUrl: metadata.github || apiData.subnet?.data?.github_url,
+      twitterUrl: metadata.twitter || apiData.subnet?.data?.twitter_url,
+      websiteUrl: metadata.website || apiData.subnet?.data?.website_url,
       
       // Market data
       price: `$${basePrice.toFixed(3)}`,
@@ -208,6 +213,13 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
 🔹 Subnet Info
 ${reportData.name} — Subnet #${reportData.id}
 [${reportData.category}] — ${reportData.description}
+${reportData.builtBy ? `Built by: ${reportData.builtBy}` : ''}
+${reportData.specialization ? `Specialization: ${reportData.specialization}` : ''}
+
+🔗 Links
+${reportData.githubUrl ? `• GitHub: ${reportData.githubUrl}` : ''}
+${reportData.twitterUrl ? `• Twitter: ${reportData.twitterUrl}` : ''}
+${reportData.websiteUrl ? `• Website: ${reportData.websiteUrl}` : ''}
 
 💰 Market Snapshot
 • Price: ${reportData.price} TAO
@@ -317,6 +329,12 @@ Powered by Subnet Scout & io.net
                     <div className="text-lg font-medium">{reportData.name}</div>
                     <div className="text-gray-400">Subnet #{reportData.id}</div>
                     <div className="text-sm text-purple-400">[{reportData.category}]</div>
+                    {reportData.builtBy && (
+                      <div className="text-xs text-gray-500 mt-1">by {reportData.builtBy}</div>
+                    )}
+                    {reportData.specialization && (
+                      <div className="text-sm text-cyan-300 mt-2 italic">{reportData.specialization}</div>
+                    )}
                     
                     {/* Social Links */}
                     <div className="flex gap-2 mt-2">
