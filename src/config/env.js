@@ -36,6 +36,9 @@ export const ENV_CONFIG = {
   
   // Social/Bot Integration
   TELEGRAM_BOT_USERNAME: getEnvVar('VITE_TELEGRAM_BOT_USERNAME') || 'subnet_scout_bot',
+  
+  // Domain Configuration
+  DOMAIN_URL: getEnvVar('VITE_DOMAIN_URL') || 'https://subnetscout.com',
 };
 
 // Validation function to check required environment variables
