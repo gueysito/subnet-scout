@@ -362,7 +362,7 @@ const server = http.createServer((req, res) => {
       
       if (query.limit) {
         const limitNum = parseInt(query.limit, 10);
-        if (!isNaN(limitNum) && limitNum > 0 && limitNum <= 100) {
+        if (!isNaN(limitNum) && limitNum > 0 && limitNum <= 200) {
           limit = limitNum;
         }
       }

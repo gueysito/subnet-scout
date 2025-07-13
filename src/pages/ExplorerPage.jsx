@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
+import { MessageCircle, Twitter } from 'lucide-react'
 import dataService from '../services/dataService'
 import apiClient from '../../shared/utils/apiClient.js'
 import { getSubnetMetadata } from '../../shared/data/subnets.js'
+import { ENV_CONFIG } from '../config/env.js'
 
 const ExplorerPage = () => {
   const location = useLocation()
@@ -379,6 +381,34 @@ const ExplorerPage = () => {
           </div>
         </section>
       </main>
+
+      <footer className="text-center text-sm text-gray-500 py-6">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-4">
+            <a
+              href={`https://t.me/${ENV_CONFIG.TELEGRAM_BOT_USERNAME}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors border border-blue-200 rounded-lg hover:bg-blue-50"
+              title="Chat with Subnet Scout Bot"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Chat with our Telegram Bot</span>
+            </a>
+            <a
+              href="https://x.com/subnetscout"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 transition-colors border border-blue-200 rounded-lg hover:bg-blue-50"
+              title="Follow us on X (Twitter)"
+            >
+              <Twitter className="w-5 h-5" />
+              <span>Follow us on X</span>
+            </a>
+          </div>
+          <div>&copy; 2025 Subnet Scout. All rights reserved.</div>
+        </div>
+      </footer>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, Twitter } from 'lucide-react'
 import apiClient from '../../shared/utils/apiClient'
 import { ENV_CONFIG } from '../config/env.js'
 
@@ -200,16 +200,28 @@ const BriefPage = () => {
       {/* Footer */}
       <footer className="text-center text-sm text-gray-500 py-8 border-t border-zinc-800">
         <div className="flex flex-col items-center gap-4">
-          <a
-            href={`https://t.me/${ENV_CONFIG.TELEGRAM_BOT_USERNAME}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 transition-colors border border-blue-700 rounded-lg hover:bg-blue-900/20"
-            title="Chat with Subnet Scout Bot"
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>Get instant reports via Telegram</span>
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href={`https://t.me/${ENV_CONFIG.TELEGRAM_BOT_USERNAME}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 transition-colors border border-blue-700 rounded-lg hover:bg-blue-900/20"
+              title="Chat with Subnet Scout Bot"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Get instant reports via Telegram</span>
+            </a>
+            <a
+              href="https://x.com/subnetscout"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 transition-colors border border-blue-700 rounded-lg hover:bg-blue-900/20"
+              title="Follow us on X (Twitter)"
+            >
+              <Twitter className="w-5 h-5" />
+              <span>Follow us on X</span>
+            </a>
+          </div>
           <div>
             <p>&copy; 2025 Subnet Scout Intelligence Briefs. All rights reserved.</p>
             <p className="mt-2">Powered by decentralized AI • Built on io.net</p>
