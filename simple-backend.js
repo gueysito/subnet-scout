@@ -742,7 +742,7 @@ const server = http.createServer(async (req, res) => {
       
       console.log(`📊 Serving individual subnet data for subnet ${subnetId}`);
       
-      const subnetData = generateSubnetData(subnetId);
+      const subnetData = await generateSubnetData(subnetId);
       sendJSON(res, 200, subnetData);
       
     } catch (error) {
@@ -753,6 +753,83 @@ const server = http.createServer(async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
+    return;
+  }
+
+  // Enhanced Score Endpoint for Report Cards
+  if (pathname === '/api/score/enhanced' && method === 'POST') {
+    console.log('🎯 Processing enhanced score request...');
+    
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', async () => {
+      try {
+        const { subnet_id, timeframe } = JSON.parse(body);
+        
+        if (!subnet_id || subnet_id < 1 || subnet_id > 118) {
+          sendJSON(res, 400, {
+            success: false,
+            error: 'Valid subnet_id (1-118) is required',
+            timestamp: new Date().toISOString()
+          });
+          return;
+        }
+        
+        console.log(`🔍 Generating enhanced score for subnet ${subnet_id}`);
+        
+        // Generate enhanced analysis based on real data
+        const subnetData = await generateSubnetData(subnet_id);
+        const metadata = getSubnetMetadata(subnet_id);
+        
+        const analysis = {
+          subnet_id: subnet_id,
+          analysis: {
+            summary: `${metadata.name} is a ${metadata.type} subnet in the ${metadata.sector || 'General'} category. ` +
+                    `With an activity score of ${subnetData.data.activity_score.toFixed(1)} and ` +
+                    `${subnetData.data.validator_count} validators, it shows ${subnetData.data.activity_score > 80 ? 'strong' : subnetData.data.activity_score > 60 ? 'moderate' : 'developing'} network participation.`,
+            strengths: [
+              `${subnetData.data.validator_count} active validators providing network security`,
+              `${subnetData.data.emission_rate.toFixed(1)} TAO daily emissions indicating active participation`,
+              metadata.github ? 'Active development with GitHub repository' : 'Established subnet with proven track record'
+            ],
+            opportunities: [
+              subnetData.data.activity_score < 90 ? 'Potential for increased validator participation' : 'Maintaining high performance standards',
+              'Continued development and feature improvements',
+              'Growing ecosystem adoption and integration'
+            ],
+            risks: [
+              subnetData.data.activity_score < 60 ? 'Lower activity score may indicate reduced network participation' : 'Standard market volatility risks',
+              'Regulatory changes in AI/blockchain space',
+              'Competition from other subnets in similar categories'
+            ]
+          },
+          scores: {
+            technical: Math.min(100, Math.max(60, subnetData.data.activity_score + (metadata.github ? 15 : 0))),
+            community: subnetData.data.kaito_score || Math.floor(50 + (subnetData.data.activity_score * 0.4)),
+            development: subnetData.data.github_activity || (metadata.github ? 75 : 45),
+            overall: Math.floor(subnetData.data.activity_score)
+          },
+          timeframe: timeframe || '24h',
+          timestamp: new Date().toISOString()
+        };
+        
+        sendJSON(res, 200, {
+          success: true,
+          ...analysis
+        });
+        
+      } catch (parseError) {
+        console.error('Enhanced score parsing error:', parseError);
+        sendJSON(res, 400, {
+          success: false,
+          error: 'Invalid JSON in request body',
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
     return;
   }
 
