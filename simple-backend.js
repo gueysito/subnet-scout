@@ -155,7 +155,7 @@ class TaoQuestionCache {
     return this.ttl[questionType] || this.ttl.general;
   }
   
-  get(question, _questionType = 'general') {
+  get(question) {
     const key = this.getKey(question);
     const cached = this.cache.get(key);
     
@@ -1163,7 +1163,7 @@ async function processComplexQuery(question, context) {
 - Different subnet types: inference, data, training, storage, compute
 - Miners contribute AI capabilities, validators evaluate contributions`;
 
-      const prompt = `You are an expert Bittensor ecosystem analyst. Answer this complex multi-part question comprehensively:
+      const prompt = `Answer this Bittensor question with direct facts only. NO analysis or reasoning:
 
 **Complex Question:** "${question}"
 
@@ -1186,7 +1186,7 @@ async function processComplexQuery(question, context) {
 Provide a structured, comprehensive answer addressing all parts of the question.`;
 
       const messages = [
-        { role: 'system', content: 'You are an expert Bittensor network analyst specializing in comprehensive multi-part question analysis and detailed subnet ecosystem knowledge.' },
+        { role: 'system', content: 'Provide direct, factual answers only. NO reasoning, NO explanations, NO analysis phrases.' },
         { role: 'user', content: prompt }
       ];
 
@@ -1319,7 +1319,7 @@ async function processSubnetSpecificQuestion(subnetId, question) {
       });
 
       const messages = [
-        { role: 'system', content: 'You are an expert Bittensor network analyst who provides specific, factual answers about subnet performance and characteristics.' },
+        { role: 'system', content: 'Provide specific, factual answers only. NO reasoning, NO thinking process, NO explanatory phrases.' },
         { role: 'user', content: prompt }
       ];
 
@@ -1426,7 +1426,7 @@ async function processSubnetSpecificQuestion(subnetId, question) {
 async function processGeneralTaoQuestion(question) {
   if (IONET_API_KEY) {
     try {
-      const prompt = `You are an expert Bittensor network analyst. Answer this question about the Bittensor ecosystem and TAO token:
+      const prompt = `Answer this Bittensor question directly with facts only. NO reasoning or explanations:
 
 **Question:** "${question}"
 
@@ -1552,7 +1552,7 @@ async function processSubnetComparison(subnet1, subnet2, originalQuestion = '') 
       }, true);
 
       const messages = [
-        { role: 'system', content: 'You are a senior Bittensor investment analyst with deep expertise in subnet technologies, performance analysis, and staking strategies. You provide data-driven recommendations that help users make informed investment decisions. Never give generic "depends on use case" advice - always provide specific guidance based on concrete differences.' },
+        { role: 'system', content: 'Provide ONLY direct, factual comparisons in bullet point format. NO reasoning, analysis, or explanations. NO phrases like "Hmm", "Okay", "The user", "Let me", "Based on", "Looking at". Answer with facts only.' },
         { role: 'user', content: prompt }
       ];
 
