@@ -498,13 +498,15 @@ function sendJSON(res, statusCode, data) {
 function processTaoQuestion(question) {
   console.log('🧠 Processing TAO question:', question);
   
-  // Comparison questions (compare X and Y, X vs Y, etc.)
-  const comparisonMatch = question.match(/(?:compare|vs|versus)\s*(?:subnet\s*)?(\d+)(?:\s*(?:and|vs|versus)\s*(?:subnet\s*)?(\d+))?|(\d+)\s*(?:and|vs|versus)\s*(\d+)/i);
-  if (comparisonMatch) {
-    const subnet1 = parseInt(comparisonMatch[1] || comparisonMatch[3]);
-    const subnet2 = parseInt(comparisonMatch[2] || comparisonMatch[4]);
-    if (subnet1 && subnet2 && subnet1 >= 1 && subnet1 <= 118 && subnet2 >= 1 && subnet2 <= 118) {
-      return processSubnetComparison(subnet1, subnet2);
+  // Comparison questions - extract all numbers and look for comparison keywords
+  if (question.includes('compare') || question.includes(' vs ') || question.includes('versus')) {
+    const numbers = question.match(/\d+/g);
+    if (numbers && numbers.length >= 2) {
+      const subnet1 = parseInt(numbers[0]);
+      const subnet2 = parseInt(numbers[1]);
+      if (subnet1 >= 1 && subnet1 <= 118 && subnet2 >= 1 && subnet2 <= 118) {
+        return processSubnetComparison(subnet1, subnet2);
+      }
     }
   }
   
