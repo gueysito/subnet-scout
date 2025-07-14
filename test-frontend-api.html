@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: white; }
+        .log { background: #2a2a2a; padding: 10px; margin: 10px 0; font-family: monospace; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #339af0; color: white; border: none; border-radius: 3px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Frontend API Connection Test</h1>
+    
+    <button onclick="testDirectFetch()">Test Direct Fetch</button>
+    <button onclick="testAPIClient()">Test API Client</button>
+    <button onclick="testCORS()">Test CORS</button>
+    
+    <div id="results" class="log"></div>
+
+    <script>
+        const log = (message) => {
+            const div = document.getElementById('results');
+            div.innerHTML += new Date().toISOString() + ': ' + message + '\n';
+            console.log(message);
+        };
+
+        window.testDirectFetch = async function() {
+            log('Testing direct fetch to backend...');
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/agents?page=1&limit=5');
+                const data = await response.json();
+                
+                log('✅ Direct fetch successful:');
+                log('  - Status: ' + response.status);
+                log('  - Agents count: ' + (data.agents ? data.agents.length : 0));
+                log('  - First agent: ' + (data.agents?.[0]?.name || 'N/A'));
+                
+            } catch (error) {
+                log('❌ Direct fetch failed: ' + error.message);
+            }
+        };
+
+        window.testAPIClient = async function() {
+            log('Testing API client module...');
+            
+            try {
+                const apiModule = await import('./shared/utils/apiClient.js');
+                const apiClient = apiModule.default;
+                
+                log('✅ API client module loaded');
+                
+                const response = await apiClient.getAgentsList(1, 5);
+                
+                log('✅ API client call successful:');
+                log('  - Agents count: ' + (response.agents ? response.agents.length : 0));
+                log('  - First agent: ' + (response.agents?.[0]?.name || 'N/A'));
+                
+            } catch (error) {
+                log('❌ API client failed: ' + error.message);
+            }
+        };
+
+        window.testCORS = async function() {
+            log('Testing CORS headers...');
+            
+            try {
+                const response = await fetch('http://localhost:8080/health', {
+                    method: 'GET',
+                    headers: {
+                        'Origin': 'http://localhost:5173',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('✅ CORS test response:');
+                log('  - Status: ' + response.status);
+                log('  - Access-Control-Allow-Origin: ' + response.headers.get('Access-Control-Allow-Origin'));
+                log('  - Content-Type: ' + response.headers.get('Content-Type'));
+                
+                const data = await response.json();
+                log('  - Response data: ' + JSON.stringify(data));
+                
+            } catch (error) {
+                log('❌ CORS test failed: ' + error.message);
+            }
+        };
+
+        // Auto-run tests
+        setTimeout(() => {
+            log('=== Starting automatic tests ===');
+            testDirectFetch().then(() => {
+                return testAPIClient();
+            }).then(() => {
+                return testCORS();
+            }).catch(error => {
+                log('Auto-test error: ' + error.message);
+            });
+        }, 1000);
+    </script>
+</body>
+</html>

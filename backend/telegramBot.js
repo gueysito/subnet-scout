@@ -3,7 +3,7 @@ import { Telegraf } from 'telegraf';
 import fetch from 'node-fetch';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-const BACKEND_URL = process.env.BACKEND_URL || 'https://simple-backend-production-de4c.up.railway.app';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 // In-memory storage for user alerts (in production, use a database)
 const userAlerts = new Map();

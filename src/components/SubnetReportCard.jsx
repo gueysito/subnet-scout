@@ -96,18 +96,25 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
       validators: activeValidators,
       emissions24h: emissions24h.toFixed(0),
       
-      // Scores
-      githubScore: apiData.github?.github_stats?.activity_score || Math.floor(75 + Math.random() * 20),
-      kaitoScore: Math.floor(70 + Math.random() * 25),
-      ethosScore: apiData.ethos?.data?.reputation?.score || Math.floor(80 + Math.random() * 15),
-      trustScore,
+      // Honest Scores - Use real data from unified backend
+      githubScore: apiData.subnet?.data?.github_activity || null,
+      kaitoScore: apiData.subnet?.data?.kaito_score || null,
+      ethosScore: apiData.subnet?.data?.ethos_score || null,
+      trustScore: apiData.subnet?.data?.trust_score || trustScore,
+      dataQuality: apiData.subnet?.data?.data_quality || null,
+      
+      // Data availability indicators
+      hasGitHub: apiData.subnet?.data?.has_github || false,
+      hasTwitter: apiData.subnet?.data?.has_twitter || false,
+      hasWebsite: apiData.subnet?.data?.has_website || false,
       
       // Additional metrics
       emissionStakeRatio: (emissions24h / (stakedTAO / 1000000) * 365).toFixed(1),
       tvlTrend: Math.random() > 0.6 ? 'Growing' : Math.random() > 0.3 ? 'Stable' : 'Declining',
       
-      // AI insights
-      aiSummary: apiData.score?.ai_summary || generateAISummary(name, trustScore, latency, uptime),
+      // AI insights - Use real backend AI summary or clear placeholder
+      aiSummary: apiData.score?.ai_summary || 
+        `[Enhanced AI Analysis] ${name} requires comprehensive io.net intelligence analysis. Current data shows ${trustScore}/100 trust score based on available metadata (GitHub: ${!!metadata.github}, Twitter: ${!!metadata.twitter}, Website: ${!!metadata.website}). Full AI insights pending enhanced integration.`,
       
       lastUpdated: new Date().toLocaleString()
     }
@@ -123,15 +130,14 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     setError(null)
 
     try {
-      // Make parallel API calls to gather comprehensive data
+      // Use unified backend with only available endpoints
       const backendUrl = ENV_CONFIG.BACKEND_URL
+      
+      console.log('🔍 REPORT CARD - Calling unified backend for subnet:', subnetId)
       
       const [
         subnetResponse,
-        scoreResponse,
-        githubResponse,
-        riskResponse,
-        ethosResponse
+        scoreResponse
       ] = await Promise.allSettled([
         fetch(`${backendUrl}/api/subnet/${subnetId}/data`),
         fetch(`${backendUrl}/api/score/enhanced`, {
@@ -139,39 +145,33 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subnet_id: subnetId,
-            timeframe: '24h',
-            enhancement_options: {
-              include_market_sentiment: true,
-              include_trend_analysis: true,
-              include_risk_assessment: true,
-              include_ai_insights: true
-            }
+            timeframe: '24h'
           })
-        }),
-        fetch(`${backendUrl}/api/github-stats/${subnetId}`),
-        fetch(`${backendUrl}/api/insights/risk/${subnetId}`),
-        fetch(`${backendUrl}/api/identity/bot/subnet${subnetId}`)
+        })
       ])
 
-      // Process responses
+      console.log('🔍 REPORT CARD - API responses:', {
+        subnetStatus: subnetResponse.status,
+        scoreStatus: scoreResponse.status
+      })
+
+      // Process responses from unified backend
       const subnetData = subnetResponse.status === 'fulfilled' && subnetResponse.value.ok ? 
         await subnetResponse.value.json() : null
       const scoreData = scoreResponse.status === 'fulfilled' && scoreResponse.value.ok ? 
         await scoreResponse.value.json() : null
-      const githubData = githubResponse.status === 'fulfilled' && githubResponse.value.ok ? 
-        await githubResponse.value.json() : null
-      const riskData = riskResponse.status === 'fulfilled' && riskResponse.value.ok ? 
-        await riskResponse.value.json() : null
-      const ethosData = ethosResponse.status === 'fulfilled' && ethosResponse.value.ok ? 
-        await ethosResponse.value.json() : null
 
-      // Generate comprehensive report data
+      console.log('🔍 REPORT CARD - Processed data:', {
+        hasSubnetData: !!subnetData,
+        hasScoreData: !!scoreData,
+        subnetName: subnetData?.data?.name,
+        scoreAiSummary: !!scoreData?.ai_summary
+      })
+
+      // Generate comprehensive report data using unified backend response
       const report = generateReportData(subnetId, {
         subnet: subnetData,
-        score: scoreData,
-        github: githubData,
-        risk: riskData,
-        ethos: ethosData
+        score: scoreData
       })
 
       setReportData(report)
@@ -184,12 +184,7 @@ const SubnetReportCard = ({ subnetId, isOpen, onClose }) => {
     }
   }, [subnetId, generateReportData])
 
-  const generateAISummary = (name, trustScore, latency, uptime) => {
-    const performanceLevel = trustScore > 90 ? 'exceptional' : trustScore > 80 ? 'strong' : 'moderate'
-    const latencyComment = latency < 50 ? 'excellent latency performance' : 'acceptable response times'
-    
-    return `${name} demonstrates ${performanceLevel} validator consistency with ${latencyComment}. The ${uptime}% uptime and balanced emission structure indicate reliable infrastructure suitable for ${trustScore > 85 ? 'long-term staking' : 'moderate exposure'}.`
-  }
+  // Removed generateAISummary - now using real backend AI intelligence instead of templates
 
   const formatNumber = (num) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
@@ -269,14 +264,32 @@ Powered by Subnet Scout & io.net
     <div className="mb-3">
       <div className="flex justify-between text-sm mb-1">
         <span>{label}</span>
-        <span>{score}/100</span>
+        <span>
+          {score !== null && score !== undefined ? (
+            `${score}/100`
+          ) : (
+            <span className="text-gray-400 text-xs">No data available</span>
+          )}
+        </span>
       </div>
       <div className="w-full bg-gray-700 rounded-full h-2">
-        <div 
-          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
-          style={{ width: `${score}%` }}
-        />
+        {score !== null && score !== undefined ? (
+          <div 
+            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+            style={{ width: `${Math.min(Math.max(score, 0), 100)}%` }}
+          />
+        ) : (
+          <div className="bg-gray-600 h-2 rounded-full opacity-30" />
+        )}
       </div>
+      {score === null || score === undefined ? (
+        <div className="text-xs text-gray-500 mt-1">
+          {label === 'Ethos Network' ? '🔗 Requires social verification' : 
+           label === 'GitHub Activity' ? '📊 GitHub integration pending' :
+           label === 'Kaito Reputation' ? '📈 Kaito API integration pending' : 
+           '📋 Data source not integrated'}
+        </div>
+      ) : null}
     </div>
   )
 
@@ -483,6 +496,25 @@ Powered by Subnet Scout & io.net
                     <ScoreBar score={reportData.trustScore} label="Trust Score" />
                   </div>
                 </div>
+                
+                {/* Data Quality Indicator */}
+                {reportData.dataQuality && (
+                  <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-400">📊 Data Completeness</span>
+                      <span className="text-blue-400 font-semibold">{reportData.dataQuality}%</span>
+                    </div>
+                    <div className="w-full bg-gray-600 rounded-full h-1.5 mt-2">
+                      <div 
+                        className="bg-blue-400 h-1.5 rounded-full transition-all duration-500"
+                        style={{ width: `${reportData.dataQuality}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Available: {reportData.hasGitHub ? '✓' : '✗'} GitHub, {reportData.hasTwitter ? '✓' : '✗'} Twitter, {reportData.hasWebsite ? '✓' : '✗'} Website
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* AI Insights */}

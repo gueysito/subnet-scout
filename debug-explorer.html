@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Explorer - Subnet Scout</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: white; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #444; border-radius: 5px; }
+        .log { background: #2a2a2a; padding: 10px; margin: 10px 0; font-family: monospace; overflow-x: auto; }
+        .error { color: #ff6b6b; }
+        .success { color: #51cf66; }
+        .warning { color: #ffd43b; }
+        button { padding: 10px 20px; margin: 5px; background: #339af0; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #228be6; }
+        select { padding: 8px; margin: 5px; background: #2a2a2a; color: white; border: 1px solid #444; border-radius: 3px; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+        th { background: #2a2a2a; }
+    </style>
+</head>
+<body>
+    <h1>Debug Explorer - Subnet Scout</h1>
+    
+    <div class="section">
+        <h2>API Test</h2>
+        <button onclick="testAPI()">Test API Call</button>
+        <div id="api-result" class="log"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Metadata Test</h2>
+        <button onclick="testMetadata()">Test Metadata Functions</button>
+        <div id="metadata-result" class="log"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Filtering Test</h2>
+        <label for="sector-select">Select Sector:</label>
+        <select id="sector-select" onchange="testFiltering()">
+            <option value="All">All</option>
+        </select>
+        <button onclick="testFiltering()">Test Filtering</button>
+        <div id="filtering-result" class="log"></div>
+        <div id="subnet-table"></div>
+    </div>
+
+    <script type="module">
+        let subnetsData = [];
+        let metadataFunctions = {};
+        let sectorMappings = {};
+
+        // Load the modules
+        async function loadModules() {
+            try {
+                console.log('Loading modules...');
+                
+                // Import API client
+                const apiModule = await import('./shared/utils/apiClient.js');
+                window.apiClient = apiModule.default;
+                
+                // Import metadata functions
+                const subnetsModule = await import('./shared/data/subnets.js');
+                const enhancedModule = await import('./shared/data/enhancedSubnets.js');
+                
+                metadataFunctions = {
+                    getSubnetMetadata: subnetsModule.getSubnetMetadata,
+                    getAllSectors: subnetsModule.getAllSectors
+                };
+                
+                sectorMappings = enhancedModule.SUBNET_SECTORS;
+                
+                // Populate sector dropdown
+                const sectors = metadataFunctions.getAllSectors();
+                const select = document.getElementById('sector-select');
+                select.innerHTML = sectors.map(s => `<option value="${s}">${s}</option>`).join('');
+                
+                console.log('Modules loaded successfully');
+                document.getElementById('metadata-result').innerHTML = '<span class="success">✅ Modules loaded successfully</span>';
+                
+            } catch (error) {
+                console.error('Failed to load modules:', error);
+                document.getElementById('metadata-result').innerHTML = `<span class="error">❌ Failed to load modules: ${error.message}</span>`;
+            }
+        }
+
+        window.testAPI = async function() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '<span class="warning">⏳ Testing API...</span>';
+            
+            try {
+                const response = await window.apiClient.getAgentsList(1, 118);
+                subnetsData = response.agents || [];
+                
+                resultDiv.innerHTML = `
+                    <span class="success">✅ API Response Success</span><br>
+                    - Agents count: ${subnetsData.length}<br>
+                    - First agent: ${subnetsData[0]?.name} (ID: ${subnetsData[0]?.subnet_id})<br>
+                    - Response type: ${typeof response}<br>
+                    - Has agents property: ${!!response.agents}
+                `;
+                
+                console.log('API Response:', response);
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ API Error: ${error.message}</span>`;
+                console.error('API Error:', error);
+            }
+        };
+
+        window.testMetadata = function() {
+            const resultDiv = document.getElementById('metadata-result');
+            
+            try {
+                // Test specific subnet metadata
+                const subnet1 = metadataFunctions.getSubnetMetadata(1);
+                const subnet8 = metadataFunctions.getSubnetMetadata(8);
+                const sectors = metadataFunctions.getAllSectors();
+                
+                resultDiv.innerHTML = `
+                    <span class="success">✅ Metadata Functions Work</span><br>
+                    - Subnet 1: ${subnet1.name} (Sector: ${subnet1.sector})<br>
+                    - Subnet 8: ${subnet8.name} (Sector: ${subnet8.sector})<br>
+                    - Available sectors: ${sectors.length}<br>
+                    - AI Training includes: ${sectorMappings['AI Training']?.join(', ')}
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Metadata Error: ${error.message}</span>`;
+                console.error('Metadata Error:', error);
+            }
+        };
+
+        window.testFiltering = function() {
+            const resultDiv = document.getElementById('filtering-result');
+            const tableDiv = document.getElementById('subnet-table');
+            const selectedSector = document.getElementById('sector-select').value;
+            
+            if (subnetsData.length === 0) {
+                resultDiv.innerHTML = '<span class="warning">⚠️ No subnet data. Run API test first.</span>';
+                return;
+            }
+            
+            try {
+                // Transform data like ExplorerPage does
+                const transformedData = subnetsData.map((agent) => ({
+                    id: agent.subnet_id || agent.id,
+                    name: agent.name,
+                    sector: agent.type || 'Other',
+                    price: agent.price || '$0.00',
+                    marketCap: agent.market_cap || '$0.0M'
+                }));
+                
+                // Apply filtering
+                let filtered = transformedData;
+                
+                if (selectedSector !== 'All') {
+                    filtered = transformedData.filter(subnet => {
+                        try {
+                            const metadata = metadataFunctions.getSubnetMetadata(subnet.id);
+                            if (!metadata) return false;
+                            
+                            const selectedSectorSubnets = sectorMappings[selectedSector];
+                            return selectedSectorSubnets && selectedSectorSubnets.includes(metadata.sector);
+                        } catch (error) {
+                            console.warn('Error getting metadata for subnet:', subnet.id, error);
+                            return false;
+                        }
+                    });
+                }
+                
+                resultDiv.innerHTML = `
+                    <span class="success">✅ Filtering Test Complete</span><br>
+                    - Selected sector: ${selectedSector}<br>
+                    - Total subnets: ${transformedData.length}<br>
+                    - Filtered subnets: ${filtered.length}<br>
+                    - Filter efficiency: ${((filtered.length / transformedData.length) * 100).toFixed(1)}%
+                `;
+                
+                // Display filtered results in table
+                if (filtered.length > 0) {
+                    const tableHtml = `
+                        <table>
+                            <thead>
+                                <tr><th>ID</th><th>Name</th><th>Sector</th><th>Price</th><th>Market Cap</th></tr>
+                            </thead>
+                            <tbody>
+                                ${filtered.slice(0, 10).map(subnet => {
+                                    const metadata = metadataFunctions.getSubnetMetadata(subnet.id);
+                                    return `
+                                        <tr>
+                                            <td>${subnet.id}</td>
+                                            <td>${metadata?.name || subnet.name}</td>
+                                            <td>${metadata?.sector || 'Unknown'}</td>
+                                            <td>${subnet.price}</td>
+                                            <td>${subnet.marketCap}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                        ${filtered.length > 10 ? `<p>... and ${filtered.length - 10} more</p>` : ''}
+                    `;
+                    tableDiv.innerHTML = tableHtml;
+                } else {
+                    tableDiv.innerHTML = '<p class="warning">No subnets match the selected filter.</p>';
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Filtering Error: ${error.message}</span>`;
+                console.error('Filtering Error:', error);
+            }
+        };
+
+        // Load modules on page load
+        loadModules();
+    </script>
+</body>
+</html>
