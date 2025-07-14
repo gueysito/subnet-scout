@@ -1,0 +1,30 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  VITE_BACKEND_URL = "https://simple-backend-production-de4c.up.railway.app"
+  VITE_USE_MOCK_API = "false"
+  NODE_ENV = "production"
+  VITE_DOMAIN_URL = "https://subnetscout.com"
+  VITE_TELEGRAM_BOT_USERNAME = "subnet_scout_bot"
+
+# SPA fallback for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# API proxy (optional backup)
+[[redirects]]
+  from = "/api/*"
+  to = "https://simple-backend-production-de4c.up.railway.app/api/:splat"
+  status = 200
+  force = false
+
+# Health check proxy
+[[redirects]]
+  from = "/health"
+  to = "https://simple-backend-production-de4c.up.railway.app/health"
+  status = 200
+  force = false

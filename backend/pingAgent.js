@@ -1714,7 +1714,8 @@ app.get("/api/agents", async (req, res) => {
     const endSubnet = Math.min(startSubnet + limit - 1, 118);
     
     for (let i = startSubnet; i <= endSubnet; i++) {
-      const subnetResponse = await fetch("http://localhost:8080/api/subnet/" + i + "/data");
+      const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8080}`;
+      const subnetResponse = await fetch(`${baseUrl}/api/subnet/${i}/data`);
       const subnetData = await subnetResponse.json();
       
       if (subnetData.success) {
