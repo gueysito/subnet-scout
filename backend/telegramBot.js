@@ -793,10 +793,13 @@ bot.on('text', async (ctx) => {
   }
   
   // Check if it's a TAO/Bittensor related question
-  const taoKeywords = ['tao', 'subnet', 'bittensor', 'staking', 'emissions', 'validators', 'mining', 'yield', 'performance'];
+  const taoKeywords = ['tao', 'subnet', 'bittensor', 'staking', 'emissions', 'validators', 'mining', 'yield', 'performance', 'compare', 'staked', 'earnings'];
   const hasTaoContent = taoKeywords.some(keyword => textLower.includes(keyword));
   
-  if (!hasTaoContent) {
+  // Also check for patterns like "subnet X" or "compare X and Y"
+  const hasSubnetPattern = /subnet\s*\d+|compare\s*\d+.*\d+/i.test(text);
+  
+  if (!hasTaoContent && !hasSubnetPattern) {
     ctx.reply('🤖 I specialize in Bittensor subnet analysis! Try asking about:\n• Subnet performance or staking\n• TAO emissions and yields\n• Validator activity and rankings\n• Development progress on GitHub\n\nOr use /help for available commands.');
     return;
   }
@@ -806,6 +809,8 @@ bot.on('text', async (ctx) => {
     await ctx.replyWithChatAction('typing');
     
     console.log(`🤖 Processing TAO question from Telegram: "${text}"`);
+    console.log(`🔍 Keywords detected: ${taoKeywords.filter(kw => textLower.includes(kw)).join(', ')}`);
+    console.log(`📝 Pattern match: ${hasSubnetPattern}`);
     
     // Send question to enhanced backend API (same as web app)
     const response = await callBackendAPI('/api/tao/question', 'POST', {
@@ -815,34 +820,78 @@ bot.on('text', async (ctx) => {
     });
     
     if (response && response.success && response.response) {
-      const aiResponse = response.response;
+      // The backend returns response.response as a string, not an object
+      const responseText = response.response;
+      
+      console.log('📨 Backend response format:', typeof responseText, responseText.substring(0, 100) + '...');
+      
+      // Validate response before sending to Telegram
+      if (!responseText || typeof responseText !== 'string') {
+        console.error('⚠️ Invalid response text format:', typeof responseText);
+        throw new Error('Invalid response format from backend');
+      }
+      
+      if (responseText.trim().length === 0) {
+        console.error('⚠️ Empty response text received from backend');
+        throw new Error('Empty response from backend');
+      }
+      
+      let processedText = responseText;
+      if (responseText.length > 4096) {
+        console.warn('⚠️ Response text too long for Telegram, truncating...');
+        processedText = responseText.substring(0, 4000) + '\n\n...(response truncated)';
+      }
       
       // Format response for Telegram with enhanced structure
-      let formattedResponse = `🤖 **AI Analysis** (${aiResponse.agent})\n\n`;
-      formattedResponse += aiResponse.answer;
+      let formattedResponse = `🤖 **TAO Intelligence**\n\n`;
+      formattedResponse += processedText;
       
-      // Add data source indicators if available
-      if (aiResponse.data_available) {
-        formattedResponse += `\n\n📊 **Data**: Live TaoStats`;
-        if (aiResponse.subnet_info) {
-          formattedResponse += ` • Subnet ${aiResponse.subnet_info.id}`;
-        }
+      // Add metadata
+      formattedResponse += `\n\n⚡ *Processed via io.net AI*`;
+      
+      // Final validation before sending
+      if (formattedResponse.length > 4096) {
+        console.warn('⚠️ Formatted response too long, using basic format...');
+        formattedResponse = responseText.substring(0, 4000);
       }
       
-      // Add processing info
-      if (aiResponse.processing_time) {
-        formattedResponse += `\n⚡ Processed in ${aiResponse.processing_time}ms`;
-      }
-      
+      console.log('✅ Sending validated response to Telegram');
       await ctx.replyWithMarkdown(formattedResponse);
       
     } else {
+      console.error('❌ Invalid backend response structure:', response);
       throw new Error('Invalid response from backend');
     }
     
   } catch (error) {
-    console.error('Telegram TAO question error:', error);
-    await ctx.reply('❌ I encountered an issue processing that question. Please try:\n• Using specific subnet numbers (1-118)\n• Asking about staking, yields, or performance\n• Using /help for available commands');
+    console.error('❌ Telegram TAO question error:', error);
+    console.error('📝 Failed question:', text);
+    console.error('🔗 Backend URL:', BACKEND_URL);
+    console.error('🔍 Error details:', error.stack);
+    
+    // Enhanced error message with specific troubleshooting
+    let errorMsg = '';
+    
+    if (error.message.includes('ECONNREFUSED')) {
+      errorMsg = '🔌 **Backend Connection Failed**\n\nThe Subnet Scout backend is temporarily unavailable. Please try again in a few moments.\n\n🔄 If this persists, the service may be restarting.';
+    } else if (error.message.includes('timeout')) {
+      errorMsg = '⏱️ **Request Timeout**\n\nYour question took too long to process. This might happen with complex queries.\n\n💡 Try asking a simpler, more specific question:\n• "What is subnet 11?" instead of complex comparisons\n• "Yield on subnet 8" for specific data\n• "Staking info for subnet 1" for focused queries';
+    } else if (error.message.includes('Invalid response')) {
+      errorMsg = '⚠️ **Data Processing Issue**\n\nI received an unexpected response format from the backend.\n\n🔄 This is likely temporary. Please:\n• Try your question again\n• Use simpler phrasing\n• Ask about a specific subnet by number (1-118)';
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
+      errorMsg = '🌐 **Network Connection Issue**\n\nThere\'s a temporary network problem connecting to the AI services.\n\n⚡ Try asking again - the connection usually recovers quickly.';
+    } else {
+      // Provide helpful fallback with specific examples based on the question type
+      if (text.includes('yield') || text.includes('yeild')) {
+        errorMsg = '📈 **Yield Query Issue**\n\nI\'m having trouble getting yield data right now.\n\n💡 Try asking:\n• "What is the yield on subnet 11?"\n• "Staking rewards for subnet 8"\n• "Emission rate for subnet 1"';
+      } else if (text.includes('compare')) {
+        errorMsg = '🔍 **Comparison Query Issue**\n\nComparison analysis is temporarily unavailable.\n\n💡 Try asking about individual subnets:\n• "What is subnet 8?"\n• "Tell me about subnet 4"\n• "Subnet 11 information"';
+      } else {
+        errorMsg = '❓ **Query Processing Issue**\n\nI\'m having trouble understanding or processing your question right now.\n\n💡 Try these specific formats:\n• "What is subnet [number]?" (e.g., "What is subnet 11?")\n• "Yield on subnet [number]" for staking returns\n• "Compare subnet X and Y" for comparisons\n\n🆘 Use /help for more examples';
+      }
+    }
+    
+    await ctx.reply(errorMsg);
   }
 });
 

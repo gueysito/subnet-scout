@@ -15,18 +15,341 @@ const PORT = process.env.PORT || 8080;
 const IONET_API_KEY = process.env.IONET_API_KEY;
 const IONET_BASE_URL = 'https://api.intelligence.io.solutions/api/v1';
 
-// IO.net model selection for optimal performance
+// IO.net Health Monitoring System
+class IONetMonitor {
+  constructor() {
+    this.stats = {
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      totalResponseTime: 0,
+      errors: [],
+      lastSuccessTime: null,
+      lastFailureTime: null,
+      dailyStats: new Map(),
+      modelStats: new Map()
+    };
+    this.maxErrorHistory = 50; // Keep last 50 errors
+  }
+
+  recordRequest(model, responseTimeMs, success, error = null) {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    // Update overall stats
+    this.stats.totalRequests++;
+    this.stats.totalResponseTime += responseTimeMs;
+    
+    if (success) {
+      this.stats.successfulRequests++;
+      this.stats.lastSuccessTime = now.toISOString();
+    } else {
+      this.stats.failedRequests++;
+      this.stats.lastFailureTime = now.toISOString();
+      
+      // Record error details
+      this.stats.errors.push({
+        timestamp: now.toISOString(),
+        model: model,
+        error: error?.message || 'Unknown error',
+        responseTime: responseTimeMs
+      });
+      
+      // Keep only recent errors
+      if (this.stats.errors.length > this.maxErrorHistory) {
+        this.stats.errors = this.stats.errors.slice(-this.maxErrorHistory);
+      }
+    }
+    
+    // Update daily stats
+    if (!this.stats.dailyStats.has(today)) {
+      this.stats.dailyStats.set(today, { requests: 0, successes: 0, failures: 0 });
+    }
+    const dayStats = this.stats.dailyStats.get(today);
+    dayStats.requests++;
+    if (success) dayStats.successes++;
+    else dayStats.failures++;
+    
+    // Update model stats
+    if (!this.stats.modelStats.has(model)) {
+      this.stats.modelStats.set(model, { requests: 0, successes: 0, failures: 0, totalTime: 0 });
+    }
+    const modelStats = this.stats.modelStats.get(model);
+    modelStats.requests++;
+    modelStats.totalTime += responseTimeMs;
+    if (success) modelStats.successes++;
+    else modelStats.failures++;
+  }
+
+  getSuccessRate() {
+    if (this.stats.totalRequests === 0) return 0;
+    return (this.stats.successfulRequests / this.stats.totalRequests * 100).toFixed(2);
+  }
+
+  getAverageResponseTime() {
+    if (this.stats.totalRequests === 0) return 0;
+    return (this.stats.totalResponseTime / this.stats.totalRequests).toFixed(0);
+  }
+
+  getHealthStatus() {
+    const successRate = parseFloat(this.getSuccessRate());
+    const avgResponseTime = parseFloat(this.getAverageResponseTime());
+    
+    if (successRate >= 95 && avgResponseTime < 5000) return 'excellent';
+    if (successRate >= 90 && avgResponseTime < 10000) return 'good';
+    if (successRate >= 80 && avgResponseTime < 15000) return 'fair';
+    return 'poor';
+  }
+
+  getHackathonReadyStats() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayStats = this.stats.dailyStats.get(today) || { requests: 0, successes: 0, failures: 0 };
+    
+    return {
+      overall: {
+        totalRequests: this.stats.totalRequests,
+        successRate: `${this.getSuccessRate()}%`,
+        averageResponseTime: `${this.getAverageResponseTime()}ms`,
+        healthStatus: this.getHealthStatus(),
+        uptime: this.stats.lastSuccessTime ? '✅ Active' : '❌ No recent success'
+      },
+      today: {
+        requests: todayStats.requests,
+        successes: todayStats.successes,
+        failures: todayStats.failures,
+        successRate: todayStats.requests > 0 ? `${(todayStats.successes / todayStats.requests * 100).toFixed(1)}%` : '0%'
+      },
+      recentErrors: this.stats.errors.slice(-5).map(err => ({
+        time: new Date(err.timestamp).toLocaleTimeString(),
+        model: err.model,
+        error: err.error.substring(0, 100)
+      }))
+    };
+  }
+}
+
+// Global monitoring instance
+const ionetMonitor = new IONetMonitor();
+
+// Simple in-memory cache for TAO questions
+class TaoQuestionCache {
+  constructor() {
+    this.cache = new Map();
+    this.ttl = {
+      general: 30 * 60 * 1000,    // 30 minutes for general questions
+      subnet: 15 * 60 * 1000,     // 15 minutes for subnet-specific questions  
+      market: 5 * 60 * 1000,      // 5 minutes for market questions
+      complex: 20 * 60 * 1000     // 20 minutes for complex questions
+    };
+  }
+  
+  getKey(question) {
+    // Normalize question to create consistent cache keys
+    return question.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  
+  getTTL(questionType) {
+    return this.ttl[questionType] || this.ttl.general;
+  }
+  
+  get(question, questionType = 'general') {
+    const key = this.getKey(question);
+    const cached = this.cache.get(key);
+    
+    if (!cached) return null;
+    
+    const now = Date.now();
+    if (now > cached.expires) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    // Update access time for LRU-style management
+    cached.lastAccessed = now;
+    return cached.response;
+  }
+  
+  set(question, response, questionType = 'general') {
+    const key = this.getKey(question);
+    const now = Date.now();
+    const ttl = this.getTTL(questionType);
+    
+    this.cache.set(key, {
+      response,
+      expires: now + ttl,
+      lastAccessed: now,
+      questionType
+    });
+    
+    // Simple cache size management - remove oldest if cache gets too large
+    if (this.cache.size > 1000) {
+      this.cleanupOldEntries();
+    }
+  }
+  
+  cleanupOldEntries() {
+    const now = Date.now();
+    const entries = Array.from(this.cache.entries());
+    
+    // Remove expired entries first
+    for (const [key, value] of entries) {
+      if (now > value.expires) {
+        this.cache.delete(key);
+      }
+    }
+    
+    // If still too large, remove least recently accessed
+    if (this.cache.size > 800) {
+      const sortedEntries = Array.from(this.cache.entries())
+        .sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
+      
+      const toRemove = sortedEntries.slice(0, 200);
+      for (const [key] of toRemove) {
+        this.cache.delete(key);
+      }
+    }
+  }
+  
+  getStats() {
+    const now = Date.now();
+    const active = Array.from(this.cache.values()).filter(entry => now <= entry.expires);
+    const byType = {};
+    
+    active.forEach(entry => {
+      byType[entry.questionType] = (byType[entry.questionType] || 0) + 1;
+    });
+    
+    return {
+      total: this.cache.size,
+      active: active.length,
+      byType
+    };
+  }
+}
+
+const questionCache = new TaoQuestionCache();
+
+// IO.net model selection for optimal performance (Updated model names)
 const IONET_MODELS = {
-  sentiment: 'meta-llama/Llama-3.3-70B-Instruct',
+  // Technical/analytical questions - DeepSeek for reasoning
+  technical: 'deepseek-ai/DeepSeek-R1-0528',
+  analysis: 'deepseek-ai/DeepSeek-R1-0528',
+  comparison: 'deepseek-ai/DeepSeek-R1-0528',
+  
+  // General knowledge - Llama for conversational responses
   general: 'meta-llama/Llama-3.3-70B-Instruct',
-  trends: 'deepseek-ai/DeepSeek-R1',
-  analysis: 'deepseek-ai/DeepSeek-R1'
+  explanation: 'meta-llama/Llama-3.3-70B-Instruct',
+  
+  // Quick factual responses - smaller model for speed
+  factual: 'meta-llama/Llama-3.3-70B-Instruct',
+  
+  // Market/financial - specialized model
+  financial: 'deepseek-ai/DeepSeek-R1-0528',
+  
+  // Complex multi-part questions
+  complex: 'deepseek-ai/DeepSeek-R1-0528'
 };
+
+// Determine optimal model based on question characteristics
+function selectOptimalModel(question, context = {}) {
+  const lowerQuestion = question.toLowerCase();
+  
+  // Complex multi-part questions - use most sophisticated model
+  if (context.isComplex || context.context?.complexity === 'complex') {
+    return IONET_MODELS.complex;
+  }
+  
+  // Comparison questions
+  if (question.includes(' and ') || question.includes(' vs ') || question.includes('compare') || context.isComparison) {
+    return IONET_MODELS.comparison;
+  }
+  
+  // Financial/market questions
+  if (lowerQuestion.includes('price') || lowerQuestion.includes('market') || 
+      lowerQuestion.includes('earnings') || lowerQuestion.includes('yield') ||
+      lowerQuestion.includes('staking returns')) {
+    return IONET_MODELS.financial;
+  }
+  
+  // Technical architecture questions
+  if (lowerQuestion.includes('how does') || lowerQuestion.includes('architecture') ||
+      lowerQuestion.includes('technical') || lowerQuestion.includes('mechanism')) {
+    return IONET_MODELS.technical;
+  }
+  
+  // Simple factual questions about specific subnets
+  if (context.isSubnetSpecific && !lowerQuestion.includes('performance')) {
+    return IONET_MODELS.factual;
+  }
+  
+  // Performance analysis questions
+  if (lowerQuestion.includes('performance') || lowerQuestion.includes('analysis') ||
+      lowerQuestion.includes('metrics') || lowerQuestion.includes('score')) {
+    return IONET_MODELS.analysis;
+  }
+  
+  // General explanatory questions
+  if (lowerQuestion.includes('what is') || lowerQuestion.includes('explain')) {
+    return IONET_MODELS.explanation;
+  }
+  
+  // Default to general model
+  return IONET_MODELS.general;
+}
+
+// IO.net Retry Logic with Exponential Backoff
+async function makeIONetRequestWithRetry(model, messages, options = {}, maxRetries = 3) {
+  let lastError = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await makeIONetRequest(model, messages, options);
+      
+      // Success! Reset any circuit breaker state if needed
+      if (attempt > 1) {
+        console.log(`✅ IO.net request succeeded on attempt ${attempt}/${maxRetries}`);
+      }
+      
+      return result;
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ IO.net request attempt ${attempt}/${maxRetries} failed:`, error.message);
+      
+      // Don't retry on certain types of errors
+      if (error.message.includes('API key not configured') || 
+          error.message.includes('401') || 
+          error.message.includes('403')) {
+        console.error('❌ IO.net authentication error - not retrying');
+        throw error;
+      }
+      
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        console.error(`❌ IO.net request failed after ${maxRetries} attempts`);
+        throw error;
+      }
+      
+      // Exponential backoff: 1s, 2s, 4s, 8s...
+      const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+      console.log(`⏳ Retrying IO.net request in ${backoffMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
+  }
+  
+  throw lastError;
+}
 
 // IO.net Client functionality (embedded for zero-dependency)
 async function makeIONetRequest(model, messages, options = {}) {
+  const startTime = Date.now();
+  
   if (!IONET_API_KEY) {
-    throw new Error('IO.net API key not configured');
+    const error = new Error('IO.net API key not configured');
+    ionetMonitor.recordRequest(model, Date.now() - startTime, false, error);
+    throw error;
   }
 
   try {
@@ -53,13 +376,21 @@ async function makeIONetRequest(model, messages, options = {}) {
         res.on('end', () => {
           try {
             if (res.statusCode !== 200) {
-              const errorData = JSON.parse(data).error || {};
-              reject(new Error(`IO.net API Error ${res.statusCode}: ${errorData.message || res.statusText}`));
+              console.error('🔍 IO.net API Response:', res.statusCode, data);
+              try {
+                const errorData = JSON.parse(data).error || {};
+                reject(new Error(`IO.net API Error ${res.statusCode}: ${errorData.message || data || res.statusText}`));
+              } catch {
+                reject(new Error(`IO.net API Error ${res.statusCode}: ${data || res.statusText}`));
+              }
               return;
             }
 
             const response = JSON.parse(data);
-            console.log(`✅ IO.net inference completed - Model: ${model}`);
+            const responseTime = Date.now() - startTime;
+            
+            console.log(`✅ IO.net inference completed - Model: ${model} (${responseTime}ms)`);
+            ionetMonitor.recordRequest(model, responseTime, true);
             
             resolve({
               content: response.choices[0]?.message?.content || '',
@@ -68,25 +399,33 @@ async function makeIONetRequest(model, messages, options = {}) {
               reasoning: response.choices[0]?.message?.reasoning_content || null
             });
           } catch (parseError) {
-            reject(new Error(`IO.net response parsing failed: ${parseError.message}`));
+            const error = new Error(`IO.net response parsing failed: ${parseError.message}`);
+            ionetMonitor.recordRequest(model, Date.now() - startTime, false, error);
+            reject(error);
           }
         });
       });
 
       req.on('error', (error) => {
-        reject(new Error(`IO.net request failed: ${error.message}`));
+        const requestError = new Error(`IO.net request failed: ${error.message}`);
+        ionetMonitor.recordRequest(model, Date.now() - startTime, false, requestError);
+        reject(requestError);
       });
 
       req.setTimeout(30000, () => {
         req.destroy();
-        reject(new Error('IO.net request timeout'));
+        const timeoutError = new Error('IO.net request timeout');
+        ionetMonitor.recordRequest(model, Date.now() - startTime, false, timeoutError);
+        reject(timeoutError);
       });
 
       req.write(requestBody);
       req.end();
     });
   } catch (error) {
-    throw new Error(`IO.net inference failed: ${error.message}`);
+    const finalError = new Error(`IO.net inference failed: ${error.message}`);
+    ionetMonitor.recordRequest(model, Date.now() - startTime, false, finalError);
+    throw finalError;
   }
 }
 
@@ -427,7 +766,12 @@ const SUBNET_METADATA = {
     name: "Foundry S&P500",
     description: "S&P 500 price prediction subnet with advanced financial modeling",
     github: "https://github.com/foundryservices/snpsubnet",
-    type: "inference"
+    type: "inference",
+    sector: "Financial AI",
+    specialization: "Stock market prediction, financial data analysis, S&P 500 modeling",
+    builtBy: "Foundry Services",
+    launchYear: 2023,
+    maturity: "established"
   },
   29: {
     name: "Fractal Research",
@@ -476,6 +820,19 @@ function generateRemainingSubnets() {
 // Merge base metadata with generated subnets for ALL 118 subnets
 const generatedSubnets = generateRemainingSubnets();
 Object.assign(SUBNET_METADATA, generatedSubnets);
+
+// Override specific subnets with detailed metadata
+SUBNET_METADATA[50] = {
+  name: "Analytics Subnet",
+  description: "Compute subnet specializing in analytics applications and services",
+  github: "https://github.com/bittensor-subnet/subnet-50",
+  type: "compute",
+  sector: "Data Analytics",
+  specialization: "Big data processing, statistical analysis, business intelligence",
+  builtBy: "Community",
+  launchYear: 2024,
+  maturity: "developing"
+};
 
 // Helper function to get subnet metadata with fallback
 function getSubnetMetadata(subnetId) {
@@ -574,8 +931,165 @@ function sendJSON(res, statusCode, data) {
 }
 
 // TAO Question Processing with Intelligent Responses
+// Enhanced context builder for complex queries
+function buildQueryContext(question) {
+  const context = {
+    type: 'general',
+    subnetIds: [],
+    keywords: [],
+    complexity: 'simple',
+    requiresData: false,
+    isMultiPart: false
+  };
+  
+  const lowerQuestion = question.toLowerCase();
+  
+  // Extract subnet numbers
+  const subnetMatches = question.match(/subnet\s*(\d+)/gi);
+  if (subnetMatches) {
+    context.subnetIds = subnetMatches.map(match => {
+      const id = parseInt(match.match(/\d+/)[0]);
+      return id >= 1 && id <= 118 ? id : null;
+    }).filter(id => id !== null);
+  }
+  
+  // Detect question complexity
+  if (question.includes(' and ') || question.includes(' or ') || question.includes(',')) {
+    context.isMultiPart = true;
+    context.complexity = 'complex';
+  }
+  
+  // Categorize question type
+  if (context.subnetIds.length > 0) {
+    context.type = context.subnetIds.length > 1 ? 'comparison' : 'subnet_specific';
+  } else if (lowerQuestion.includes('price') || lowerQuestion.includes('market')) {
+    context.type = 'financial';
+  } else if (lowerQuestion.includes('mining') || lowerQuestion.includes('validator')) {
+    context.type = 'technical';
+  } else if (lowerQuestion.includes('performance') || lowerQuestion.includes('metrics')) {
+    context.type = 'analysis';
+    context.requiresData = true;
+  }
+  
+  // Extract key concepts
+  const concepts = [
+    'staking', 'emissions', 'performance', 'github', 'development',
+    'earnings', 'yield', 'mining', 'validation', 'tao', 'bittensor'
+  ];
+  
+  context.keywords = concepts.filter(concept => lowerQuestion.includes(concept));
+  
+  return context;
+}
+
+// Process complex multi-part queries with sophisticated context building
+async function processComplexQuery(question, context) {
+  if (IONET_API_KEY) {
+    try {
+      // Build comprehensive context for complex queries
+      let contextData = '';
+      
+      // Gather data for mentioned subnets
+      if (context.subnetIds.length > 0) {
+        for (const subnetId of context.subnetIds) {
+          const metadata = SUBNET_METADATA[subnetId];
+          if (metadata) {
+            contextData += `\n**Subnet ${subnetId} - ${metadata.name}:**\n`;
+            contextData += `- Type: ${metadata.type}\n`;
+            contextData += `- Description: ${metadata.description}\n`;
+            if (metadata.github) contextData += `- GitHub: ${metadata.github}\n`;
+          }
+        }
+      }
+      
+      // Add general Bittensor context for broad questions
+      const generalContext = `
+**Bittensor Network Overview:**
+- Decentralized AI network with 118+ specialized subnets
+- TAO token for rewards, staking, and accessing AI services
+- Proof-of-Intelligence consensus mechanism
+- Different subnet types: inference, data, training, storage, compute
+- Miners contribute AI capabilities, validators evaluate contributions`;
+
+      const prompt = `You are an expert Bittensor ecosystem analyst. Answer this complex multi-part question comprehensively:
+
+**Complex Question:** "${question}"
+
+**Relevant Context:** ${contextData || generalContext}
+
+**Question Analysis:**
+- Type: ${context.type}
+- Keywords: ${context.keywords.join(', ')}
+- Subnets mentioned: ${context.subnetIds.length > 0 ? context.subnetIds.join(', ') : 'None specific'}
+- Requires data: ${context.requiresData}
+
+**Instructions:**
+1. Break down the multi-part question and address each component
+2. Provide specific information for mentioned subnets using the context
+3. If the question spans multiple topics, organize your response with clear sections
+4. Be comprehensive but concise (4-6 sentences)
+5. If real-time data is needed, mention that limitation clearly
+6. Connect related concepts to provide complete understanding
+
+Provide a structured, comprehensive answer addressing all parts of the question.`;
+
+      const messages = [
+        { role: 'system', content: 'You are an expert Bittensor network analyst specializing in comprehensive multi-part question analysis and detailed subnet ecosystem knowledge.' },
+        { role: 'user', content: prompt }
+      ];
+
+      const optimalModel = selectOptimalModel(question, { isComplex: true, context });
+      
+      const response = await makeIONetRequestWithRetry(optimalModel, messages, {
+        temperature: 0.5, // Balanced for comprehensive analysis
+        maxTokens: 750 // More tokens for complex responses
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error('IO.net complex query analysis failed:', error.message);
+      // Fall back to simpler processing
+    }
+  }
+  
+  // Fallback for complex queries without AI
+  if (context.subnetIds.length > 1) {
+    return `This is a complex question involving multiple subnets (${context.subnetIds.join(', ')}). For detailed analysis, I recommend asking about each subnet individually or using specific comparison questions like "compare subnet X vs subnet Y".`;
+  }
+  
+  return `This appears to be a complex multi-part question. I can help with specific aspects like individual subnet information, comparisons, or general Bittensor concepts. Try breaking it down into smaller, focused questions for better results.`;
+}
+
 async function processTaoQuestion(question) {
   console.log('🧠 Processing TAO question:', question);
+  
+  // Build enhanced context for the question
+  const queryContext = buildQueryContext(question);
+  
+  // Check cache first
+  const cacheType = queryContext.type === 'financial' ? 'market' : 
+                   queryContext.type === 'subnet_specific' ? 'subnet' :
+                   queryContext.complexity === 'complex' ? 'complex' : 'general';
+  
+  const cachedResponse = questionCache.get(question, cacheType);
+  if (cachedResponse) {
+    console.log('📋 Cache hit for question:', question.substring(0, 50) + '...');
+    return cachedResponse;
+  }
+  
+  // Helper function to cache and return response
+  const cacheAndReturn = (response) => {
+    if (response) {
+      questionCache.set(question, response, cacheType);
+      console.log('💾 Cached response for question type:', cacheType);
+    }
+    return response;
+  };
+  
+  // Handle complex multi-part questions with sophisticated context
+  if (queryContext.isMultiPart && queryContext.complexity === 'complex') {
+    return cacheAndReturn(await processComplexQuery(question, queryContext));
+  }
   
   // Comparison questions - extract all numbers and look for comparison keywords
   if (question.includes('compare') || question.includes(' vs ') || question.includes('versus')) {
@@ -584,7 +1098,7 @@ async function processTaoQuestion(question) {
       const subnet1 = parseInt(numbers[0]);
       const subnet2 = parseInt(numbers[1]);
       if (subnet1 >= 1 && subnet1 <= 118 && subnet2 >= 1 && subnet2 <= 118) {
-        return await processSubnetComparison(subnet1, subnet2);
+        return cacheAndReturn(await processSubnetComparison(subnet1, subnet2, question));
       }
     }
   }
@@ -593,26 +1107,26 @@ async function processTaoQuestion(question) {
   const subnetMatch = question.match(/subnet\s+(\d+)|sn(\d+)|what.*subnet\s+(\d+)/);
   if (subnetMatch) {
     const subnetId = parseInt(subnetMatch[1] || subnetMatch[2] || subnetMatch[3]);
-    return await processSubnetSpecificQuestion(subnetId, question);
+    return cacheAndReturn(await processSubnetSpecificQuestion(subnetId, question));
   }
   
   // General TAO/Bittensor questions
   if (question.includes('bittensor') || question.includes('tao') || question.includes('subnet')) {
-    return await processGeneralTaoQuestion(question);
+    return cacheAndReturn(await processGeneralTaoQuestion(question));
   }
   
   // Market/financial questions  
   if (question.includes('price') || question.includes('market') || question.includes('value')) {
-    return await processMarketQuestion(question);
+    return cacheAndReturn(await processMarketQuestion(question));
   }
   
   // Mining/validator questions
   if (question.includes('mining') || question.includes('validator') || question.includes('emission')) {
-    return await processMiningQuestion(question);
+    return cacheAndReturn(await processMiningQuestion(question));
   }
   
   // Default intelligent response
-  return `I understand you're asking about "${question}". As a Bittensor subnet intelligence system, I can help with questions about subnets, TAO token economics, mining, validation, and the decentralized AI network. Try asking about specific subnets (e.g., "what is subnet 8?"), market data, or how the Bittensor network operates.`;
+  return cacheAndReturn(`I understand you're asking about "${question}". As a Bittensor subnet intelligence system, I can help with questions about subnets, TAO token economics, mining, validation, and the decentralized AI network. Try asking about specific subnets (e.g., "what is subnet 8?"), market data, or how the Bittensor network operates.`);
 }
 
 // Process subnet-specific questions with io.net intelligence
@@ -675,20 +1189,37 @@ Provide a clear, specific answer in 2-3 sentences.`;
         { role: 'user', content: prompt }
       ];
 
-      const response = await makeIONetRequest(IONET_MODELS.analysis, messages, {
-        temperature: 0.3, // Lower temperature for factual responses
-        maxTokens: 400
+      const optimalModel = selectOptimalModel(question, { isSubnetSpecific: true });
+      
+      const response = await makeIONetRequestWithRetry(optimalModel, messages, {
+        temperature: optimalModel === IONET_MODELS.factual ? 0.2 : 0.3, // Lower temperature for factual responses
+        maxTokens: 550
       });
 
+      console.log(`✅ IO.net subnet analysis successful for subnet ${subnetId}`);
       return response.content;
     } catch (error) {
-      console.error('IO.net analysis failed:', error.message);
-      // Fall back to basic response if io.net fails
+      console.error(`🚨 IO.net analysis failed for subnet ${subnetId}:`, error.message);
+      console.error(`📍 Question: "${question}"`);
+      console.error(`🔑 API Key available: ${!!IONET_API_KEY}`);
+      console.error(`🔄 Falling back to basic response for subnet ${subnetId}`);
+      
+      // Detailed error tracking for debugging
+      if (error.message.includes('API Error')) {
+        console.error('🌐 IO.net API returned error response');
+      } else if (error.message.includes('timeout')) {
+        console.error('⏱️ IO.net API request timed out');
+      } else if (error.message.includes('request failed')) {
+        console.error('🔌 Network connection to IO.net failed');
+      } else {
+        console.error('❓ Unknown IO.net error type:', error.stack);
+      }
     }
   }
   
-  // Fallback response with basic subnet info
+  // Enhanced fallback response with intelligent question-specific handling
   const { name, description, type, github, twitter, website } = metadata;
+  console.log(`🔄 Using fallback response for subnet ${subnetId} question: "${question}"`);
   
   let response = `**Subnet ${subnetId}: ${name}**\n\n${description}\n\n`;
   response += `**Type**: ${type.charAt(0).toUpperCase() + type.slice(1)}\n`;
@@ -697,18 +1228,54 @@ Provide a clear, specific answer in 2-3 sentences.`;
   if (twitter) response += `**Twitter**: ${twitter}\n`;
   if (website) response += `**Website**: ${website}\n`;
   
-  // Add contextual information based on subnet type
-  if (type === 'inference') {
-    response += `\n🤖 This is an inference subnet, providing AI model responses and predictions within the Bittensor network.`;
-  } else if (type === 'data') {
-    response += `\n📊 This is a data subnet, specializing in data collection, processing, and analysis for the Bittensor ecosystem.`;
-  } else if (type === 'training') {
-    response += `\n🎯 This is a training subnet, focused on machine learning model training and optimization.`;
-  } else if (type === 'storage') {
-    response += `\n💾 This is a storage subnet, providing decentralized storage solutions within Bittensor.`;
+  // Question-specific intelligent responses
+  if (question.includes('yield') || question.includes('yeild')) {
+    if (subnetData && subnetData.yield_percentage) {
+      response += `\n**📈 Yield Information:**\n`;
+      response += `• Current Yield: ${subnetData.yield_percentage}%\n`;
+      response += `• Emission Rate: ${subnetData.emission_rate.toFixed(2)} TAO per day\n`;
+      response += `• Total Stake: ${subnetData.total_stake.toLocaleString()} TAO\n`;
+      response += `\nYield represents the annual percentage return for staking on this subnet.`;
+    } else {
+      response += `\n**📈 Yield Information:**\n`;
+      response += `Yield data for subnet ${subnetId} is currently being processed. Yields in Bittensor vary based on subnet performance, total stake, and emissions. Check back later for updated yield calculations.`;
+    }
+  } else if (question.includes('stake') || question.includes('staking')) {
+    if (subnetData) {
+      response += `\n**🔒 Staking Information:**\n`;
+      response += `• Total Stake: ${subnetData.total_stake.toLocaleString()} TAO\n`;
+      response += `• Validator Count: ${subnetData.validator_count}\n`;
+      response += `• Activity Score: ${subnetData.activity_score}/100\n`;
+      response += `\nTo stake on this subnet, you need to run a validator node and stake TAO tokens.`;
+    } else {
+      response += `\n**🔒 Staking Information:**\n`;
+      response += `Subnet ${subnetId} accepts validator staking. Staking requirements and rewards vary based on subnet performance and network conditions.`;
+    }
+  } else if (question.includes('validator') || question.includes('mining')) {
+    if (subnetData) {
+      response += `\n**⛏️ Network Activity:**\n`;
+      response += `• Active Validators: ${subnetData.validator_count}\n`;
+      response += `• Activity Score: ${subnetData.activity_score}/100\n`;
+      response += `• Daily Emissions: ${subnetData.emission_rate.toFixed(2)} TAO\n`;
+    } else {
+      response += `\n**⛏️ Network Activity:**\n`;
+      response += `Subnet ${subnetId} is actively maintained by miners and validators contributing ${type} capabilities to the Bittensor network.`;
+    }
   }
   
-  if (subnetData) {
+  // Add contextual information based on subnet type
+  if (type === 'inference') {
+    response += `\n\n🤖 This is an inference subnet, providing AI model responses and predictions within the Bittensor network.`;
+  } else if (type === 'data') {
+    response += `\n\n📊 This is a data subnet, specializing in data collection, processing, and analysis for the Bittensor ecosystem.`;
+  } else if (type === 'training') {
+    response += `\n\n🎯 This is a training subnet, focused on machine learning model training and optimization.`;
+  } else if (type === 'storage') {
+    response += `\n\n💾 This is a storage subnet, providing decentralized storage solutions within Bittensor.`;
+  }
+  
+  // Add general performance data if available and not already displayed
+  if (subnetData && !question.includes('yield') && !question.includes('stake') && !question.includes('validator')) {
     response += `\n\n**Current Performance:**\n`;
     response += `• Total Stake: ${subnetData.total_stake.toLocaleString()} TAO\n`;
     response += `• Emission Rate: ${subnetData.emission_rate.toFixed(2)} TAO per day\n`;
@@ -751,15 +1318,31 @@ Provide a clear, informative answer.`;
         { role: 'user', content: prompt }
       ];
 
-      const response = await makeIONetRequest(IONET_MODELS.general, messages, {
-        temperature: 0.6,
-        maxTokens: 300
+      const optimalModel = selectOptimalModel(question, { isGeneral: true });
+      
+      const response = await makeIONetRequestWithRetry(optimalModel, messages, {
+        temperature: optimalModel === IONET_MODELS.financial ? 0.4 : 0.6,
+        maxTokens: optimalModel === IONET_MODELS.complex ? 750 : 400
       });
 
+      console.log(`✅ IO.net general TAO analysis successful`);
       return response.content;
     } catch (error) {
-      console.error('IO.net general analysis failed:', error.message);
-      // Fall back to basic response
+      console.error(`🚨 IO.net general analysis failed:`, error.message);
+      console.error(`📍 Question: "${question}"`);
+      console.error(`🔑 API Key available: ${!!IONET_API_KEY}`);
+      console.error(`🔄 Falling back to basic response for general question`);
+      
+      // Detailed error tracking for debugging
+      if (error.message.includes('API Error')) {
+        console.error('🌐 IO.net API returned error response for general question');
+      } else if (error.message.includes('timeout')) {
+        console.error('⏱️ IO.net API request timed out for general question');
+      } else if (error.message.includes('request failed')) {
+        console.error('🔌 Network connection to IO.net failed for general question');
+      } else {
+        console.error('❓ Unknown IO.net error type for general question:', error.stack);
+      }
     }
   }
   
@@ -786,13 +1369,68 @@ async function processMiningQuestion() {
 }
 
 // Process subnet comparison questions
-async function processSubnetComparison(subnet1, subnet2) {
+async function processSubnetComparison(subnet1, subnet2, originalQuestion = '') {
   const metadata1 = SUBNET_METADATA[subnet1];
   const metadata2 = SUBNET_METADATA[subnet2];
   
   if (!metadata1 || !metadata2) {
     const missing = !metadata1 ? subnet1 : subnet2;
     return `I don't have detailed information about subnet ${missing}. Bittensor has 118+ registered subnets. You can ask about individual subnets or compare different ones within the available range (1-118).`;
+  }
+
+  // Use io.net for intelligent comparison if available
+  if (IONET_API_KEY) {
+    try {
+      // Get performance data for both subnets for richer comparison (simplified)
+      let SUBNET1_DATA = null, SUBNET2_DATA = null;
+      try {
+        const subnet1Response = await generateSubnetData(subnet1);
+        const subnet2Response = await generateSubnetData(subnet2);
+        SUBNET1_DATA = subnet1Response?.data;
+        SUBNET2_DATA = subnet2Response?.data;
+      } catch (error) {
+        console.warn('⚠️  Performance data unavailable for comparison:', error.message);
+      }
+
+      const prompt = `Compare these two Bittensor subnets and provide a specific recommendation:
+
+Subnet ${subnet1} (${metadata1.name}): ${metadata1.type} subnet focused on ${metadata1.description}. Category: ${metadata1.sector || 'General'}.
+
+Subnet ${subnet2} (${metadata2.name}): ${metadata2.type} subnet focused on ${metadata2.description}. Category: ${metadata2.sector || 'General'}.
+
+Analyze their key differences and provide a clear recommendation for which one to choose based on their technical approaches and use cases. Do not give generic "depends on use case" advice - instead provide specific guidance.`;
+
+      const messages = [
+        { role: 'system', content: 'You are a senior Bittensor investment analyst with deep expertise in subnet technologies, performance analysis, and staking strategies. You provide data-driven recommendations that help users make informed investment decisions. Never give generic "depends on use case" advice - always provide specific guidance based on concrete differences.' },
+        { role: 'user', content: prompt }
+      ];
+
+      const optimalModel = selectOptimalModel(originalQuestion, { isComparison: true });
+      
+      const response = await makeIONetRequestWithRetry(optimalModel, messages, {
+        temperature: 0.4, // Balanced for analytical comparison
+        maxTokens: 600
+      });
+
+      console.log(`✅ IO.net comparison analysis successful for subnets ${subnet1} vs ${subnet2}`);
+      return response.content;
+    } catch (error) {
+      console.error(`🚨 IO.net comparison analysis failed for subnets ${subnet1} vs ${subnet2}:`, error.message);
+      console.error(`📍 Original question: "${originalQuestion}"`);
+      console.error(`🔑 API Key available: ${!!IONET_API_KEY}`);
+      console.error(`🔄 Falling back to basic comparison for ${subnet1} vs ${subnet2}`);
+      
+      // Detailed error tracking for debugging
+      if (error.message.includes('API Error')) {
+        console.error('🌐 IO.net API returned error response for comparison');
+      } else if (error.message.includes('timeout')) {
+        console.error('⏱️ IO.net API request timed out during comparison');
+      } else if (error.message.includes('request failed')) {
+        console.error('🔌 Network connection to IO.net failed during comparison');
+      } else {
+        console.error('❓ Unknown IO.net error type during comparison:', error.stack);
+      }
+    }
   }
   
   let response = `**Subnet Comparison: ${subnet1} vs ${subnet2}**\n\n`;
@@ -834,7 +1472,35 @@ async function processSubnetComparison(subnet1, subnet2) {
     response += `• **Development**: Both have active GitHub repositories\n`;
   }
   
-  response += `\n💡 **Recommendation**: Choose based on your specific use case. For detailed metrics and performance data, you can request individual report cards for each subnet.`;
+  // Enhanced recommendation logic based on subnet types and characteristics
+  response += `\n**💡 Smart Recommendation:**\n`;
+  
+  if (metadata1.type === 'inference' && metadata2.type !== 'inference') {
+    response += `• Choose **${metadata1.name}** for AI inference tasks (text, conversation, predictions)\n`;
+    response += `• Choose **${metadata2.name}** for ${metadata2.type} operations (${metadata2.type === 'storage' ? 'file management' : metadata2.type === 'training' ? 'model development' : 'computational tasks'})\n`;
+  } else if (metadata2.type === 'inference' && metadata1.type !== 'inference') {
+    response += `• Choose **${metadata2.name}** for AI inference tasks (text, conversation, predictions)\n`;
+    response += `• Choose **${metadata1.name}** for ${metadata1.type} operations (${metadata1.type === 'storage' ? 'file management' : metadata1.type === 'training' ? 'model development' : 'computational tasks'})\n`;
+  } else if (metadata1.sector === 'Financial AI' || metadata2.sector === 'Financial AI') {
+    const financialSubnet = metadata1.sector === 'Financial AI' ? metadata1.name : metadata2.name;
+    const otherSubnet = metadata1.sector === 'Financial AI' ? metadata2.name : metadata1.name;
+    response += `• **${financialSubnet}** recommended for financial predictions and market analysis\n`;
+    response += `• **${otherSubnet}** better for general ${metadata1.sector === 'Financial AI' ? metadata2.type : metadata1.type} applications\n`;
+  } else if (metadata1.launchYear && metadata2.launchYear) {
+    const olderSubnet = metadata1.launchYear < metadata2.launchYear ? metadata1 : metadata2;
+    const newerSubnet = metadata1.launchYear < metadata2.launchYear ? metadata2 : metadata1;
+    response += `• **${olderSubnet.name}** (${olderSubnet.launchYear}) - More established, potentially more stable\n`;
+    response += `• **${newerSubnet.name}** (${newerSubnet.launchYear}) - Newer technology, higher growth potential\n`;
+  } else if (hasGithub1 !== hasGithub2) {
+    const activeSubnet = hasGithub1 ? metadata1.name : metadata2.name;
+    const otherSubnet = hasGithub1 ? metadata2.name : metadata1.name;
+    response += `• **${activeSubnet}** recommended for active development and community support\n`;
+    response += `• **${otherSubnet}** may be more established but less actively developed\n`;
+  } else {
+    response += `• **${metadata1.name}** focuses on ${metadata1.description.toLowerCase()}\n`;
+    response += `• **${metadata2.name}** specializes in ${metadata2.description.toLowerCase()}\n`;
+    response += `• Choose based on which technical approach better matches your needs\n`;
+  }
   
   return response;
 }
@@ -863,6 +1529,38 @@ const server = http.createServer(async (req, res) => {
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
       dependencies: 'ZERO - Pure Node.js'
+    });
+    return;
+  }
+
+  // Cache statistics endpoint
+  if (pathname === '/api/cache/stats') {
+    const stats = questionCache.getStats();
+    sendJSON(res, 200, {
+      cache: stats,
+      performance: {
+        hitRate: stats.total > 0 ? ((stats.active / stats.total) * 100).toFixed(2) + '%' : '0%',
+        totalQueries: stats.total,
+        activeEntries: stats.active
+      },
+      configuration: {
+        maxSize: 1000,
+        ttl: questionCache.ttl
+      }
+    });
+    return;
+  }
+
+  // IO.net Health Monitoring Dashboard (for hackathon demo)
+  if (pathname === '/api/ionet/health') {
+    const healthStats = ionetMonitor.getHackathonReadyStats();
+    sendJSON(res, 200, {
+      service: 'IO.net Integration Monitor',
+      status: ionetMonitor.getHealthStatus(),
+      hackathon_ready: healthStats,
+      api_key_configured: !!IONET_API_KEY,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
     });
     return;
   }
