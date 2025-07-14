@@ -127,7 +127,8 @@ GoogleService-Info.plist
 .gcp/
 .azure/
 credentials
-config
+.aws/config
+.gcp/config
 
 # --- Docker secrets ---
 docker-compose.override.yml

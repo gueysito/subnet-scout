@@ -303,7 +303,7 @@ const ExplorerPage = () => {
         
         <section className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h2 className="text-xl font-bold">All Subnets ({filteredAndSortedSubnets.length}) [Debug: Raw={subnets.length}, Sector={selectedSector}]</h2>
+            <h2 className="text-xl font-bold">All Subnets ({filteredAndSortedSubnets.length})</h2>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
               {availableSectors.map(sector => (
                 <button
@@ -321,15 +321,6 @@ const ExplorerPage = () => {
             </div>
           </div>
           
-          {/* Debug Information */}
-          {import.meta.env.DEV && (
-            <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded text-xs">
-              <strong>Debug Info:</strong> Raw subnets: {subnets.length}, Filtered: {filteredAndSortedSubnets.length}, Selected: {selectedSector}
-              {subnets.length > 0 && (
-                <div>First 3 raw: {subnets.slice(0, 3).map(s => `${s.id}:${s.name}`).join(', ')}</div>
-              )}
-            </div>
-          )}
           
           <div className="overflow-x-auto">
             <table className="min-w-full table-auto text-sm text-left text-white">
