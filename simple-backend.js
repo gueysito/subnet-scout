@@ -5,6 +5,8 @@
  */
 
 import http from 'http';
+import fs from 'fs';
+import path from 'path';
 
 const PORT = process.env.PORT || 8080;
 
@@ -595,62 +597,60 @@ const server = http.createServer((req, res) => {
 
   // TAO Question Processing Endpoint
   if (pathname === '/api/tao/question' && method === 'POST') {
-    try {
-      console.log('🤖 Processing TAO question...');
-      
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
-      
-      req.on('end', () => {
-        try {
-          const { question } = JSON.parse(body);
-          
-          if (!question || question.trim().length === 0) {
-            sendJSON(res, 400, {
-              success: false,
-              error: 'Question is required',
-              timestamp: new Date().toISOString()
-            });
-            return;
-          }
-          
-          // Process the question intelligently
-          const response = processTaoQuestion(question.toLowerCase().trim());
-          
-          sendJSON(res, 200, {
-            success: true,
-            question: question,
-            response: response,
-            timestamp: new Date().toISOString()
-          });
-          
-        } catch (parseError) {
-          console.error('Error parsing TAO question:', parseError);
+    console.log('🤖 Processing TAO question...');
+    
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    
+    req.on('end', () => {
+      try {
+        const { question } = JSON.parse(body);
+        
+        if (!question || question.trim().length === 0) {
           sendJSON(res, 400, {
             success: false,
-            error: 'Invalid JSON format',
+            error: 'Question is required',
             timestamp: new Date().toISOString()
           });
+          return;
         }
-      });
-      
-    } catch (error) {
+        
+        // Process the question intelligently
+        const response = processTaoQuestion(question.toLowerCase().trim());
+        
+        sendJSON(res, 200, {
+          success: true,
+          question: question,
+          response: response,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (parseError) {
+        console.error('Error parsing TAO question:', parseError);
+        sendJSON(res, 400, {
+          success: false,
+          error: 'Invalid JSON format',
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+    
+    req.on('error', (error) => {
       console.error('Error in TAO question processing:', error);
       sendJSON(res, 500, {
         success: false,
         error: 'Failed to process TAO question',
         timestamp: new Date().toISOString()
       });
-    }
+    });
+    
     return;
   }
 
   // Serve static files from dist directory
   if (pathname.startsWith('/assets/') || pathname.endsWith('.js') || pathname.endsWith('.css') || pathname.endsWith('.ico')) {
-    const fs = await import('fs');
-    const path = await import('path');
     const filePath = path.join(process.cwd(), 'dist', pathname);
     
     try {
@@ -673,8 +673,6 @@ const server = http.createServer((req, res) => {
   }
   
   // SPA fallback - serve index.html for all non-API routes
-  const fs = await import('fs');
-  const path = await import('path');
   const indexPath = path.join(process.cwd(), 'dist', 'index.html');
   
   try {
