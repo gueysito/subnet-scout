@@ -858,32 +858,68 @@ function cleanAIResponse(rawResponse) {
   cleaned = cleaned.replace(/<\/?think[^>]*>/gi, '');
   cleaned = cleaned.replace(/<\/think>/gi, '');
   
-  // Remove verbose introductory phrases
+  // AGGRESSIVE: Remove entire sentences containing reasoning patterns
+  const reasoningPatterns = [
+    /[^.]*(?:Hmm|Well|Okay|So|Now|Let me|I need to|I should|I can|I'll|The user|Since|Looking at|Based on)[^.]*\./gi,
+    /[^.]*(?:asking about|wants me to|seems to|appears to|is requesting)[^.]*\./gi,
+    /[^.]*(?:I recall|I remember|I know|I understand|I see)[^.]*\./gi,
+    /[^.]*(?:instruction|context|limitation|requirement)[^.]*\./gi,
+    /[^.]*(?:suppress my|avoid|forbids|prevents)[^.]*\./gi,
+    /[^.]*(?:This is tricky|interesting|problematic)[^.]*\./gi,
+    /[^.]*(?:given how|probably|likely|suggests)[^.]*\./gi
+  ];
+  
+  reasoningPatterns.forEach(pattern => {
+    cleaned = cleaned.replace(pattern, '');
+  });
+  
+  // Remove verbose introductory phrases (single words/short phrases)
   const verbosePhrases = [
-    /^Okay, the user is asking[^.]*\./i,
-    /^Looking at the[^.]*\./i,
-    /^Based on the provided[^.]*\./i,
-    /^I need to[^.]*\./i,
-    /^Let me[^.]*\./i,
-    /^The user[^.]*\./i,
-    /^Since[^.]*\./i,
-    /^I should[^.]*\./i,
-    /^I can[^.]*\./i,
-    /^I'll[^.]*\./i
+    /^Okay,?\s*/gi,
+    /^Well,?\s*/gi, 
+    /^Hmm,?\s*/gi,
+    /^So,?\s*/gi,
+    /^Now,?\s*/gi,
+    /^Looking at[^,]*,?\s*/gi,
+    /^Based on[^,]*,?\s*/gi,
+    /^Since[^,]*,?\s*/gi,
+    /^The user[^,]*,?\s*/gi
   ];
   
   verbosePhrases.forEach(phrase => {
     cleaned = cleaned.replace(phrase, '');
   });
   
-  // Remove expert analyst positioning
-  cleaned = cleaned.replace(/I'm positioned as an expert analyst[^.]*\./gi, '');
-  cleaned = cleaned.replace(/As an expert analyst[^,]*, /gi, '');
+  // Extract only the final answer (look for patterns like "The yield is X%" or "Subnet X has Y")
+  const directAnswerPatterns = [
+    /(?:The\s+yield\s+(?:on\s+subnet\s+\d+\s+)?(?:is|:)\s*\*?\*?[\d.]+%\*?\*?[^.]*\.)/gi,
+    /(?:Subnet\s+\d+[^.]*(?:has|is|shows)[^.]*\.)/gi,
+    /(?:\*?\*?[\d.]+%?\*?\*?[^.]*\.)/gi
+  ];
+  
+  for (let pattern of directAnswerPatterns) {
+    const matches = cleaned.match(pattern);
+    if (matches && matches.length > 0) {
+      // Use the first direct answer found
+      cleaned = matches[0].trim();
+      break;
+    }
+  }
   
   // Clean up multiple spaces and newlines
   cleaned = cleaned.replace(/\s+/g, ' ');
   cleaned = cleaned.replace(/\n\s*\n/g, '\n\n');
   cleaned = cleaned.trim();
+  
+  // If still too verbose (over 200 chars), extract just the key info
+  if (cleaned.length > 200) {
+    // Look for specific data patterns
+    const dataPattern = /(?:yield|stake|emission)[^.]*[\d.]+[^.]*/gi;
+    const dataMatch = cleaned.match(dataPattern);
+    if (dataMatch) {
+      cleaned = dataMatch[0].trim() + '.';
+    }
+  }
   
   return cleaned;
 }
@@ -930,25 +966,24 @@ function createOptimizedPrompt(question, subnetData = null, isComparison = false
   let basePrompt = '';
   
   if (isComparison) {
-    basePrompt = `Compare these two Bittensor subnets concisely:
+    basePrompt = `STRICT INSTRUCTION: Answer in bullet points ONLY. NO reasoning, NO explanations, NO "I think/see/know" statements.
 
-**Instructions:**
-- Provide DIRECT comparison in 3-4 bullet points max
-- Focus on key differences: purpose, performance, yield
-- Use specific numbers where available
-- Keep response under 200 words
-- No introductory phrases or reasoning
+Compare these Bittensor subnets:
+
+FORBIDDEN: Any phrases like "Okay", "Hmm", "The user", "I need to", "Let me", "Based on", "Looking at", "Since", reasoning, analysis, or explanations.
+
+REQUIRED FORMAT:
+• Subnet X: [specific fact]
+• Subnet Y: [specific fact]  
+• Key difference: [data point]
 
 **Question:** ${question}`;
   } else {
-    basePrompt = `Answer this Bittensor question directly and concisely:
+    basePrompt = `STRICT INSTRUCTION: Provide ONLY the direct answer. NO reasoning, NO thinking process, NO explanations.
 
-**Instructions:**
-- Provide DIRECT answer in 2-3 sentences max
-- Use specific data/numbers when available
-- No introductory phrases like "the user is asking" or "let me check"
-- Keep response under 150 words
-- Focus only on the requested information
+FORBIDDEN: Any phrases like "Okay", "Hmm", "The user", "I need to", "Let me", "Based on", "Looking at", "Since", "I'll", reasoning, context, or analysis.
+
+REQUIRED: Start directly with the answer. Use format "Subnet X yield: Y%" or "Subnet X has Y TAO staked."
 
 **Question:** ${question}`;
   }
@@ -956,8 +991,10 @@ function createOptimizedPrompt(question, subnetData = null, isComparison = false
   if (subnetData) {
     basePrompt += `
 
-**Available Data:**
-${JSON.stringify(subnetData, null, 2)}`;
+**Data Available:**
+${JSON.stringify(subnetData, null, 2)}
+
+RESPOND WITH JUST THE ANSWER - NO COMMENTARY.`;
   }
   
   return basePrompt;
