@@ -17,7 +17,7 @@
     "test:integration": "node test-integration-flow.js",
     "test:frontend": "node test-frontend-integration.js",
     "test:all": "npm run test && npm run test:integration && npm run test:frontend",
-    "prepare": "husky"
+    "prepare": "test -d .git && husky || true"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
