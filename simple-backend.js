@@ -412,8 +412,9 @@ const server = http.createServer((req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = requestUrl.pathname;
   const query = Object.fromEntries(requestUrl.searchParams);
+  const method = req.method;
 
-  console.log(`${req.method} ${pathname}`);
+  console.log(`${method} ${pathname}`);
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
