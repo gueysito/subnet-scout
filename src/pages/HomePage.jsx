@@ -93,6 +93,12 @@ const HomePage = () => {
     // Question indicators
     const questionIndicators = ['?', 'how', 'what', 'when', 'where', 'why', 'latest', 'recent']
     
+    // Comparison and action keywords
+    const comparisonKeywords = ['compare', 'vs', 'versus', 'difference', 'better', 'best']
+    
+    // Check if it contains subnet numbers (like "11 and 9" or "subnet 5 vs 8")
+    const hasSubnetNumbers = /\b\d{1,3}\b/.test(trimmed)
+    
     const hasQuestionIndicator = questionIndicators.some(indicator => 
       trimmed.includes(indicator)
     )
@@ -101,7 +107,17 @@ const HomePage = () => {
       trimmed.includes(keyword)
     )
     
-    return hasQuestionIndicator && hasTaoKeyword
+    const hasComparison = comparisonKeywords.some(keyword => 
+      trimmed.includes(keyword)
+    )
+    
+    // Return true if:
+    // 1. Traditional TAO question (question indicator + TAO keyword)
+    // 2. Comparison query with subnet numbers
+    // 3. Query with subnet numbers and TAO context
+    return (hasQuestionIndicator && hasTaoKeyword) || 
+           (hasComparison && hasSubnetNumbers) ||
+           (hasSubnetNumbers && (hasTaoKeyword || hasComparison))
   }
 
   // Process TAO question using io.net agents

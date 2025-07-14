@@ -498,6 +498,16 @@ function sendJSON(res, statusCode, data) {
 function processTaoQuestion(question) {
   console.log('🧠 Processing TAO question:', question);
   
+  // Comparison questions (compare X and Y, X vs Y, etc.)
+  const comparisonMatch = question.match(/(?:compare|vs|versus)\s*(?:subnet\s*)?(\d+)(?:\s*(?:and|vs|versus)\s*(?:subnet\s*)?(\d+))?|(\d+)\s*(?:and|vs|versus)\s*(\d+)/i);
+  if (comparisonMatch) {
+    const subnet1 = parseInt(comparisonMatch[1] || comparisonMatch[3]);
+    const subnet2 = parseInt(comparisonMatch[2] || comparisonMatch[4]);
+    if (subnet1 && subnet2 && subnet1 >= 1 && subnet1 <= 118 && subnet2 >= 1 && subnet2 <= 118) {
+      return processSubnetComparison(subnet1, subnet2);
+    }
+  }
+  
   // Subnet-specific questions
   const subnetMatch = question.match(/subnet\s+(\d+)|sn(\d+)|what.*subnet\s+(\d+)/);
   if (subnetMatch) {
@@ -578,6 +588,60 @@ function processMarketQuestion() {
 // Process mining/validator questions  
 function processMiningQuestion() {
   return `**Bittensor Mining & Validation:**\n\n⛏️ **Mining**: Contribute AI models, data processing, or computational resources to earn TAO rewards. Different subnets have different mining requirements.\n\n🛡️ **Validation**: Stake TAO tokens to evaluate miner contributions and earn rewards for maintaining network quality.\n\n💰 **Rewards**: Distributed every ~12 minutes based on:\n• Quality of AI responses/services\n• Subnet-specific performance metrics\n• Validator consensus on contribution value\n\n🎯 **Getting Started**: Choose a subnet that matches your capabilities (GPU for inference, data skills for scraping, etc.) and follow their specific setup guides.`;
+}
+
+// Process subnet comparison questions
+function processSubnetComparison(subnet1, subnet2) {
+  const metadata1 = SUBNET_METADATA[subnet1];
+  const metadata2 = SUBNET_METADATA[subnet2];
+  
+  if (!metadata1 || !metadata2) {
+    const missing = !metadata1 ? subnet1 : subnet2;
+    return `I don't have detailed information about subnet ${missing}. Bittensor has 118+ registered subnets. You can ask about individual subnets or compare different ones within the available range (1-118).`;
+  }
+  
+  let response = `**Subnet Comparison: ${subnet1} vs ${subnet2}**\n\n`;
+  
+  // Basic info comparison
+  response += `🔹 **${metadata1.name}** (Subnet ${subnet1})\n`;
+  response += `   • Type: ${metadata1.type}\n`;
+  response += `   • Category: ${metadata1.sector || 'General'}\n`;
+  if (metadata1.github) response += `   • GitHub: ${metadata1.github}\n`;
+  response += `   • ${metadata1.description}\n\n`;
+  
+  response += `🔹 **${metadata2.name}** (Subnet ${subnet2})\n`;
+  response += `   • Type: ${metadata2.type}\n`;
+  response += `   • Category: ${metadata2.sector || 'General'}\n`;
+  if (metadata2.github) response += `   • GitHub: ${metadata2.github}\n`;
+  response += `   • ${metadata2.description}\n\n`;
+  
+  // Comparison analysis
+  response += `**Key Differences:**\n`;
+  
+  if (metadata1.type !== metadata2.type) {
+    response += `• **Purpose**: ${metadata1.name} focuses on ${metadata1.type}, while ${metadata2.name} specializes in ${metadata2.type}\n`;
+  } else {
+    response += `• **Purpose**: Both are ${metadata1.type} subnets with different specializations\n`;
+  }
+  
+  const sector1 = metadata1.sector || 'General';
+  const sector2 = metadata2.sector || 'General';
+  if (sector1 !== sector2) {
+    response += `• **Categories**: ${metadata1.name} is in ${sector1}, ${metadata2.name} is in ${sector2}\n`;
+  }
+  
+  const hasGithub1 = !!metadata1.github;
+  const hasGithub2 = !!metadata2.github;
+  if (hasGithub1 !== hasGithub2) {
+    const active = hasGithub1 ? metadata1.name : metadata2.name;
+    response += `• **Development**: ${active} has active GitHub development\n`;
+  } else if (hasGithub1 && hasGithub2) {
+    response += `• **Development**: Both have active GitHub repositories\n`;
+  }
+  
+  response += `\n💡 **Recommendation**: Choose based on your specific use case. For detailed metrics and performance data, you can request individual report cards for each subnet.`;
+  
+  return response;
 }
 
 // Main HTTP server

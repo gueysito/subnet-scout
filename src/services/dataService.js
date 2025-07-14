@@ -295,10 +295,7 @@ class DataService {
   // Process TAO question using io.net agents
   async processTaoQuestion(question) {
     try {
-      const response = await apiClient.post('/api/tao/question', {
-        question: question.trim(),
-        timestamp: Date.now()
-      })
+      const response = await apiClient.processTaoQuestion(question)
       
       return response
     } catch (error) {

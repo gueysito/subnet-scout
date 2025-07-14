@@ -325,6 +325,24 @@ class ApiClient {
   getCurrentMode() {
     return this.useMock ? 'mock' : 'real';
   }
+
+
+  // Process TAO questions (specific method for clarity)
+  async processTaoQuestion(question) {
+    const url = this.useMock
+      ? `${API_CONFIG.MOCK_BASE_URL}/api/tao/question`
+      : `${API_CONFIG.BACKEND_BASE_URL}/api/tao/question`;
+
+    const body = {
+      question: question.trim(),
+      timestamp: Date.now()
+    };
+
+    return this.fetchWithErrorHandling(url, {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+  }
 }
 
 // Create singleton instance
