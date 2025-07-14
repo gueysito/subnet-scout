@@ -507,18 +507,55 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 404 for all other routes
-  sendJSON(res, 404, {
-    success: false,
-    error: 'Endpoint not found',
-    available_endpoints: [
-      'GET /health',
-      'GET /api/agents',
-      'GET /api/metrics',
-      'GET /api/subnet/:id/data'
-    ],
-    timestamp: new Date().toISOString()
-  });
+  // Serve static files from dist directory
+  if (pathname.startsWith('/assets/') || pathname.endsWith('.js') || pathname.endsWith('.css') || pathname.endsWith('.ico')) {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'dist', pathname);
+    
+    try {
+      const data = fs.readFileSync(filePath);
+      const ext = path.extname(pathname);
+      let contentType = 'text/plain';
+      
+      if (ext === '.js') contentType = 'application/javascript';
+      else if (ext === '.css') contentType = 'text/css';
+      else if (ext === '.ico') contentType = 'image/x-icon';
+      else if (ext === '.png') contentType = 'image/png';
+      else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+      
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(data);
+      return;
+    } catch (error) {
+      // File not found, continue to SPA fallback
+    }
+  }
+  
+  // SPA fallback - serve index.html for all non-API routes
+  const fs = await import('fs');
+  const path = await import('path');
+  const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+  
+  try {
+    const data = fs.readFileSync(indexPath);
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(data);
+    return;
+  } catch (error) {
+    // Fallback to 404 if no dist directory
+    sendJSON(res, 404, {
+      success: false,
+      error: 'Endpoint not found',
+      available_endpoints: [
+        'GET /health',
+        'GET /api/agents',
+        'GET /api/metrics',
+        'GET /api/subnet/:id/data'
+      ],
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Start server
