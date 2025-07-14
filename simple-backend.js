@@ -11,6 +11,85 @@ import path from 'path';
 
 const PORT = process.env.PORT || 8080;
 
+// IO.net API Configuration
+const IONET_API_KEY = process.env.IONET_API_KEY;
+const IONET_BASE_URL = 'https://api.intelligence.io.solutions/api/v1';
+
+// IO.net model selection for optimal performance
+const IONET_MODELS = {
+  sentiment: 'meta-llama/Llama-3.3-70B-Instruct',
+  general: 'meta-llama/Llama-3.3-70B-Instruct',
+  trends: 'deepseek-ai/DeepSeek-R1',
+  analysis: 'deepseek-ai/DeepSeek-R1'
+};
+
+// IO.net Client functionality (embedded for zero-dependency)
+async function makeIONetRequest(model, messages, options = {}) {
+  if (!IONET_API_KEY) {
+    throw new Error('IO.net API key not configured');
+  }
+
+  try {
+    const requestBody = JSON.stringify({
+      model,
+      messages,
+      temperature: options.temperature || 0.7,
+      max_completion_tokens: options.maxTokens || 500,
+      reasoning_content: options.reasoning || false,
+      ...options
+    });
+
+    return new Promise((resolve, reject) => {
+      const req = https.request(IONET_BASE_URL + '/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${IONET_API_KEY}`,
+          'User-Agent': 'SubnetScout/1.0'
+        }
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            if (res.statusCode !== 200) {
+              const errorData = JSON.parse(data).error || {};
+              reject(new Error(`IO.net API Error ${res.statusCode}: ${errorData.message || res.statusText}`));
+              return;
+            }
+
+            const response = JSON.parse(data);
+            console.log(`✅ IO.net inference completed - Model: ${model}`);
+            
+            resolve({
+              content: response.choices[0]?.message?.content || '',
+              usage: response.usage,
+              model: response.model,
+              reasoning: response.choices[0]?.message?.reasoning_content || null
+            });
+          } catch (parseError) {
+            reject(new Error(`IO.net response parsing failed: ${parseError.message}`));
+          }
+        });
+      });
+
+      req.on('error', (error) => {
+        reject(new Error(`IO.net request failed: ${error.message}`));
+      });
+
+      req.setTimeout(30000, () => {
+        req.destroy();
+        reject(new Error('IO.net request timeout'));
+      });
+
+      req.write(requestBody);
+      req.end();
+    });
+  } catch (error) {
+    throw new Error(`IO.net inference failed: ${error.message}`);
+  }
+}
+
 // Real API integration functions
 async function fetchGitHubActivity(repoUrl) {
   if (!repoUrl) return null;
@@ -495,7 +574,7 @@ function sendJSON(res, statusCode, data) {
 }
 
 // TAO Question Processing with Intelligent Responses
-function processTaoQuestion(question) {
+async function processTaoQuestion(question) {
   console.log('🧠 Processing TAO question:', question);
   
   // Comparison questions - extract all numbers and look for comparison keywords
@@ -505,7 +584,7 @@ function processTaoQuestion(question) {
       const subnet1 = parseInt(numbers[0]);
       const subnet2 = parseInt(numbers[1]);
       if (subnet1 >= 1 && subnet1 <= 118 && subnet2 >= 1 && subnet2 <= 118) {
-        return processSubnetComparison(subnet1, subnet2);
+        return await processSubnetComparison(subnet1, subnet2);
       }
     }
   }
@@ -514,36 +593,101 @@ function processTaoQuestion(question) {
   const subnetMatch = question.match(/subnet\s+(\d+)|sn(\d+)|what.*subnet\s+(\d+)/);
   if (subnetMatch) {
     const subnetId = parseInt(subnetMatch[1] || subnetMatch[2] || subnetMatch[3]);
-    return processSubnetSpecificQuestion(subnetId, question);
+    return await processSubnetSpecificQuestion(subnetId, question);
   }
   
   // General TAO/Bittensor questions
   if (question.includes('bittensor') || question.includes('tao') || question.includes('subnet')) {
-    return processGeneralTaoQuestion(question);
+    return await processGeneralTaoQuestion(question);
   }
   
   // Market/financial questions  
   if (question.includes('price') || question.includes('market') || question.includes('value')) {
-    return processMarketQuestion(question);
+    return await processMarketQuestion(question);
   }
   
   // Mining/validator questions
   if (question.includes('mining') || question.includes('validator') || question.includes('emission')) {
-    return processMiningQuestion(question);
+    return await processMiningQuestion(question);
   }
   
   // Default intelligent response
   return `I understand you're asking about "${question}". As a Bittensor subnet intelligence system, I can help with questions about subnets, TAO token economics, mining, validation, and the decentralized AI network. Try asking about specific subnets (e.g., "what is subnet 8?"), market data, or how the Bittensor network operates.`;
 }
 
-// Process subnet-specific questions
-function processSubnetSpecificQuestion(subnetId) {
+// Process subnet-specific questions with io.net intelligence
+async function processSubnetSpecificQuestion(subnetId, question) {
   const metadata = SUBNET_METADATA[subnetId];
   
   if (!metadata) {
     return `Subnet ${subnetId} information is not available in my current database. Bittensor currently has 118+ registered subnets. You can ask about subnets 1-118 for detailed information about their purpose, development teams, and specializations.`;
   }
   
+  // Get real subnet data for intelligent responses
+  let subnetData = null;
+  try {
+    const subnetResponse = await generateSubnetData(subnetId);
+    subnetData = subnetResponse.data;
+  } catch (error) {
+    console.warn(`Failed to fetch subnet ${subnetId} data:`, error.message);
+  }
+  
+  // Use io.net intelligence to analyze the question and provide relevant answers
+  if (IONET_API_KEY) {
+    try {
+      const prompt = `You are an expert Bittensor subnet analyst. Answer this specific question about subnet ${subnetId} using the provided data:
+
+**Question:** "${question}"
+
+**Subnet ${subnetId} Information:**
+- Name: ${metadata.name}
+- Description: ${metadata.description}
+- Type: ${metadata.type}
+- GitHub: ${metadata.github || 'Not available'}
+- Twitter: ${metadata.twitter || 'Not available'}
+- Website: ${metadata.website || 'Not available'}
+
+${subnetData ? `**Current Performance Data:**
+- Total Stake: ${subnetData.total_stake.toLocaleString()} TAO
+- Emission Rate: ${subnetData.emission_rate.toFixed(2)} TAO per day
+- Validator Count: ${subnetData.validator_count}
+- Activity Score: ${subnetData.activity_score}/100
+- Credibility Score: ${subnetData.credibility_score}/100
+- Yield: ${subnetData.yield_percentage}%
+- Market Cap: ${subnetData.market_cap}
+- Current Status: ${subnetData.status}
+- GitHub Activity: ${subnetData.github_activity || 'N/A'}
+- Kaito Score: ${subnetData.kaito_score || 'N/A'}
+- Ethos Score: ${subnetData.ethos_score || 'N/A'}
+- Last Updated: ${subnetData.last_updated}` : ''}
+
+**Instructions:**
+1. Answer the specific question asked - don't provide generic information
+2. If asked about staking, emissions, or financial data, use the current performance data
+3. If asked about development, mention GitHub activity and social presence
+4. Be precise and factual, citing specific numbers when available
+5. If the question asks for something not available in the data, state that clearly
+
+Provide a clear, specific answer in 2-3 sentences.`;
+
+      const messages = [
+        { role: 'system', content: 'You are an expert Bittensor network analyst who provides specific, factual answers about subnet performance and characteristics.' },
+        { role: 'user', content: prompt }
+      ];
+
+      const response = await makeIONetRequest(IONET_MODELS.analysis, messages, {
+        temperature: 0.3, // Lower temperature for factual responses
+        maxTokens: 400
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error('IO.net analysis failed:', error.message);
+      // Fall back to basic response if io.net fails
+    }
+  }
+  
+  // Fallback response with basic subnet info
   const { name, description, type, github, twitter, website } = metadata;
   
   let response = `**Subnet ${subnetId}: ${name}**\n\n${description}\n\n`;
@@ -564,13 +708,62 @@ function processSubnetSpecificQuestion(subnetId) {
     response += `\n💾 This is a storage subnet, providing decentralized storage solutions within Bittensor.`;
   }
   
+  if (subnetData) {
+    response += `\n\n**Current Performance:**\n`;
+    response += `• Total Stake: ${subnetData.total_stake.toLocaleString()} TAO\n`;
+    response += `• Emission Rate: ${subnetData.emission_rate.toFixed(2)} TAO per day\n`;
+    response += `• Validator Count: ${subnetData.validator_count}\n`;
+    response += `• Activity Score: ${subnetData.activity_score}/100`;
+  }
+  
   response += `\n\nSubnet ${subnetId} operates as part of the Bittensor decentralized AI network, where miners and validators contribute computational resources to earn TAO rewards.`;
   
   return response;
 }
 
-// Process general Bittensor/TAO questions
-function processGeneralTaoQuestion() {
+// Process general Bittensor/TAO questions with io.net intelligence
+async function processGeneralTaoQuestion(question) {
+  if (IONET_API_KEY) {
+    try {
+      const prompt = `You are an expert Bittensor network analyst. Answer this question about the Bittensor ecosystem and TAO token:
+
+**Question:** "${question}"
+
+**Bittensor Network Context:**
+- Bittensor is a decentralized AI network with 118+ specialized subnets
+- TAO is the native token used for rewards, staking, and accessing AI services
+- The network uses Proof-of-Intelligence consensus mechanism
+- Different subnets focus on inference, data processing, training, storage, and compute
+- Miners contribute AI capabilities and validators evaluate contributions
+- The ecosystem rewards quality AI contributions with TAO tokens
+
+**Instructions:**
+1. Answer the specific question asked about Bittensor/TAO
+2. Be informative but concise (2-3 sentences)
+3. Use technical accuracy while being accessible
+4. If asked about specific numbers, use approximate values based on the 118+ subnets
+5. Focus on the decentralized AI network aspect and TAO token utility
+
+Provide a clear, informative answer.`;
+
+      const messages = [
+        { role: 'system', content: 'You are an expert in blockchain technology and decentralized AI networks, specializing in Bittensor ecosystem analysis.' },
+        { role: 'user', content: prompt }
+      ];
+
+      const response = await makeIONetRequest(IONET_MODELS.general, messages, {
+        temperature: 0.6,
+        maxTokens: 300
+      });
+
+      return response.content;
+    } catch (error) {
+      console.error('IO.net general analysis failed:', error.message);
+      // Fall back to basic response
+    }
+  }
+  
+  // Fallback responses
   if (question.includes('what is bittensor') || question.includes('what is tao')) {
     return `**Bittensor** is a decentralized AI network that creates a market for machine intelligence. The TAO token is its native cryptocurrency, used to reward contributors who provide computational resources and AI services.\n\n🌐 **Key Features:**\n• 118+ specialized subnets for different AI tasks\n• Proof-of-Intelligence consensus mechanism\n• Decentralized AI model training and inference\n• Open-source protocol for AI development\n\n💰 **TAO Token**: Used for staking, rewards, and accessing AI services across the network.`;
   }
@@ -583,17 +776,17 @@ function processGeneralTaoQuestion() {
 }
 
 // Process market-related questions
-function processMarketQuestion() {
+async function processMarketQuestion() {
   return `**TAO Market Information:**\n\n📈 TAO is the native token of the Bittensor network, used for:\n• Staking to become a validator\n• Rewarding miners for AI contributions\n• Accessing AI services across subnets\n• Governance and network decisions\n\n💡 **Value Drivers:**\n• Growing AI demand across 118+ subnets\n• Limited token supply with deflationary mechanics\n• Real utility in decentralized AI marketplace\n• Increasing adoption by AI developers\n\n🔄 **Token Economics**: TAO rewards are distributed based on subnet performance and contribution quality, creating sustainable incentives for network growth.`;
 }
 
 // Process mining/validator questions  
-function processMiningQuestion() {
+async function processMiningQuestion() {
   return `**Bittensor Mining & Validation:**\n\n⛏️ **Mining**: Contribute AI models, data processing, or computational resources to earn TAO rewards. Different subnets have different mining requirements.\n\n🛡️ **Validation**: Stake TAO tokens to evaluate miner contributions and earn rewards for maintaining network quality.\n\n💰 **Rewards**: Distributed every ~12 minutes based on:\n• Quality of AI responses/services\n• Subnet-specific performance metrics\n• Validator consensus on contribution value\n\n🎯 **Getting Started**: Choose a subnet that matches your capabilities (GPU for inference, data skills for scraping, etc.) and follow their specific setup guides.`;
 }
 
 // Process subnet comparison questions
-function processSubnetComparison(subnet1, subnet2) {
+async function processSubnetComparison(subnet1, subnet2) {
   const metadata1 = SUBNET_METADATA[subnet1];
   const metadata2 = SUBNET_METADATA[subnet2];
   
@@ -934,7 +1127,7 @@ const server = http.createServer(async (req, res) => {
       body += chunk.toString();
     });
     
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const { question } = JSON.parse(body);
         
@@ -947,8 +1140,8 @@ const server = http.createServer(async (req, res) => {
           return;
         }
         
-        // Process the question intelligently
-        const response = processTaoQuestion(question.toLowerCase().trim());
+        // Process the question intelligently with io.net
+        const response = await processTaoQuestion(question.toLowerCase().trim());
         
         sendJSON(res, 200, {
           success: true,
@@ -1031,6 +1224,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`🚀 Pure Node.js Backend API Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🤖 IO.net Intelligence: ${IONET_API_KEY ? 'ENABLED' : 'DISABLED (fallback to basic responses)'}`);
   console.log(`📋 Available endpoints:`);
   console.log(`   GET /health - Health check`);
   console.log(`   GET /api/agents - Subnet agents list`);
