@@ -19,10 +19,7 @@ export const ENV_CONFIG = {
   
   // API Endpoints
   MOCK_API_URL: getEnvVar('VITE_MOCK_API_URL') || 'http://localhost:3001',
-  BACKEND_URL: getEnvVar('VITE_BACKEND_URL') || 
-    (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-      ? 'https://simple-backend-production-de4c.up.railway.app' 
-      : 'http://localhost:8080'),
+  BACKEND_URL: getEnvVar('VITE_BACKEND_URL') || 'http://localhost:8080',
   
   // External API Keys
   IONET_API_KEY: getEnvVar('VITE_IONET_API_KEY') || getEnvVar('IONET_API_KEY'),
