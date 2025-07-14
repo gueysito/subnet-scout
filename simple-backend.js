@@ -13,24 +13,37 @@ const PORT = process.env.PORT || 8080;
 // Embedded subnet metadata with PROPER BRAND NAMES - NO IMPORTS, NO DEPENDENCIES
 const SUBNET_METADATA = {
   1: { 
-    name: "Text Prompting", 
-    description: "Advanced text generation and prompting subnet for natural language processing",
+    name: "Apex (Macrocosmos)", 
+    description: "Premier text generation subnet - competitive marketplace for LLM inference",
     github: "https://github.com/macrocosm-os/prompting",
-    twitter: "https://twitter.com/opentensor", // Verified: OpenTensor Foundation official account
-    website: "https://bittensor.com", // OpenTensor Foundation official website
-    type: "inference"
+    twitter: "https://twitter.com/MacrocosmosAI", 
+    website: "https://www.macrocosmos.ai/sn1",
+    type: "inference",
+    sector: "Text Generation",
+    specialization: "Large Language Model inference, text completions, conversational responses",
+    builtBy: "Macrocosmos"
   },
   2: { 
-    name: "Machine Translation", 
-    description: "Multi-language translation services using state-of-the-art models",
-    github: "https://github.com/macrocosm-os/data-universe",
-    type: "inference"
+    name: "Omron (Inference Labs)", 
+    description: "Decentralized inference and compute verification using zero-knowledge proofs",
+    github: "https://github.com/inference-labs-inc/omron-subnet",
+    twitter: "https://twitter.com/omron_ai",
+    website: "https://omron.ai/",
+    type: "verification",
+    sector: "Zero-Knowledge ML",
+    specialization: "Zero-knowledge AI proofs, cryptographically secure verification without revealing data",
+    builtBy: "Inference Labs"
   },
   3: { 
-    name: "Data Scraping", 
-    description: "Decentralized web scraping and data collection subnet",
-    github: "https://github.com/namoray/data-universe",
-    type: "data"
+    name: "Templar (Datura AI)", 
+    description: "Specialized code generation subnet for high-quality software development",
+    github: "https://github.com/Datura-ai/templar",
+    twitter: "https://twitter.com/datura_ai",
+    website: "https://datura.ai/",
+    type: "inference",
+    sector: "Code Generation",
+    specialization: "Code generation, debugging, optimization across multiple programming languages",
+    builtBy: "Datura AI"
   },
   4: { 
     name: "Multi Modality", 
@@ -64,9 +77,12 @@ const SUBNET_METADATA = {
     name: "Taoshi", 
     description: "Financial prediction and market analysis subnet for proprietary trading",
     github: "https://github.com/taoshidev/proprietary-trading-network",
-    twitter: "https://twitter.com/taoshiio", // Verified: Taoshi official account
-    website: "https://taoshi.io", // Verified: Taoshi official website
-    type: "inference"
+    twitter: "https://twitter.com/taoshiio",
+    website: "https://taoshi.io",
+    type: "inference",
+    sector: "Financial AI",
+    specialization: "Proprietary trading signals, market prediction, financial data analysis",
+    builtBy: "Taoshi"
   },
   9: { 
     name: "Pretraining", 
