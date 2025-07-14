@@ -155,7 +155,7 @@ class TaoQuestionCache {
     return this.ttl[questionType] || this.ttl.general;
   }
   
-  get(question, questionType = 'general') {
+  get(question, _questionType = 'general') {
     const key = this.getKey(question);
     const cached = this.cache.get(key);
     
@@ -848,6 +848,121 @@ function getSubnetMetadata(subnetId) {
   return metadata;
 }
 
+// AI Response Cleaning and Optimization Functions
+function cleanAIResponse(rawResponse) {
+  if (!rawResponse) return '';
+  
+  let cleaned = rawResponse;
+  
+  // Remove AI reasoning tags and thinking process
+  cleaned = cleaned.replace(/<\/?think[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<\/think>/gi, '');
+  
+  // Remove verbose introductory phrases
+  const verbosePhrases = [
+    /^Okay, the user is asking[^.]*\./i,
+    /^Looking at the[^.]*\./i,
+    /^Based on the provided[^.]*\./i,
+    /^I need to[^.]*\./i,
+    /^Let me[^.]*\./i,
+    /^The user[^.]*\./i,
+    /^Since[^.]*\./i,
+    /^I should[^.]*\./i,
+    /^I can[^.]*\./i,
+    /^I'll[^.]*\./i
+  ];
+  
+  verbosePhrases.forEach(phrase => {
+    cleaned = cleaned.replace(phrase, '');
+  });
+  
+  // Remove expert analyst positioning
+  cleaned = cleaned.replace(/I'm positioned as an expert analyst[^.]*\./gi, '');
+  cleaned = cleaned.replace(/As an expert analyst[^,]*, /gi, '');
+  
+  // Clean up multiple spaces and newlines
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  cleaned = cleaned.replace(/\n\s*\n/g, '\n\n');
+  cleaned = cleaned.trim();
+  
+  return cleaned;
+}
+
+function formatTelegramResponse(content, isComparison = false) {
+  if (!content) return content;
+  
+  let formatted = content;
+  
+  // For comparison responses, structure better
+  if (isComparison) {
+    // Split into sections and add clear formatting
+    const lines = formatted.split('\n');
+    let result = '';
+    // let inSubnetSection = false; // Future use for advanced formatting
+    
+    for (let line of lines) {
+      if (line.includes('Subnet') && line.includes(':')) {
+        result += `\n**${line.trim()}**\n`;
+        // inSubnetSection = true; // Future use
+      } else if (line.trim().startsWith('-')) {
+        result += `  ${line.trim()}\n`;
+      } else if (line.trim().length > 0) {
+        result += `${line.trim()}\n`;
+      }
+    }
+    
+    formatted = result.trim();
+  }
+  
+  // Ensure proper Telegram markdown formatting
+  formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '**$1**'); // Keep bold
+  formatted = formatted.replace(/\*([^*]+)\*/g, '_$1_'); // Italics for single asterisks
+  
+  // Limit length for Telegram (4096 char limit)
+  if (formatted.length > 3500) {
+    formatted = formatted.substring(0, 3500) + '\n\n...(response truncated for readability)';
+  }
+  
+  return formatted;
+}
+
+function createOptimizedPrompt(question, subnetData = null, isComparison = false) {
+  let basePrompt = '';
+  
+  if (isComparison) {
+    basePrompt = `Compare these two Bittensor subnets concisely:
+
+**Instructions:**
+- Provide DIRECT comparison in 3-4 bullet points max
+- Focus on key differences: purpose, performance, yield
+- Use specific numbers where available
+- Keep response under 200 words
+- No introductory phrases or reasoning
+
+**Question:** ${question}`;
+  } else {
+    basePrompt = `Answer this Bittensor question directly and concisely:
+
+**Instructions:**
+- Provide DIRECT answer in 2-3 sentences max
+- Use specific data/numbers when available
+- No introductory phrases like "the user is asking" or "let me check"
+- Keep response under 150 words
+- Focus only on the requested information
+
+**Question:** ${question}`;
+  }
+  
+  if (subnetData) {
+    basePrompt += `
+
+**Available Data:**
+${JSON.stringify(subnetData, null, 2)}`;
+  }
+  
+  return basePrompt;
+}
+
 // Helper function to generate realistic subnet data with real API integration
 async function generateSubnetData(subnetId) {
   const metadata = getSubnetMetadata(subnetId);
@@ -1149,40 +1264,22 @@ async function processSubnetSpecificQuestion(subnetId, question) {
   // Use io.net intelligence to analyze the question and provide relevant answers
   if (IONET_API_KEY) {
     try {
-      const prompt = `You are an expert Bittensor subnet analyst. Answer this specific question about subnet ${subnetId} using the provided data:
-
-**Question:** "${question}"
-
-**Subnet ${subnetId} Information:**
-- Name: ${metadata.name}
-- Description: ${metadata.description}
-- Type: ${metadata.type}
-- GitHub: ${metadata.github || 'Not available'}
-- Twitter: ${metadata.twitter || 'Not available'}
-- Website: ${metadata.website || 'Not available'}
-
-${subnetData ? `**Current Performance Data:**
-- Total Stake: ${subnetData.total_stake.toLocaleString()} TAO
-- Emission Rate: ${subnetData.emission_rate.toFixed(2)} TAO per day
-- Validator Count: ${subnetData.validator_count}
-- Activity Score: ${subnetData.activity_score}/100
-- Credibility Score: ${subnetData.credibility_score}/100
-- Yield: ${subnetData.yield_percentage}%
-- Market Cap: ${subnetData.market_cap}
-- Current Status: ${subnetData.status}
-- GitHub Activity: ${subnetData.github_activity || 'N/A'}
-- Kaito Score: ${subnetData.kaito_score || 'N/A'}
-- Ethos Score: ${subnetData.ethos_score || 'N/A'}
-- Last Updated: ${subnetData.last_updated}` : ''}
-
-**Instructions:**
-1. Answer the specific question asked - don't provide generic information
-2. If asked about staking, emissions, or financial data, use the current performance data
-3. If asked about development, mention GitHub activity and social presence
-4. Be precise and factual, citing specific numbers when available
-5. If the question asks for something not available in the data, state that clearly
-
-Provide a clear, specific answer in 2-3 sentences.`;
+      const prompt = createOptimizedPrompt(question, {
+        subnet_id: subnetId,
+        name: metadata.name,
+        description: metadata.description,
+        type: metadata.type,
+        github: metadata.github,
+        twitter: metadata.twitter,
+        website: metadata.website,
+        ...(subnetData ? {
+          total_stake: subnetData.total_stake,
+          emission_rate: subnetData.emission_rate,
+          validator_count: subnetData.validator_count,
+          yield_percentage: subnetData.yield_percentage,
+          activity_score: subnetData.activity_score
+        } : {})
+      });
 
       const messages = [
         { role: 'system', content: 'You are an expert Bittensor network analyst who provides specific, factual answers about subnet performance and characteristics.' },
@@ -1197,7 +1294,7 @@ Provide a clear, specific answer in 2-3 sentences.`;
       });
 
       console.log(`✅ IO.net subnet analysis successful for subnet ${subnetId}`);
-      return response.content;
+      return cleanAIResponse(response.content);
     } catch (error) {
       console.error(`🚨 IO.net analysis failed for subnet ${subnetId}:`, error.message);
       console.error(`📍 Question: "${question}"`);
@@ -1392,13 +1489,30 @@ async function processSubnetComparison(subnet1, subnet2, originalQuestion = '') 
         console.warn('⚠️  Performance data unavailable for comparison:', error.message);
       }
 
-      const prompt = `Compare these two Bittensor subnets and provide a specific recommendation:
-
-Subnet ${subnet1} (${metadata1.name}): ${metadata1.type} subnet focused on ${metadata1.description}. Category: ${metadata1.sector || 'General'}.
-
-Subnet ${subnet2} (${metadata2.name}): ${metadata2.type} subnet focused on ${metadata2.description}. Category: ${metadata2.sector || 'General'}.
-
-Analyze their key differences and provide a clear recommendation for which one to choose based on their technical approaches and use cases. Do not give generic "depends on use case" advice - instead provide specific guidance.`;
+      const prompt = createOptimizedPrompt(originalQuestion || `compare subnet ${subnet1} and ${subnet2}`, {
+        subnet1: {
+          id: subnet1,
+          name: metadata1.name,
+          type: metadata1.type,
+          description: metadata1.description,
+          ...(SUBNET1_DATA ? {
+            total_stake: SUBNET1_DATA.total_stake,
+            yield_percentage: SUBNET1_DATA.yield_percentage,
+            activity_score: SUBNET1_DATA.activity_score
+          } : {})
+        },
+        subnet2: {
+          id: subnet2,
+          name: metadata2.name,
+          type: metadata2.type,
+          description: metadata2.description,
+          ...(SUBNET2_DATA ? {
+            total_stake: SUBNET2_DATA.total_stake,
+            yield_percentage: SUBNET2_DATA.yield_percentage,
+            activity_score: SUBNET2_DATA.activity_score
+          } : {})
+        }
+      }, true);
 
       const messages = [
         { role: 'system', content: 'You are a senior Bittensor investment analyst with deep expertise in subnet technologies, performance analysis, and staking strategies. You provide data-driven recommendations that help users make informed investment decisions. Never give generic "depends on use case" advice - always provide specific guidance based on concrete differences.' },
@@ -1413,7 +1527,8 @@ Analyze their key differences and provide a clear recommendation for which one t
       });
 
       console.log(`✅ IO.net comparison analysis successful for subnets ${subnet1} vs ${subnet2}`);
-      return response.content;
+      const cleanedResponse = cleanAIResponse(response.content);
+      return formatTelegramResponse(cleanedResponse, true);
     } catch (error) {
       console.error(`🚨 IO.net comparison analysis failed for subnets ${subnet1} vs ${subnet2}:`, error.message);
       console.error(`📍 Original question: "${originalQuestion}"`);

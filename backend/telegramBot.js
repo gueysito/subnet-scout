@@ -843,8 +843,15 @@ bot.on('text', async (ctx) => {
       }
       
       // Format response for Telegram with enhanced structure
-      let formattedResponse = `🤖 **TAO Intelligence**\n\n`;
-      formattedResponse += processedText;
+      let formattedResponse = `🔍 **Scout Results**\n\n`;
+      
+      // Apply additional formatting for mobile optimization
+      const mobileOptimizedText = processedText
+        .replace(/\*\*([^*]+)\*\*/g, '**$1**') // Keep bold formatting
+        .replace(/^\s*[-•]\s*/gm, '• ') // Standardize bullet points
+        .replace(/\n{3,}/g, '\n\n'); // Limit excessive line breaks
+      
+      formattedResponse += mobileOptimizedText;
       
       // Add metadata
       formattedResponse += `\n\n⚡ *Processed via io.net AI*`;
