@@ -16,7 +16,7 @@ async function fetchGitHubActivity(repoUrl) {
   if (!repoUrl) return null;
   
   try {
-    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
     if (!match) return null;
     
     const [, owner, repo] = match;
@@ -39,14 +39,23 @@ async function fetchGitHubActivity(repoUrl) {
               resolve(null);
             }
           } catch (e) {
+            console.error('GitHub API parse error:', e.message);
             resolve(null);
           }
         });
       });
-      req.on('error', () => resolve(null));
-      req.setTimeout(5000, () => { req.destroy(); resolve(null); });
+      req.on('error', (err) => {
+        console.error('GitHub API request error:', err.message);
+        resolve(null);
+      });
+      req.setTimeout(5000, () => { 
+        req.destroy(); 
+        console.warn('GitHub API request timeout');
+        resolve(null); 
+      });
     });
   } catch (error) {
+    console.error('GitHub API error:', error.message);
     return null;
   }
 }
@@ -55,6 +64,11 @@ async function fetchKaitoScore(subnetId, subnetName) {
   try {
     // Kaito scoring based on social mentions and attention
     // Simplified scoring for production
+    if (!subnetName || typeof subnetName !== 'string') {
+      console.warn(`Invalid subnet name for Kaito score: ${subnetName}`);
+      return null;
+    }
+    
     const searchTerm = subnetName.toLowerCase().replace(/[^a-z0-9]/g, '');
     
     // Basic scoring algorithm based on subnet popularity and type
@@ -76,6 +90,7 @@ async function fetchKaitoScore(subnetId, subnetName) {
     
     return finalScore;
   } catch (error) {
+    console.error('Kaito score calculation error:', error.message);
     return null;
   }
 }
@@ -88,7 +103,7 @@ async function fetchEthosScore(twitterUrl, hasWebsite) {
     let score = 0;
     
     // Twitter presence adds significant credibility
-    if (twitterUrl) {
+    if (twitterUrl && typeof twitterUrl === 'string') {
       score += 60;
       
       // Verified accounts or known organizations get bonus points
@@ -109,6 +124,7 @@ async function fetchEthosScore(twitterUrl, hasWebsite) {
     
     return Math.min(100, score);
   } catch (error) {
+    console.error('Ethos score calculation error:', error.message);
     return null;
   }
 }
@@ -483,7 +499,7 @@ function processTaoQuestion(question) {
 }
 
 // Process subnet-specific questions
-function processSubnetSpecificQuestion(subnetId, question) {
+function processSubnetSpecificQuestion(subnetId) {
   const metadata = SUBNET_METADATA[subnetId];
   
   if (!metadata) {
@@ -516,7 +532,7 @@ function processSubnetSpecificQuestion(subnetId, question) {
 }
 
 // Process general Bittensor/TAO questions
-function processGeneralTaoQuestion(question) {
+function processGeneralTaoQuestion() {
   if (question.includes('what is bittensor') || question.includes('what is tao')) {
     return `**Bittensor** is a decentralized AI network that creates a market for machine intelligence. The TAO token is its native cryptocurrency, used to reward contributors who provide computational resources and AI services.\n\n🌐 **Key Features:**\n• 118+ specialized subnets for different AI tasks\n• Proof-of-Intelligence consensus mechanism\n• Decentralized AI model training and inference\n• Open-source protocol for AI development\n\n💰 **TAO Token**: Used for staking, rewards, and accessing AI services across the network.`;
   }
@@ -529,17 +545,17 @@ function processGeneralTaoQuestion(question) {
 }
 
 // Process market-related questions
-function processMarketQuestion(question) {
+function processMarketQuestion() {
   return `**TAO Market Information:**\n\n📈 TAO is the native token of the Bittensor network, used for:\n• Staking to become a validator\n• Rewarding miners for AI contributions\n• Accessing AI services across subnets\n• Governance and network decisions\n\n💡 **Value Drivers:**\n• Growing AI demand across 118+ subnets\n• Limited token supply with deflationary mechanics\n• Real utility in decentralized AI marketplace\n• Increasing adoption by AI developers\n\n🔄 **Token Economics**: TAO rewards are distributed based on subnet performance and contribution quality, creating sustainable incentives for network growth.`;
 }
 
 // Process mining/validator questions  
-function processMiningQuestion(question) {
+function processMiningQuestion() {
   return `**Bittensor Mining & Validation:**\n\n⛏️ **Mining**: Contribute AI models, data processing, or computational resources to earn TAO rewards. Different subnets have different mining requirements.\n\n🛡️ **Validation**: Stake TAO tokens to evaluate miner contributions and earn rewards for maintaining network quality.\n\n💰 **Rewards**: Distributed every ~12 minutes based on:\n• Quality of AI responses/services\n• Subnet-specific performance metrics\n• Validator consensus on contribution value\n\n🎯 **Getting Started**: Choose a subnet that matches your capabilities (GPU for inference, data skills for scraping, etc.) and follow their specific setup guides.`;
 }
 
 // Main HTTP server
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = requestUrl.pathname;
   const query = Object.fromEntries(requestUrl.searchParams);
@@ -589,17 +605,27 @@ const server = http.createServer((req, res) => {
       
       console.log(`🎯 Serving agents list - page ${page}, limit ${limit}`);
       
-      const agents = [];
       const startSubnet = (page - 1) * limit + 1;
       const endSubnet = Math.min(startSubnet + limit - 1, 118);
       
+      // Generate subnet IDs array for parallel processing
+      const subnetIds = [];
       for (let i = startSubnet; i <= endSubnet; i++) {
-        const subnetData = await generateSubnetData(i);
+        subnetIds.push(i);
+      }
+      
+      // Fetch all subnet data in parallel
+      const subnetDataPromises = subnetIds.map(id => generateSubnetData(id));
+      const subnetDataResults = await Promise.all(subnetDataPromises);
+      
+      // Process results into agents array
+      const agents = subnetDataResults.map((subnetData, index) => {
         const data = subnetData.data;
+        const subnetId = subnetIds[index];
         
-        agents.push({
-          id: i,
-          subnet_id: i,
+        return {
+          id: subnetId,
+          subnet_id: subnetId,
           name: data.name,
           description: data.description,
           type: data.type,
@@ -621,8 +647,8 @@ const server = http.createServer((req, res) => {
           kaito_score: data.kaito_score,
           ethos_score: data.ethos_score,
           last_updated: data.last_updated
-        });
-      }
+        };
+      });
       
       sendJSON(res, 200, {
         success: true,
@@ -802,7 +828,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': contentType });
       res.end(data);
       return;
-    } catch (error) {
+    } catch {
       // File not found, continue to SPA fallback
     }
   }
@@ -815,7 +841,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(data);
     return;
-  } catch (error) {
+  } catch {
     // Fallback to 404 if no dist directory
     sendJSON(res, 404, {
       success: false,
