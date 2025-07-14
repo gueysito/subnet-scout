@@ -297,6 +297,18 @@ class DataService {
     try {
       const response = await apiClient.processTaoQuestion(question)
       
+      // Transform backend response to match frontend expectations
+      if (response && response.success && response.response) {
+        return {
+          answer: response.response,
+          agent: 'TAO Intelligence System',
+          model: 'subnet-metadata-engine',
+          timestamp: response.timestamp,
+          sources: response.sources || [],
+          suggestions: response.suggestions || []
+        }
+      }
+      
       return response
     } catch (error) {
       console.warn('Failed to process TAO question:', error)
