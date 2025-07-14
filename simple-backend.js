@@ -319,6 +319,92 @@ function sendJSON(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
+// TAO Question Processing with Intelligent Responses
+function processTaoQuestion(question) {
+  console.log('🧠 Processing TAO question:', question);
+  
+  // Subnet-specific questions
+  const subnetMatch = question.match(/subnet\s+(\d+)|sn(\d+)|what.*subnet\s+(\d+)/);
+  if (subnetMatch) {
+    const subnetId = parseInt(subnetMatch[1] || subnetMatch[2] || subnetMatch[3]);
+    return processSubnetSpecificQuestion(subnetId, question);
+  }
+  
+  // General TAO/Bittensor questions
+  if (question.includes('bittensor') || question.includes('tao') || question.includes('subnet')) {
+    return processGeneralTaoQuestion(question);
+  }
+  
+  // Market/financial questions  
+  if (question.includes('price') || question.includes('market') || question.includes('value')) {
+    return processMarketQuestion(question);
+  }
+  
+  // Mining/validator questions
+  if (question.includes('mining') || question.includes('validator') || question.includes('emission')) {
+    return processMiningQuestion(question);
+  }
+  
+  // Default intelligent response
+  return `I understand you're asking about "${question}". As a Bittensor subnet intelligence system, I can help with questions about subnets, TAO token economics, mining, validation, and the decentralized AI network. Try asking about specific subnets (e.g., "what is subnet 8?"), market data, or how the Bittensor network operates.`;
+}
+
+// Process subnet-specific questions
+function processSubnetSpecificQuestion(subnetId, question) {
+  const metadata = SUBNET_METADATA[subnetId];
+  
+  if (!metadata) {
+    return `Subnet ${subnetId} information is not available in my current database. Bittensor currently has 118+ registered subnets. You can ask about subnets 1-118 for detailed information about their purpose, development teams, and specializations.`;
+  }
+  
+  const { name, description, type, github, twitter, website } = metadata;
+  
+  let response = `**Subnet ${subnetId}: ${name}**\n\n${description}\n\n`;
+  response += `**Type**: ${type.charAt(0).toUpperCase() + type.slice(1)}\n`;
+  
+  if (github) response += `**GitHub**: ${github}\n`;
+  if (twitter) response += `**Twitter**: ${twitter}\n`;
+  if (website) response += `**Website**: ${website}\n`;
+  
+  // Add contextual information based on subnet type
+  if (type === 'inference') {
+    response += `\n🤖 This is an inference subnet, providing AI model responses and predictions within the Bittensor network.`;
+  } else if (type === 'data') {
+    response += `\n📊 This is a data subnet, specializing in data collection, processing, and analysis for the Bittensor ecosystem.`;
+  } else if (type === 'training') {
+    response += `\n🎯 This is a training subnet, focused on machine learning model training and optimization.`;
+  } else if (type === 'storage') {
+    response += `\n💾 This is a storage subnet, providing decentralized storage solutions within Bittensor.`;
+  }
+  
+  response += `\n\nSubnet ${subnetId} operates as part of the Bittensor decentralized AI network, where miners and validators contribute computational resources to earn TAO rewards.`;
+  
+  return response;
+}
+
+// Process general Bittensor/TAO questions
+function processGeneralTaoQuestion(question) {
+  if (question.includes('what is bittensor') || question.includes('what is tao')) {
+    return `**Bittensor** is a decentralized AI network that creates a market for machine intelligence. The TAO token is its native cryptocurrency, used to reward contributors who provide computational resources and AI services.\n\n🌐 **Key Features:**\n• 118+ specialized subnets for different AI tasks\n• Proof-of-Intelligence consensus mechanism\n• Decentralized AI model training and inference\n• Open-source protocol for AI development\n\n💰 **TAO Token**: Used for staking, rewards, and accessing AI services across the network.`;
+  }
+  
+  if (question.includes('how many subnets')) {
+    return `Bittensor currently has **118+ active subnets**, each specialized for different AI tasks:\n\n🤖 **Inference Subnets**: Text generation, translation, conversation\n📊 **Data Subnets**: Web scraping, analytics, processing\n🎯 **Training Subnets**: Model training and fine-tuning\n💾 **Storage Subnets**: Decentralized data storage\n🔧 **Compute Subnets**: High-performance computing\n\nEach subnet operates independently while contributing to the overall Bittensor ecosystem.`;
+  }
+  
+  return `Bittensor is a revolutionary decentralized AI network with 118+ specialized subnets. Each subnet focuses on specific AI tasks like text generation, data processing, or machine learning training. The TAO token powers this ecosystem, rewarding miners and validators who contribute computational resources and intelligence.`;
+}
+
+// Process market-related questions
+function processMarketQuestion(question) {
+  return `**TAO Market Information:**\n\n📈 TAO is the native token of the Bittensor network, used for:\n• Staking to become a validator\n• Rewarding miners for AI contributions\n• Accessing AI services across subnets\n• Governance and network decisions\n\n💡 **Value Drivers:**\n• Growing AI demand across 118+ subnets\n• Limited token supply with deflationary mechanics\n• Real utility in decentralized AI marketplace\n• Increasing adoption by AI developers\n\n🔄 **Token Economics**: TAO rewards are distributed based on subnet performance and contribution quality, creating sustainable incentives for network growth.`;
+}
+
+// Process mining/validator questions  
+function processMiningQuestion(question) {
+  return `**Bittensor Mining & Validation:**\n\n⛏️ **Mining**: Contribute AI models, data processing, or computational resources to earn TAO rewards. Different subnets have different mining requirements.\n\n🛡️ **Validation**: Stake TAO tokens to evaluate miner contributions and earn rewards for maintaining network quality.\n\n💰 **Rewards**: Distributed every ~12 minutes based on:\n• Quality of AI responses/services\n• Subnet-specific performance metrics\n• Validator consensus on contribution value\n\n🎯 **Getting Started**: Choose a subnet that matches your capabilities (GPU for inference, data skills for scraping, etc.) and follow their specific setup guides.`;
+}
+
 // Main HTTP server
 const server = http.createServer((req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
@@ -507,6 +593,60 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // TAO Question Processing Endpoint
+  if (pathname === '/api/tao/question' && method === 'POST') {
+    try {
+      console.log('🤖 Processing TAO question...');
+      
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', () => {
+        try {
+          const { question } = JSON.parse(body);
+          
+          if (!question || question.trim().length === 0) {
+            sendJSON(res, 400, {
+              success: false,
+              error: 'Question is required',
+              timestamp: new Date().toISOString()
+            });
+            return;
+          }
+          
+          // Process the question intelligently
+          const response = processTaoQuestion(question.toLowerCase().trim());
+          
+          sendJSON(res, 200, {
+            success: true,
+            question: question,
+            response: response,
+            timestamp: new Date().toISOString()
+          });
+          
+        } catch (parseError) {
+          console.error('Error parsing TAO question:', parseError);
+          sendJSON(res, 400, {
+            success: false,
+            error: 'Invalid JSON format',
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error in TAO question processing:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Failed to process TAO question',
+        timestamp: new Date().toISOString()
+      });
+    }
+    return;
+  }
+
   // Serve static files from dist directory
   if (pathname.startsWith('/assets/') || pathname.endsWith('.js') || pathname.endsWith('.css') || pathname.endsWith('.ico')) {
     const fs = await import('fs');
@@ -551,7 +691,8 @@ const server = http.createServer((req, res) => {
         'GET /health',
         'GET /api/agents',
         'GET /api/metrics',
-        'GET /api/subnet/:id/data'
+        'GET /api/subnet/:id/data',
+        'POST /api/tao/question'
       ],
       timestamp: new Date().toISOString()
     });
@@ -566,6 +707,7 @@ server.listen(PORT, () => {
   console.log(`   GET /health - Health check`);
   console.log(`   GET /api/agents - Subnet agents list`);
   console.log(`   GET /api/subnet/:id/data - Individual subnet data`);
+  console.log(`   POST /api/tao/question - TAO question processing`);
   console.log(`✅ ZERO DEPENDENCIES - Pure Node.js HTTP server ready!`);
   console.log(`🔧 No Express, no path-to-regexp, no crashes!`);
 });
