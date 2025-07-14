@@ -1197,7 +1197,7 @@ Provide a structured, comprehensive answer addressing all parts of the question.
         maxTokens: 750 // More tokens for complex responses
       });
 
-      return response.content;
+      return cleanAIResponse(response.content);
     } catch (error) {
       console.error('IO.net complex query analysis failed:', error.message);
       // Fall back to simpler processing
@@ -1460,7 +1460,7 @@ Provide a clear, informative answer.`;
       });
 
       console.log(`✅ IO.net general TAO analysis successful`);
-      return response.content;
+      return cleanAIResponse(response.content);
     } catch (error) {
       console.error(`🚨 IO.net general analysis failed:`, error.message);
       console.error(`📍 Question: "${question}"`);
