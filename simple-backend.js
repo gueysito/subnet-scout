@@ -23,11 +23,37 @@ async function fetchGitHubActivity(repoUrl) {
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
     
     return new Promise((resolve) => {
-      const req = https.get(apiUrl, { headers: { 'User-Agent': 'SubnetScout/1.0' } }, (res) => {
+      const headers = { 'User-Agent': 'SubnetScout/1.0' };
+      
+      // Add GitHub token if available for higher rate limits
+      if (process.env.GITHUB_TOKEN) {
+        headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+      }
+      
+      const req = https.get(apiUrl, { headers }, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
           try {
+            // Handle GitHub API rate limiting
+            if (res.statusCode === 403) {
+              console.warn('GitHub API rate limit exceeded');
+              resolve(null);
+              return;
+            }
+            
+            if (res.statusCode === 404) {
+              console.warn(`GitHub repo not found: ${apiUrl}`);
+              resolve(null);
+              return;
+            }
+            
+            if (res.statusCode !== 200) {
+              console.warn(`GitHub API error ${res.statusCode} for ${apiUrl}`);
+              resolve(null);
+              return;
+            }
+            
             const repoData = JSON.parse(data);
             if (repoData.stargazers_count !== undefined) {
               // Calculate activity score based on stars, forks, recent activity
