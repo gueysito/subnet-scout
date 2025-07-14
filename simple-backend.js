@@ -502,6 +502,9 @@ const server = http.createServer((req, res) => {
           validator_count: data.validator_count,
           total_stake: data.total_stake,
           emission_rate: data.emission_rate,
+          github_activity: data.github_url ? null : null,
+          kaito_score: null,
+          ethos_score: data.twitter_url ? null : null,
           last_updated: data.last_updated
         });
       }
