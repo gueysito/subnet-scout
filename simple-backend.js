@@ -234,23 +234,23 @@ const questionCache = new TaoQuestionCache();
 
 // IO.net model selection for optimal performance (Updated model names)
 const IONET_MODELS = {
-  // Technical/analytical questions - DeepSeek for reasoning
-  technical: 'deepseek-ai/DeepSeek-R1-0528',
-  analysis: 'deepseek-ai/DeepSeek-R1-0528',
-  comparison: 'deepseek-ai/DeepSeek-R1-0528',
+  // Technical/analytical questions - Llama for consistent formatting
+  technical: 'meta-llama/Llama-3.3-70B-Instruct',
+  analysis: 'meta-llama/Llama-3.3-70B-Instruct',
+  comparison: 'meta-llama/Llama-3.3-70B-Instruct',
   
   // General knowledge - Llama for conversational responses
   general: 'meta-llama/Llama-3.3-70B-Instruct',
   explanation: 'meta-llama/Llama-3.3-70B-Instruct',
   
-  // Quick factual responses - smaller model for speed
+  // Quick factual responses - Llama for consistency
   factual: 'meta-llama/Llama-3.3-70B-Instruct',
   
-  // Market/financial - specialized model
-  financial: 'deepseek-ai/DeepSeek-R1-0528',
+  // Market/financial - Llama for better data formatting
+  financial: 'meta-llama/Llama-3.3-70B-Instruct',
   
   // Complex multi-part questions
-  complex: 'deepseek-ai/DeepSeek-R1-0528'
+  complex: 'meta-llama/Llama-3.3-70B-Instruct'
 };
 
 // Determine optimal model based on question characteristics
@@ -267,11 +267,11 @@ function selectOptimalModel(question, context = {}) {
     return IONET_MODELS.comparison;
   }
   
-  // Financial/market questions
+  // Financial/market questions - use Llama for better formatting
   if (lowerQuestion.includes('price') || lowerQuestion.includes('market') || 
       lowerQuestion.includes('earnings') || lowerQuestion.includes('yield') ||
       lowerQuestion.includes('staking returns')) {
-    return IONET_MODELS.financial;
+    return IONET_MODELS.general; // Use Llama instead of DeepSeek
   }
   
   // Technical architecture questions
@@ -854,70 +854,55 @@ function cleanAIResponse(rawResponse) {
   
   let cleaned = rawResponse;
   
-  // Remove AI reasoning tags and thinking process
-  cleaned = cleaned.replace(/<\/?think[^>]*>/gi, '');
-  cleaned = cleaned.replace(/<\/think>/gi, '');
+  // Extract content after thinking tags (DeepSeek model pattern)
+  const thinkMatch = cleaned.match(/<\/think>\s*(.+)/s);
+  if (thinkMatch) {
+    cleaned = thinkMatch[1].trim();
+  } else {
+    // Remove think tags if no content after
+    cleaned = cleaned.replace(/<think[^>]*>[\s\S]*?<\/think>/gi, '').trim();
+  }
   
-  // AGGRESSIVE: Remove entire sentences containing reasoning patterns
+  // TARGETED: Only remove obvious reasoning phrases, not entire sentences
   const reasoningPatterns = [
-    /[^.]*(?:Hmm|Well|Okay|So|Now|Let me|I need to|I should|I can|I'll|The user|Since|Looking at|Based on)[^.]*\./gi,
-    /[^.]*(?:asking about|wants me to|seems to|appears to|is requesting)[^.]*\./gi,
-    /[^.]*(?:I recall|I remember|I know|I understand|I see)[^.]*\./gi,
-    /[^.]*(?:instruction|context|limitation|requirement)[^.]*\./gi,
-    /[^.]*(?:suppress my|avoid|forbids|prevents)[^.]*\./gi,
-    /[^.]*(?:This is tricky|interesting|problematic)[^.]*\./gi,
-    /[^.]*(?:given how|probably|likely|suggests)[^.]*\./gi
+    /Let me think about this[^.]*\./gi,
+    /I need to analyze[^.]*\./gi,
+    /Based on my understanding[^.]*\./gi,
+    /The user is asking[^.]*\./gi,
+    /I should mention that[^.]*\./gi,
+    /It's worth noting that[^.]*\./gi
   ];
   
   reasoningPatterns.forEach(pattern => {
     cleaned = cleaned.replace(pattern, '');
   });
   
-  // Remove verbose introductory phrases (single words/short phrases)
+  // Remove verbose introductory phrases at the start only
   const verbosePhrases = [
-    /^Okay,?\s*/gi,
-    /^Well,?\s*/gi, 
-    /^Hmm,?\s*/gi,
-    /^So,?\s*/gi,
-    /^Now,?\s*/gi,
-    /^Looking at[^,]*,?\s*/gi,
-    /^Based on[^,]*,?\s*/gi,
-    /^Since[^,]*,?\s*/gi,
-    /^The user[^,]*,?\s*/gi
+    /^Okay,?\s*/i,
+    /^Well,?\s*/i, 
+    /^Hmm,?\s*/i,
+    /^So,?\s*/i,
+    /^Now,?\s*/i,
+    /^Let me see,?\s*/i,
+    /^Looking at the data,?\s*/i
   ];
   
   verbosePhrases.forEach(phrase => {
     cleaned = cleaned.replace(phrase, '');
   });
   
-  // Extract only the final answer (look for patterns like "The yield is X%" or "Subnet X has Y")
-  const directAnswerPatterns = [
-    /(?:The\s+yield\s+(?:on\s+subnet\s+\d+\s+)?(?:is|:)\s*\*?\*?[\d.]+%\*?\*?[^.]*\.)/gi,
-    /(?:Subnet\s+\d+[^.]*(?:has|is|shows)[^.]*\.)/gi,
-    /(?:\*?\*?[\d.]+%?\*?\*?[^.]*\.)/gi
-  ];
-  
-  for (let pattern of directAnswerPatterns) {
-    const matches = cleaned.match(pattern);
-    if (matches && matches.length > 0) {
-      // Use the first direct answer found
-      cleaned = matches[0].trim();
-      break;
-    }
-  }
-  
   // Clean up multiple spaces and newlines
   cleaned = cleaned.replace(/\s+/g, ' ');
   cleaned = cleaned.replace(/\n\s*\n/g, '\n\n');
   cleaned = cleaned.trim();
   
-  // If still too verbose (over 200 chars), extract just the key info
-  if (cleaned.length > 200) {
-    // Look for specific data patterns
-    const dataPattern = /(?:yield|stake|emission)[^.]*[\d.]+[^.]*/gi;
-    const dataMatch = cleaned.match(dataPattern);
-    if (dataMatch) {
-      cleaned = dataMatch[0].trim() + '.';
+  // Only truncate if response is extremely long (over 500 chars)
+  if (cleaned.length > 500) {
+    // Keep the first 2-3 sentences for informative responses
+    const sentences = cleaned.match(/[^.!?]+[.!?]+/g);
+    if (sentences && sentences.length > 3) {
+      cleaned = sentences.slice(0, 3).join(' ').trim();
     }
   }
   
@@ -966,24 +951,29 @@ function createOptimizedPrompt(question, subnetData = null, isComparison = false
   let basePrompt = '';
   
   if (isComparison) {
-    basePrompt = `STRICT INSTRUCTION: Answer in bullet points ONLY. NO reasoning, NO explanations, NO "I think/see/know" statements.
+    basePrompt = `Provide a factual comparison with key metrics. Be informative but concise.
 
 Compare these Bittensor subnets:
 
-FORBIDDEN: Any phrases like "Okay", "Hmm", "The user", "I need to", "Let me", "Based on", "Looking at", "Since", reasoning, analysis, or explanations.
-
 REQUIRED FORMAT:
-• Subnet X: [specific fact]
-• Subnet Y: [specific fact]  
-• Key difference: [data point]
+• Subnet X: [current metric] (change from 7 days if available)
+• Subnet Y: [current metric] (change from 7 days if available)  
+• Key difference: [specific data point with context]
+
+Include relevant metrics like yield %, TAO staked, validator count, emission rate.
 
 **Question:** ${question}`;
   } else {
-    basePrompt = `STRICT INSTRUCTION: Provide ONLY the direct answer. NO reasoning, NO thinking process, NO explanations.
+    basePrompt = `Provide factual information with key metrics. Be informative and specific.
 
-FORBIDDEN: Any phrases like "Okay", "Hmm", "The user", "I need to", "Let me", "Based on", "Looking at", "Since", "I'll", reasoning, context, or analysis.
+FORBIDDEN: Reasoning phrases like "I think", "Let me analyze", "Based on my understanding"
 
-REQUIRED: Start directly with the answer. Use format "Subnet X yield: Y%" or "Subnet X has Y TAO staked."
+REQUIRED: Always include specific numbers with context. Use these exact formats:
+- For yield: "Subnet X yield: Y% APY, up/down Z% from 24hrs ago"
+- For stake: "Subnet X has Y TAO staked (up/down Z% from 7 days ago), with N active validators"
+- For general: "X emission rate: Y TAO/day, activity score: Z/100"
+
+IMPORTANT: Always include at least 2 data points in your response. Never give single-word or single-number answers.
 
 **Question:** ${question}`;
   }
@@ -994,7 +984,7 @@ REQUIRED: Start directly with the answer. Use format "Subnet X yield: Y%" or "Su
 **Data Available:**
 ${JSON.stringify(subnetData, null, 2)}
 
-RESPOND WITH JUST THE ANSWER - NO COMMENTARY.`;
+Use this data to provide specific, informative answers with current values and trends.`;
   }
   
   return basePrompt;
@@ -1163,7 +1153,7 @@ async function processComplexQuery(question, context) {
 - Different subnet types: inference, data, training, storage, compute
 - Miners contribute AI capabilities, validators evaluate contributions`;
 
-      const prompt = `Answer this Bittensor question with direct facts only. NO analysis or reasoning:
+      const prompt = `Answer this Bittensor question with specific data and metrics:
 
 **Complex Question:** "${question}"
 
@@ -1176,25 +1166,25 @@ async function processComplexQuery(question, context) {
 - Requires data: ${context.requiresData}
 
 **Instructions:**
-1. Break down the multi-part question and address each component
-2. Provide specific information for mentioned subnets using the context
-3. If the question spans multiple topics, organize your response with clear sections
-4. Be comprehensive but concise (4-6 sentences)
-5. If real-time data is needed, mention that limitation clearly
-6. Connect related concepts to provide complete understanding
+1. Address each part with specific numbers and metrics
+2. Include current values + recent changes (24hr/7day) when possible
+3. Format: "Metric: X (up/down Y% from Z timeframe)"
+4. Be comprehensive but concise (3-4 sentences max)
+5. Focus on actionable data for each component
+6. Use bullet points for multiple data points
 
-Provide a structured, comprehensive answer addressing all parts of the question.`;
+Provide data-rich answers with trends and context.`;
 
       const messages = [
-        { role: 'system', content: 'Provide direct, factual answers only. NO reasoning, NO explanations, NO analysis phrases.' },
+        { role: 'system', content: 'Provide factual answers with specific metrics. Include current values and recent changes (24hr/7day) when available. Keep responses informative but concise.' },
         { role: 'user', content: prompt }
       ];
 
       const optimalModel = selectOptimalModel(question, { isComplex: true, context });
       
       const response = await makeIONetRequestWithRetry(optimalModel, messages, {
-        temperature: 0.5, // Balanced for comprehensive analysis
-        maxTokens: 750 // More tokens for complex responses
+        temperature: 0.6, // Higher for more detailed analysis
+        maxTokens: 900 // More tokens for complex responses
       });
 
       return cleanAIResponse(response.content);
@@ -1319,19 +1309,22 @@ async function processSubnetSpecificQuestion(subnetId, question) {
       });
 
       const messages = [
-        { role: 'system', content: 'Provide specific, factual answers only. NO reasoning, NO thinking process, NO explanatory phrases.' },
+        { role: 'system', content: 'Provide specific subnet data with key metrics. Include yield %, TAO staked, validator counts, and recent changes when available. Format: current value + trend.' },
         { role: 'user', content: prompt }
       ];
 
       const optimalModel = selectOptimalModel(question, { isSubnetSpecific: true });
       
       const response = await makeIONetRequestWithRetry(optimalModel, messages, {
-        temperature: optimalModel === IONET_MODELS.factual ? 0.2 : 0.3, // Lower temperature for factual responses
-        maxTokens: 550
+        temperature: optimalModel === IONET_MODELS.factual ? 0.4 : 0.6, // Balanced temperature for informative responses
+        maxTokens: 800
       });
 
       console.log(`✅ IO.net subnet analysis successful for subnet ${subnetId}`);
-      return cleanAIResponse(response.content);
+      console.log(`🔍 Raw response: ${response.content.substring(0, 200)}...`);
+      const cleaned = cleanAIResponse(response.content);
+      console.log(`🧹 Cleaned response: ${cleaned.substring(0, 200)}...`);
+      return cleaned;
     } catch (error) {
       console.error(`🚨 IO.net analysis failed for subnet ${subnetId}:`, error.message);
       console.error(`📍 Question: "${question}"`);
@@ -1426,7 +1419,7 @@ async function processSubnetSpecificQuestion(subnetId, question) {
 async function processGeneralTaoQuestion(question) {
   if (IONET_API_KEY) {
     try {
-      const prompt = `Answer this Bittensor question directly with facts only. NO reasoning or explanations:
+      const prompt = `Answer this Bittensor question with specific facts and data:
 
 **Question:** "${question}"
 
@@ -1439,13 +1432,13 @@ async function processGeneralTaoQuestion(question) {
 - The ecosystem rewards quality AI contributions with TAO tokens
 
 **Instructions:**
-1. Answer the specific question asked about Bittensor/TAO
-2. Be informative but concise (2-3 sentences)
-3. Use technical accuracy while being accessible
-4. If asked about specific numbers, use approximate values based on the 118+ subnets
-5. Focus on the decentralized AI network aspect and TAO token utility
+1. Include specific numbers and metrics when relevant
+2. For financial questions, include current values and recent trends
+3. Keep response informative but concise (2-3 sentences max)
+4. Format examples: "TAO price: $X (up Y% in 24hrs)", "Network has Z total validators"
+5. Focus on actionable data that helps users make decisions
 
-Provide a clear, informative answer.`;
+Provide specific, data-rich answers.`;
 
       const messages = [
         { role: 'system', content: 'You are an expert in blockchain technology and decentralized AI networks, specializing in Bittensor ecosystem analysis.' },
@@ -1455,8 +1448,8 @@ Provide a clear, informative answer.`;
       const optimalModel = selectOptimalModel(question, { isGeneral: true });
       
       const response = await makeIONetRequestWithRetry(optimalModel, messages, {
-        temperature: optimalModel === IONET_MODELS.financial ? 0.4 : 0.6,
-        maxTokens: optimalModel === IONET_MODELS.complex ? 750 : 400
+        temperature: optimalModel === IONET_MODELS.financial ? 0.5 : 0.7,
+        maxTokens: optimalModel === IONET_MODELS.complex ? 900 : 600
       });
 
       console.log(`✅ IO.net general TAO analysis successful`);
@@ -1552,7 +1545,7 @@ async function processSubnetComparison(subnet1, subnet2, originalQuestion = '') 
       }, true);
 
       const messages = [
-        { role: 'system', content: 'Provide ONLY direct, factual comparisons in bullet point format. NO reasoning, analysis, or explanations. NO phrases like "Hmm", "Okay", "The user", "Let me", "Based on", "Looking at". Answer with facts only.' },
+        { role: 'system', content: 'Provide factual subnet comparisons with specific metrics. Include yield %, stake amounts, validator counts, and performance trends. Use bullet points with data + context.' },
         { role: 'user', content: prompt }
       ];
 
