@@ -10,6 +10,7 @@ const Navigation = () => {
     { path: '/', label: 'Home' },
     { path: '/explorer', label: 'Explorer' },
     { path: '/mining-trends', label: 'Mining' },
+    { path: '/validator-radar', label: 'Validators' },
     { path: '/network-health', label: 'Health' },
     { path: '/about', label: 'About' },
     { path: '/brief', label: 'Brief' }
