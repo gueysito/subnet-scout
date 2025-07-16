@@ -102,6 +102,7 @@ class SubnetWorker:
             'emission_rate': 100 + (subnet_id * 0.5),
             'total_stake': 50000 + (subnet_id * 1000),
             'validator_count': 50 + (subnet_id % 200),
+            'miner_count': 200 + (subnet_id % 800),  # Miners typically outnumber validators 4:1
             'activity_score': max(10, min(100, base_performance + (subnet_id % 20) - 10)),
             'uptime_percentage': 85 + (subnet_id % 14),  # 85-99% uptime
             'last_block_time': time.time() - (subnet_id % 300),  # Recent blocks

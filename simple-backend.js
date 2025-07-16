@@ -1032,6 +1032,7 @@ async function generateSubnetData(subnetId) {
       
       // Network data
       validator_count: validatorCount,
+      miner_count: Math.floor(validatorCount * (4 + (subnetId % 5))), // 4-8x validator count
       total_stake: totalStake,
       emission_rate: emissionRate,
       
@@ -1769,6 +1770,7 @@ const server = http.createServer(async (req, res) => {
           price: data.price,
           change_24h: data.change_24h,
           validator_count: data.validator_count,
+          miner_count: data.miner_count,
           total_stake: data.total_stake,
           emission_rate: data.emission_rate,
           github_activity: data.github_activity,
