@@ -20,104 +20,52 @@ const NetworkHealthPage = () => {
   const fetchAllHealthData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Try to fetch real data, but use fallback if it fails
-      let health, nakamoto, emission, churn, stakeMobility;
+      const responses = await Promise.all([
+        fetch('/api/network/health-index').then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        }),
+        fetch('/api/network/nakamoto-coefficient').then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        }),
+        fetch('/api/network/emission-distribution').then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        }),
+        fetch('/api/network/churn-rates').then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        }),
+        fetch('/api/network/stake-mobility').then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+      ]);
       
-      try {
-        const responses = await Promise.all([
-          fetch('/api/network/health-index').then(res => res.json()),
-          fetch('/api/network/nakamoto-coefficient').then(res => res.json()),
-          fetch('/api/network/emission-distribution').then(res => res.json()),
-          fetch('/api/network/churn-rates').then(res => res.json()),
-          fetch('/api/network/stake-mobility').then(res => res.json())
-        ]);
-        
-        // Check if responses are valid (not HTML error pages)
-        if (responses[0].data) {
-          health = responses[0];
-          nakamoto = responses[1];
-          emission = responses[2];
-          churn = responses[3];
-          stakeMobility = responses[4];
-        } else {
-          throw new Error('API returned HTML instead of JSON');
-        }
-      } catch (apiError) {
-        console.warn('API endpoints not available, using fallback data:', apiError);
-        
-        // Use realistic fallback data
-        health = {
-          data: {
-            overall_health: 92,
-            active_validators: 1247,
-            active_miners: 8934,
-            total_stake: 2340000,
-            validator_miner_ratio: '7.2',
-            subnet_participation_ratio: '89.8',
-            active_subnets: 106,
-            total_subnets: 118,
-            network_uptime: '99.7',
-            last_updated: new Date().toISOString(),
-            data_sources: ['fallback_data']
-          }
-        };
-        
-        nakamoto = {
-          data: {
-            nakamoto_coefficient: 47,
-            total_validators: 1247,
-            total_stake: 2340000,
-            decentralization_score: 94,
-            last_updated: new Date().toISOString(),
-            methodology: 'estimated_from_validator_distribution'
-          }
-        };
-        
-        emission = {
-          data: {
-            gini_coefficient: '0.67',
-            top_10_concentration: '34.2',
-            total_emissions: 175000,
-            active_emitters: 89,
-            distribution_health: 'moderate',
-            last_updated: new Date().toISOString()
-          }
-        };
-        
-        churn = {
-          data: {
-            daily_churn_rate: '2.8',
-            weekly_trend: [],
-            churn_correlation: '0.73',
-            network_stability: 'stable',
-            last_updated: new Date().toISOString()
-          }
-        };
-        
-        stakeMobility = {
-          data: {
-            stake_mobility_percentage: 12.4,
-            total_stake: 2340000,
-            mobile_stake_amount: 290160,
-            timeframe: '7d',
-            historical_data: [],
-            mobility_trend: 'moderate',
-            last_updated: new Date().toISOString()
-          }
-        };
+      // Check if responses contain actual data (not HTML error pages)
+      if (!responses[0].data || !responses[1].data) {
+        throw new Error('API endpoints returned invalid data format');
       }
 
-      setHealthData(health.data);
-      setNakamotoData(nakamoto.data);
-      setEmissionData(emission.data);
-      setChurnData(churn.data);
-      setStakeMobilityData(stakeMobility.data);
+      setHealthData(responses[0].data);
+      setNakamotoData(responses[1].data);
+      setEmissionData(responses[2].data);
+      setChurnData(responses[3].data);
+      setStakeMobilityData(responses[4].data);
       setLastUpdated(new Date());
-      setError(null);
+      
     } catch (err) {
-      console.error('Failed to fetch network health data:', err);
-      setError('Failed to load network health data. Please try again.');
+      console.error('Network health data unavailable:', err);
+      setError('Network health monitoring is temporarily unavailable due to technical difficulties. Our team is working to restore service.');
+      // Clear any existing data
+      setHealthData(null);
+      setNakamotoData(null);
+      setEmissionData(null);
+      setChurnData(null);
+      setStakeMobilityData(null);
     } finally {
       setLoading(false);
     }
@@ -171,7 +119,7 @@ const NetworkHealthPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans">
       {/* Header */}
       <div className="text-center pt-20 pb-8">
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
@@ -182,28 +130,20 @@ const NetworkHealthPage = () => {
         </p>
         
         {/* Data Freshness Indicator */}
-        <div className="inline-flex items-center bg-gray-900 border border-gray-700 rounded-lg px-6 py-3 mb-4">
-          <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
-          <span className="text-sm text-gray-400 mr-2">Data Last Updated:</span>
-          <span className="text-green-400 font-semibold">
-            {lastUpdated.toLocaleString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: 'UTC',
-              timeZoneName: 'short'
-            })}
-          </span>
-        </div>
-        
-        {/* Data Source Indicator */}
-        {healthData && healthData.data_sources && healthData.data_sources.includes('fallback_data') && (
-          <div className="inline-flex items-center bg-yellow-900/20 border border-yellow-600/30 rounded-lg px-4 py-2">
-            <AlertCircle className="w-4 h-4 text-yellow-400 mr-2" />
-            <span className="text-sm text-yellow-300">
-              Demo Mode: Displaying sample network health data
+        {!error && (
+          <div className="inline-flex items-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-6 py-3">
+            <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
+            <span className="text-sm text-gray-400 mr-2">Data Last Updated:</span>
+            <span className="text-green-400 font-semibold">
+              {lastUpdated.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'UTC',
+                timeZoneName: 'short'
+              })}
             </span>
           </div>
         )}
@@ -212,7 +152,7 @@ const NetworkHealthPage = () => {
       <div className="max-w-7xl mx-auto px-4 pb-20">
         {/* Overall Health Score */}
         {healthData && (
-          <div className="text-center bg-gray-900 border border-gray-700 rounded-xl p-8 mb-8">
+          <div className="text-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8 mb-8">
             <div className={`text-6xl font-bold mb-2 ${getHealthColor(healthData.overall_health)}`}>
               {healthData.overall_health}%
             </div>
@@ -231,7 +171,7 @@ const NetworkHealthPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {/* Active Validators */}
           {healthData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Active Validators</h3>
                 <Users className="w-5 h-5 text-blue-400" />
@@ -247,7 +187,7 @@ const NetworkHealthPage = () => {
 
           {/* Active Miners */}
           {healthData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Active Miners</h3>
                 <Zap className="w-5 h-5 text-yellow-400" />
@@ -263,7 +203,7 @@ const NetworkHealthPage = () => {
 
           {/* Total TAO Staked */}
           {healthData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Total TAO Staked</h3>
                 <TrendingUp className="w-5 h-5 text-green-400" />
@@ -279,7 +219,7 @@ const NetworkHealthPage = () => {
 
           {/* Nakamoto Coefficient */}
           {nakamotoData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Nakamoto Coefficient</h3>
                 <Activity className="w-5 h-5 text-purple-400" />
@@ -295,7 +235,7 @@ const NetworkHealthPage = () => {
 
           {/* Subnet Participation */}
           {healthData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Subnet Participation</h3>
                 <CheckCircle className="w-5 h-5 text-green-400" />
@@ -311,7 +251,7 @@ const NetworkHealthPage = () => {
 
           {/* Stake Mobility */}
           {stakeMobilityData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Stake Mobility (7d)</h3>
                 <Activity className="w-5 h-5 text-orange-400" />
@@ -331,7 +271,7 @@ const NetworkHealthPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {/* Emission Concentration */}
           {emissionData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Emission Concentration</h3>
                 <TrendingDown className="w-5 h-5 text-red-400" />
@@ -347,7 +287,7 @@ const NetworkHealthPage = () => {
 
           {/* Emission Inequality (Gini) */}
           {emissionData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Emission Inequality</h3>
                 <AlertCircle className="w-5 h-5 text-yellow-400" />
@@ -363,7 +303,7 @@ const NetworkHealthPage = () => {
 
           {/* Validator/Miner Ratio */}
           {healthData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Validator/Miner Ratio</h3>
                 <Users className="w-5 h-5 text-blue-400" />
@@ -379,7 +319,7 @@ const NetworkHealthPage = () => {
 
           {/* Daily Churn Rate */}
           {churnData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Daily Churn Rate</h3>
                 <Activity className="w-5 h-5 text-orange-400" />
@@ -395,7 +335,7 @@ const NetworkHealthPage = () => {
 
           {/* Network Uptime */}
           {healthData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Network Uptime</h3>
                 <CheckCircle className="w-5 h-5 text-green-400" />
@@ -411,7 +351,7 @@ const NetworkHealthPage = () => {
 
           {/* Decentralization Score */}
           {nakamotoData && (
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:shadow-lg hover:shadow-white/5 transition-all duration-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm uppercase tracking-wide text-gray-400">Decentralization Score</h3>
                 <Activity className="w-5 h-5 text-purple-400" />
@@ -427,7 +367,7 @@ const NetworkHealthPage = () => {
         </div>
 
         {/* Data Sources & Methodology */}
-        <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 text-center">
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
           <h3 className="text-lg font-semibold mb-3">Data Sources & Methodology</h3>
           <div className="text-sm text-gray-400 space-y-2">
             <p>
