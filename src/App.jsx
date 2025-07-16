@@ -6,6 +6,7 @@ import ExplorerPage from './pages/ExplorerPage'
 import AboutPage from './pages/AboutPage'
 import BriefPage from './pages/BriefPage'
 import NetworkHealthPage from './pages/NetworkHealthPage'
+import MiningTrendsPage from './pages/MiningTrendsPage'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/brief" element={<BriefPage />} />
           <Route path="/network-health" element={<NetworkHealthPage />} />
+          <Route path="/mining-trends" element={<MiningTrendsPage />} />
         </Routes>
       </div>
     </Router>
