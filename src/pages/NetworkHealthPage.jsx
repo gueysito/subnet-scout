@@ -20,13 +20,93 @@ const NetworkHealthPage = () => {
   const fetchAllHealthData = async () => {
     try {
       setLoading(true);
-      const [health, nakamoto, emission, churn, stakeMobility] = await Promise.all([
-        fetch('/api/network/health-index').then(res => res.json()),
-        fetch('/api/network/nakamoto-coefficient').then(res => res.json()),
-        fetch('/api/network/emission-distribution').then(res => res.json()),
-        fetch('/api/network/churn-rates').then(res => res.json()),
-        fetch('/api/network/stake-mobility').then(res => res.json())
-      ]);
+      
+      // Try to fetch real data, but use fallback if it fails
+      let health, nakamoto, emission, churn, stakeMobility;
+      
+      try {
+        const responses = await Promise.all([
+          fetch('/api/network/health-index').then(res => res.json()),
+          fetch('/api/network/nakamoto-coefficient').then(res => res.json()),
+          fetch('/api/network/emission-distribution').then(res => res.json()),
+          fetch('/api/network/churn-rates').then(res => res.json()),
+          fetch('/api/network/stake-mobility').then(res => res.json())
+        ]);
+        
+        // Check if responses are valid (not HTML error pages)
+        if (responses[0].data) {
+          health = responses[0];
+          nakamoto = responses[1];
+          emission = responses[2];
+          churn = responses[3];
+          stakeMobility = responses[4];
+        } else {
+          throw new Error('API returned HTML instead of JSON');
+        }
+      } catch (apiError) {
+        console.warn('API endpoints not available, using fallback data:', apiError);
+        
+        // Use realistic fallback data
+        health = {
+          data: {
+            overall_health: 92,
+            active_validators: 1247,
+            active_miners: 8934,
+            total_stake: 2340000,
+            validator_miner_ratio: '7.2',
+            subnet_participation_ratio: '89.8',
+            active_subnets: 106,
+            total_subnets: 118,
+            network_uptime: '99.7',
+            last_updated: new Date().toISOString(),
+            data_sources: ['fallback_data']
+          }
+        };
+        
+        nakamoto = {
+          data: {
+            nakamoto_coefficient: 47,
+            total_validators: 1247,
+            total_stake: 2340000,
+            decentralization_score: 94,
+            last_updated: new Date().toISOString(),
+            methodology: 'estimated_from_validator_distribution'
+          }
+        };
+        
+        emission = {
+          data: {
+            gini_coefficient: '0.67',
+            top_10_concentration: '34.2',
+            total_emissions: 175000,
+            active_emitters: 89,
+            distribution_health: 'moderate',
+            last_updated: new Date().toISOString()
+          }
+        };
+        
+        churn = {
+          data: {
+            daily_churn_rate: '2.8',
+            weekly_trend: [],
+            churn_correlation: '0.73',
+            network_stability: 'stable',
+            last_updated: new Date().toISOString()
+          }
+        };
+        
+        stakeMobility = {
+          data: {
+            stake_mobility_percentage: 12.4,
+            total_stake: 2340000,
+            mobile_stake_amount: 290160,
+            timeframe: '7d',
+            historical_data: [],
+            mobility_trend: 'moderate',
+            last_updated: new Date().toISOString()
+          }
+        };
+      }
 
       setHealthData(health.data);
       setNakamotoData(nakamoto.data);
@@ -102,7 +182,7 @@ const NetworkHealthPage = () => {
         </p>
         
         {/* Data Freshness Indicator */}
-        <div className="inline-flex items-center bg-gray-900 border border-gray-700 rounded-lg px-6 py-3">
+        <div className="inline-flex items-center bg-gray-900 border border-gray-700 rounded-lg px-6 py-3 mb-4">
           <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
           <span className="text-sm text-gray-400 mr-2">Data Last Updated:</span>
           <span className="text-green-400 font-semibold">
@@ -117,6 +197,16 @@ const NetworkHealthPage = () => {
             })}
           </span>
         </div>
+        
+        {/* Data Source Indicator */}
+        {healthData && healthData.data_sources && healthData.data_sources.includes('fallback_data') && (
+          <div className="inline-flex items-center bg-yellow-900/20 border border-yellow-600/30 rounded-lg px-4 py-2">
+            <AlertCircle className="w-4 h-4 text-yellow-400 mr-2" />
+            <span className="text-sm text-yellow-300">
+              Demo Mode: Displaying sample network health data
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 pb-20">
