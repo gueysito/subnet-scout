@@ -12,7 +12,10 @@ const ExplorerPage = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSector, setSelectedSector] = useState('All')
   const [availableSectors] = useState(getAllSectors())
-  const [sortConfig, setSortConfig] = useState({ key: 'marketCap', direction: 'desc' })
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' })
+  
+  // Prevent automatic sort changes during data loading
+  const [isDataLoading, setIsDataLoading] = useState(true)
   const [subnets, setSubnets] = useState([])
   const [topMovers, setTopMovers] = useState([
     { id: 14, change: '+15.2%' },
@@ -26,9 +29,25 @@ const ExplorerPage = () => {
   ])
   const [_isLoadingMovers, setIsLoadingMovers] = useState(false)
 
-  // Sort function
+  // Sort function - NUCLEAR PROTECTION MODE
   const handleSort = (key) => {
+    console.log(`🚨 SORT ATTEMPT: Trying to sort by ${key}, current: ${sortConfig.key} ${sortConfig.direction}`);
+    console.log(`🔍 Data loading state: ${isDataLoading}`);
+    console.trace('SORT TRIGGER STACK TRACE:');
+    
+    if (isDataLoading) {
+      console.log(`🚫 SORT BLOCKED: Data still loading, ignoring sort to ${key}`);
+      return;
+    }
+    
+    // SMART BLOCK: Only prevent automatic GitHub sorts, allow user clicks
+    if (key === 'github' && sortConfig.key === 'id') {
+      console.log(`🚫 SMART BLOCK: GitHub sort attempted, but allowing user choice`);
+      // Allow it - user clicked intentionally
+    }
+    
     const direction = sortConfig.key === key && sortConfig.direction === 'desc' ? 'asc' : 'desc'
+    console.log(`🔄 SORT ALLOWED: ${sortConfig.key} ${sortConfig.direction} → ${key} ${direction}`);
     setSortConfig({ key, direction })
   }
 
@@ -36,7 +55,9 @@ const ExplorerPage = () => {
   const filteredAndSortedSubnets = React.useMemo(() => {
     console.log('🔍 Filtering subnets:', {
       totalSubnets: subnets.length,
-      selectedSector
+      selectedSector,
+      searchQuery,
+      currentSort: `${sortConfig.key} ${sortConfig.direction}`
     });
     
     let filtered = subnets;
@@ -79,7 +100,11 @@ const ExplorerPage = () => {
         let bVal = b[sortConfig.key]
         
         // Handle different data types
-        if (sortConfig.key === 'marketCap' || sortConfig.key === 'fdv' || sortConfig.key === 'price' || sortConfig.key === 'vol1d') {
+        if (sortConfig.key === 'id' || sortConfig.key === 'github' || sortConfig.key === 'kaito' || sortConfig.key === 'ethos') {
+          // Handle numeric fields (including nulls)
+          aVal = aVal === null ? -1 : parseFloat(aVal)
+          bVal = bVal === null ? -1 : parseFloat(bVal)
+        } else if (sortConfig.key === 'marketCap' || sortConfig.key === 'fdv' || sortConfig.key === 'price' || sortConfig.key === 'vol1d') {
           aVal = parseFloat(aVal.replace(/[$M,]/g, ''))
           bVal = parseFloat(bVal.replace(/[$M,]/g, ''))
         } else if (sortConfig.key === 'change1d' || sortConfig.key === 'change7d' || sortConfig.key === 'change1m') {
@@ -105,6 +130,7 @@ const ExplorerPage = () => {
     }
     
     console.log(`🎯 Final filtered result: ${filtered.length} subnets`);
+    console.log('🎯 First 5 filtered subnets:', filtered.slice(0, 5).map(s => ({ id: s.id, name: s.name, github: s.github, kaito: s.kaito, ethos: s.ethos })));
     return filtered
   }, [subnets, selectedSector, sortConfig, searchQuery])
 
@@ -117,27 +143,50 @@ const ExplorerPage = () => {
     }
   }, [location])
 
+  // Debug sortConfig changes + NUCLEAR PROTECTION
+  useEffect(() => {
+    console.log(`🎯 SORT CONFIG CHANGED: ${sortConfig.key} ${sortConfig.direction}`);
+    console.trace('Sort config change stack trace');
+    
+    // SMART OVERRIDE: Only force back to ID if we detect automatic changes
+    // Don't override user-initiated sorts
+    if (sortConfig.key !== 'id' && !isDataLoading) {
+      // Check if this is a user-initiated change by checking recent logs
+      const isUserInitiated = true; // For now, assume user initiated
+      if (!isUserInitiated) {
+        console.log(`🚨 SMART OVERRIDE: Forcing sort back to ID from ${sortConfig.key}!`);
+        setSortConfig({ key: 'id', direction: 'asc' });
+      } else {
+        console.log(`✅ ALLOWING USER SORT: ${sortConfig.key} sort permitted`);
+      }
+    }
+  }, [sortConfig, isDataLoading])
+
   // REAL DATA ONLY - NO MOCK DATA GENERATION
   useEffect(() => {
 
     const fetchData = async () => {
       try {
         console.log('🚀 ExplorerPage: Starting data fetch...');
+        setIsDataLoading(true)
         setIsLoadingMovers(true)
         
         // Fetch real subnet data from backend API
         try {
           console.log('📡 ExplorerPage: Calling apiClient.getAgentsList(1, 118)...');
+          console.log('🔧 Backend URL being used:', ENV_CONFIG.BACKEND_URL);
           const agentsResponse = await apiClient.getAgentsList(1, 118)
           console.log('📊 ExplorerPage: API Response received:', {
             hasAgents: !!agentsResponse?.agents,
             agentsCount: agentsResponse?.agents?.length || 0,
-            responseType: typeof agentsResponse
+            responseType: typeof agentsResponse,
+            firstAgent: agentsResponse?.agents?.[0]
           });
           const agentsArray = agentsResponse?.agents || []
           
           if (agentsArray && agentsArray.length > 0) {
             console.log('✅ ExplorerPage: Processing', agentsArray.length, 'agents...');
+            console.log('🔍 Sample raw agent data:', agentsArray.slice(0, 3));
             const transformedData = agentsArray.map((agent) => {
               const transformed = {
                 id: agent.subnet_id || agent.id,
@@ -157,18 +206,25 @@ const ExplorerPage = () => {
                 ethos: agent.ethos_score || null
               }
               
+              // Debug log for first few subnets to verify data
+              if (agent.id <= 3) {
+                console.log(`🔍 Subnet ${agent.id} data:`, {
+                  github_activity: agent.github_activity,
+                  kaito_score: agent.kaito_score,
+                  ethos_score: agent.ethos_score,
+                  transformed_github: transformed.github,
+                  transformed_kaito: transformed.kaito,
+                  transformed_ethos: transformed.ethos
+                });
+              }
+              
               return transformed
             })
             
-            // Sort by market cap (descending)
-            transformedData.sort((a, b) => {
-              const aVal = parseFloat(a.marketCap.replace(/[$M,]/g, ''))
-              const bVal = parseFloat(b.marketCap.replace(/[$M,]/g, ''))
-              return bVal - aVal
-            })
-            
             console.log('🎯 ExplorerPage: Setting subnets state with', transformedData.length, 'items');
+            console.log('🔍 Sample transformed data:', transformedData.slice(0, 5).map(s => ({ id: s.id, name: s.name, github: s.github, kaito: s.kaito, ethos: s.ethos })));
             setSubnets(transformedData)
+            setIsDataLoading(false) // Allow sorting after data is loaded
             console.log(`📊 Loaded ${transformedData.length} subnets successfully`)
           } else {
             console.warn('⚠️ ExplorerPage: No agents in response, setting empty array');
@@ -197,6 +253,7 @@ const ExplorerPage = () => {
       } catch (err) {
         console.error('Error fetching explorer data:', err)
         setSubnets([])
+        setIsDataLoading(false)
         setIsLoadingMovers(false)
       }
     }
@@ -301,7 +358,7 @@ const ExplorerPage = () => {
           </div>
         </section>
         
-        <section className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-xl">
+        <section className="bg-zinc-900 p-6 rounded-xl border border-zinc-700 shadow-xl" style={{minHeight: 'auto', height: 'auto'}}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 className="text-xl font-bold">All Subnets ({filteredAndSortedSubnets.length})</h2>
             <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
@@ -322,7 +379,7 @@ const ExplorerPage = () => {
           </div>
           
           
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" style={{maxHeight: 'none', height: 'auto'}}>
             <table className="min-w-full table-auto text-sm text-left text-white">
               <thead className="bg-zinc-800 text-zinc-300">
                 <tr>
@@ -368,7 +425,15 @@ const ExplorerPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-700">
-                {filteredAndSortedSubnets.length === 0 ? (
+                {(() => {
+                  console.log('🎯 Table render check:', { 
+                    filteredLength: filteredAndSortedSubnets.length, 
+                    subnetsLength: subnets.length,
+                    selectedSector,
+                    searchQuery 
+                  });
+                  return filteredAndSortedSubnets.length === 0;
+                })() ? (
                   <tr>
                     <td colSpan="13" className="px-3 py-8 text-center text-gray-400">
                       {subnets.length === 0 ? (
@@ -386,7 +451,15 @@ const ExplorerPage = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredAndSortedSubnets.map((subnet) => (
+                  filteredAndSortedSubnets.map((subnet, index) => {
+                    // Debug log for rendering issues
+                    if (index < 5) {
+                      console.log(`🎯 Rendering row ${index}: subnet ${subnet.id} - ${subnet.name} (GitHub: ${subnet.github}, Kaito: ${subnet.kaito}, Ethos: ${subnet.ethos})`);
+                    }
+                    if (index === filteredAndSortedSubnets.length - 1) {
+                      console.log(`🎯 Final row rendered: ${index + 1} total rows`);
+                    }
+                    return (
                   <tr key={subnet.id} className="hover:bg-zinc-800/50 transition-colors">
                     <td className="px-3 py-2">
                       <div className="font-medium">
@@ -439,13 +512,22 @@ const ExplorerPage = () => {
                     <td className="px-3 py-2 text-right font-mono text-gray-300">{subnet.emissions}</td>
                     <td className="px-3 py-2 text-center">
                       {subnet.github !== null ? (
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          subnet.github >= 80 ? 'bg-green-900 text-green-300' :
-                          subnet.github >= 50 ? 'bg-yellow-900 text-yellow-300' :
-                          'bg-red-900 text-red-300'
-                        }`}>
-                          {subnet.github}
-                        </span>
+                        <div className="relative group">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            subnet.github >= 85 ? 'bg-green-900 text-green-300' :   // Excellent (85-100) - Top 30%
+                            subnet.github >= 70 ? 'bg-blue-900 text-blue-300' :     // Good (70-84) - Middle 
+                            subnet.github >= 50 ? 'bg-yellow-900 text-yellow-300' : // Moderate (50-69) - Lower middle
+                            'bg-red-900 text-red-300'                               // Low (0-49) - Bottom
+                          }`}>
+                            {subnet.github}
+                          </span>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-10">
+                            {subnet.github >= 85 ? 'Excellent Activity' :
+                             subnet.github >= 70 ? 'Good Activity' :
+                             subnet.github >= 50 ? 'Moderate Activity' :
+                             'Low Activity'}
+                          </div>
+                        </div>
                       ) : (
                         <span className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-400">
                           N/A
@@ -455,9 +537,10 @@ const ExplorerPage = () => {
                     <td className="px-3 py-2 text-center">
                       {subnet.kaito !== null ? (
                         <span className={`px-2 py-1 rounded text-xs ${
-                          subnet.kaito >= 70 ? 'bg-green-900 text-green-300' :
-                          subnet.kaito >= 40 ? 'bg-yellow-900 text-yellow-300' :
-                          'bg-red-900 text-red-300'
+                          subnet.kaito >= 70 ? 'bg-green-900 text-green-300' :   // High social engagement
+                          subnet.kaito >= 50 ? 'bg-blue-900 text-blue-300' :     // Good social engagement
+                          subnet.kaito >= 30 ? 'bg-yellow-900 text-yellow-300' : // Medium social engagement
+                          'bg-red-900 text-red-300'                              // Low social engagement
                         }`}>
                           {subnet.kaito}
                         </span>
@@ -469,13 +552,24 @@ const ExplorerPage = () => {
                     </td>
                     <td className="px-3 py-2 text-center">
                       {subnet.ethos !== null ? (
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          subnet.ethos >= 80 ? 'bg-green-900 text-green-300' :
-                          subnet.ethos >= 60 ? 'bg-yellow-900 text-yellow-300' :
-                          'bg-red-900 text-red-300'
-                        }`}>
-                          {subnet.ethos}
-                        </span>
+                        <div className="relative group">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            subnet.ethos >= 2000 ? 'bg-green-900 text-green-300' :  // Excellent (2000-2800)
+                            subnet.ethos >= 1600 ? 'bg-blue-900 text-blue-300' :    // Good Reputation (1600-1999)
+                            subnet.ethos >= 1200 ? 'bg-gray-800 text-gray-300' :    // Neutral (1200-1599)
+                            subnet.ethos >= 800 ? 'bg-yellow-900 text-yellow-300' :  // Questionable (800-1199)
+                            'bg-red-900 text-red-300'                                // Untrustworthy (0-799)
+                          }`}>
+                            {subnet.ethos}
+                          </span>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-10">
+                            {subnet.ethos >= 2000 ? 'Exemplary' :
+                             subnet.ethos >= 1600 ? 'Reputable' :
+                             subnet.ethos >= 1200 ? 'Neutral' :
+                             subnet.ethos >= 800 ? 'Questionable' :
+                             'Untrustworthy'}
+                          </div>
+                        </div>
                       ) : (
                         <span className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-400">
                           N/A
@@ -483,7 +577,8 @@ const ExplorerPage = () => {
                       )}
                     </td>
                   </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
