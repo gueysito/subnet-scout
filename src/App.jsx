@@ -14,15 +14,17 @@ function App() {
     <Router>
       <div className="relative">
         <Navigation />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/explorer" element={<ExplorerPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/brief" element={<BriefPage />} />
-          <Route path="/network-health" element={<NetworkHealthPage />} />
-          <Route path="/mining-trends" element={<MiningTrendsPage />} />
-          <Route path="/validator-radar" element={<ValidatorRadarPage />} />
-        </Routes>
+        <div className="pt-16 md:pt-0">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/explorer" element={<ExplorerPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/brief" element={<BriefPage />} />
+            <Route path="/network-health" element={<NetworkHealthPage />} />
+            <Route path="/mining-trends" element={<MiningTrendsPage />} />
+            <Route path="/validator-radar" element={<ValidatorRadarPage />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   )
