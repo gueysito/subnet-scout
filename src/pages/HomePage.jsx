@@ -166,10 +166,9 @@ const HomePage = () => {
   }
 
   return (
-    <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white min-h-screen font-sans">
-      <header className="text-center py-20">
-        <h1 className="text-6xl font-extrabold tracking-tight font-glitch">Subnet Scout</h1>
-        <p className="mt-4 text-lg text-gray-300 max-w-xl mx-auto font-sans">
+    <div className="text-white min-h-screen font-sans">
+      <header className="text-center py-12 px-4">
+        <p className="text-lg text-gray-300 max-w-xl mx-auto font-sans">
           Discover powerful subnets using decentralized intelligence. Powered by io.net, TaoStats, and more.
         </p>
       </header>

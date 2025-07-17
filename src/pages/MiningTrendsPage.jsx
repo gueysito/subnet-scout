@@ -192,13 +192,13 @@ const MiningTrendsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans">
+    <div className="min-h-screen text-white font-sans">
       {/* Header */}
-      <div className="text-center pt-20 pb-8">
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+      <div className="text-center pt-8 pb-6 px-4">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
           Mining Trends Overview
         </h1>
-        <p className="text-xl text-gray-400 mb-6">
+        <p className="text-lg sm:text-xl text-gray-400 mb-6">
           Comprehensive analysis of miner performance, stake dynamics, and subnet specialization
         </p>
         

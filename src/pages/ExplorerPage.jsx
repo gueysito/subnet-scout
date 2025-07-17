@@ -263,10 +263,9 @@ const ExplorerPage = () => {
   }, []) // Remove searchQuery dependency - API call should happen on mount
 
   return (
-    <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans min-h-screen px-6 py-12">
-      <header className="text-center mb-10">
-        <h1 className="text-6xl font-extrabold tracking-tight font-glitch">Subnet Scout</h1>
-        <p className="text-gray-400 mt-2">Filter and compare subnets by metrics like commits, health, and category</p>
+    <div className="text-white font-sans min-h-screen px-4 sm:px-6 py-8">
+      <header className="text-center mb-8">
+        <p className="text-gray-400 text-lg">Filter and compare subnets by metrics like commits, health, and category</p>
         {searchQuery && (
           <p className="text-blue-400 mt-2">Searching for: "{searchQuery}"</p>
         )}

@@ -42,14 +42,13 @@ const BriefPage = () => {
   }
 
   return (
-    <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans min-h-screen">
+    <div className="text-white font-sans min-h-screen">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
-        <div className="relative max-w-4xl mx-auto px-6 py-20 text-center">
-          <h1 className="text-6xl font-extrabold tracking-tight font-glitch mb-6">
-            Subnet Scout
-            <span className="block text-4xl font-normal text-blue-400 mt-2">Intelligence Briefs</span>
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-12 text-center">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-normal text-blue-400 mb-6">
+            Intelligence Briefs
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
             Get exclusive bi-monthly intelligence reports powered by decentralized AI. 

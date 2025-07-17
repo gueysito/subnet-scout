@@ -135,11 +135,6 @@ const ValidatorRadarPage = () => {
     }
   };
 
-  const getHealthColor = (value, thresholds = { good: 80, fair: 60 }) => {
-    if (value >= thresholds.good) return 'text-green-400';
-    if (value >= thresholds.fair) return 'text-yellow-400';
-    return 'text-red-400';
-  };
 
   const formatNumber = (num) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -214,13 +209,13 @@ const ValidatorRadarPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans">
+    <div className="min-h-screen text-white font-sans">
       {/* Header */}
-      <div className="text-center pt-20 pb-8">
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+      <div className="text-center pt-8 pb-6 px-4">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
           🛡️ Validator Radar
         </h1>
-        <p className="text-xl text-gray-400 mb-6">
+        <p className="text-lg sm:text-xl text-gray-400 mb-6">
           Top validators across the Bittensor network - stake concentration, emission efficiency, and cross-subnet influence
         </p>
         

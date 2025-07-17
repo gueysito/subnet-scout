@@ -21,11 +21,10 @@ const AboutPage = () => {
   }, [])
 
   return (
-    <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans min-h-screen px-6 py-12">
+    <div className="text-white font-sans min-h-screen px-4 sm:px-6 py-8">
       <main className="max-w-4xl mx-auto space-y-8">
-        <header className="text-center mb-10">
-          <h1 className="text-6xl font-extrabold tracking-tight font-glitch">Subnet Scout</h1>
-          <p className="text-zinc-300 mt-4 max-w-2xl mx-auto">
+        <header className="text-center mb-8">
+          <p className="text-zinc-300 text-lg max-w-2xl mx-auto">
             <strong>Subnet Scout</strong> is a decentralized analytics platform built to surface high-signal intelligence from the Bittensor network. Our goal is to simplify complex subnet data into actionable insights using cutting-edge AI and on-chain tools — all while running on decentralized infrastructure.
           </p>
           {systemHealth && (
