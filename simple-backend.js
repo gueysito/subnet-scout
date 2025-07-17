@@ -2192,7 +2192,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve static files from dist directory
-  if (pathname.startsWith('/assets/') || pathname.endsWith('.js') || pathname.endsWith('.css') || pathname.endsWith('.ico')) {
+  if (pathname.startsWith('/assets/') || pathname.endsWith('.js') || pathname.endsWith('.css') || pathname.endsWith('.ico') || pathname.startsWith('/favicon')) {
     const filePath = path.join(process.cwd(), 'dist', pathname);
     
     try {
