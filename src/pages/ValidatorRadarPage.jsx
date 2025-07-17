@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, TrendingUp, TrendingDown, Activity, AlertCircle, CheckCircle, Users, Target, Download, Award } from 'lucide-react';
 import apiClient from '../../shared/utils/apiClient.js';
+import Logo from '../components/Logo';
 
 const ValidatorRadarPage = () => {
   const [validatorData, setValidatorData] = useState(null);
@@ -215,6 +216,11 @@ const ValidatorRadarPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans">
+      {/* Logo in top-left */}
+      <div className="absolute top-6 left-6 z-10">
+        <Logo size="medium" />
+      </div>
+      
       {/* Header */}
       <div className="text-center pt-20 pb-8">
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">

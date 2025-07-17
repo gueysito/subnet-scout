@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { MessageCircle, Twitter } from 'lucide-react'
 import dataService from '../services/dataService'
 import SubnetReportCard from '../components/SubnetReportCard'
+import Logo from '../components/Logo'
 import { ENV_CONFIG } from '../config/env.js'
 
 const HomePage = () => {
@@ -167,8 +168,12 @@ const HomePage = () => {
 
   return (
     <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white min-h-screen font-sans">
+      {/* Logo in top-left */}
+      <div className="absolute top-6 left-6 z-10">
+        <Logo size="medium" />
+      </div>
+      
       <header className="text-center py-20">
-        <h1 className="text-6xl font-extrabold tracking-tight font-glitch">Subnet Scout</h1>
         <p className="mt-4 text-lg text-gray-300 max-w-xl mx-auto font-sans">
           Discover powerful subnets using decentralized intelligence. Powered by io.net, TaoStats, and more.
         </p>

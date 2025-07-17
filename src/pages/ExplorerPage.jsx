@@ -5,6 +5,7 @@ import dataService from '../services/dataService'
 import apiClient from '../../shared/utils/apiClient.js'
 import { getSubnetMetadata, getAllSectors } from '../../shared/data/subnets.js'
 import { SUBNET_SECTORS } from '../../shared/data/enhancedSubnets.js'
+import Logo from '../components/Logo'
 import { ENV_CONFIG } from '../config/env.js'
 
 const ExplorerPage = () => {
@@ -264,8 +265,12 @@ const ExplorerPage = () => {
 
   return (
     <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans min-h-screen px-6 py-12">
-      <header className="text-center mb-10">
-        <h1 className="text-6xl font-extrabold tracking-tight font-glitch">Subnet Scout</h1>
+      {/* Logo in top-left */}
+      <div className="absolute top-6 left-6 z-10">
+        <Logo size="medium" />
+      </div>
+      
+      <header className="text-center mb-10 pt-16">
         <p className="text-gray-400 mt-2">Filter and compare subnets by metrics like commits, health, and category</p>
         {searchQuery && (
           <p className="text-blue-400 mt-2">Searching for: "{searchQuery}"</p>

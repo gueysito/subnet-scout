@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { MessageCircle, Twitter } from 'lucide-react'
 import apiClient from '../../shared/utils/apiClient'
+import Logo from '../components/Logo'
 import { ENV_CONFIG } from '../config/env.js'
 
 const BriefPage = () => {
@@ -43,13 +44,17 @@ const BriefPage = () => {
 
   return (
     <div className="bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white font-sans min-h-screen">
+      {/* Logo in top-left */}
+      <div className="absolute top-6 left-6 z-10">
+        <Logo size="medium" />
+      </div>
+      
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
         <div className="relative max-w-4xl mx-auto px-6 py-20 text-center">
-          <h1 className="text-6xl font-extrabold tracking-tight font-glitch mb-6">
-            Subnet Scout
-            <span className="block text-4xl font-normal text-blue-400 mt-2">Intelligence Briefs</span>
+          <h1 className="text-4xl font-normal text-blue-400 mt-16 mb-6">
+            Intelligence Briefs
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
             Get exclusive bi-monthly intelligence reports powered by decentralized AI. 
