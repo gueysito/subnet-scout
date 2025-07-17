@@ -1706,7 +1706,7 @@ function extractTwitterUsername(twitterUrl) {
     const url = new URL(twitterUrl);
     const pathParts = url.pathname.split('/').filter(part => part);
     return pathParts[0] || null;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -2236,7 +2236,7 @@ app.get('/api/identity/health', async (req, res) => {
     });
 
     const healthStatus = ethosService.getHealthStatus();
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
 
     logger.aiOperation('ethos_health', 'ethos_network', null, responseTime, true);
     
@@ -2255,7 +2255,7 @@ app.get('/api/identity/health', async (req, res) => {
     healthMonitor.recordRequest(true, responseTime);
     res.json(healthStatus);
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Ethos identity health check failed', {
       service: 'subnet-scout',
@@ -2303,7 +2303,7 @@ app.get('/api/identity/profile/:userkey', async (req, res) => {
     });
 
     const profileData = await ethosService.getUserProfile(userkey, token);
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
 
     logger.aiOperation('ethos_profile', 'ethos_network', userkey, responseTime, true);
 
@@ -2326,7 +2326,7 @@ app.get('/api/identity/profile/:userkey', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Ethos profile request failed', {
       service: 'subnet-scout',
@@ -2376,7 +2376,7 @@ app.get('/api/identity/comprehensive/:userkey', computeIntensiveLimiter, async (
     });
 
     const identityData = await ethosService.getComprehensiveIdentity(userkey, token);
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
 
     logger.aiOperation('ethos_comprehensive', 'ethos_network', userkey, responseTime, true);
 
@@ -2395,7 +2395,7 @@ app.get('/api/identity/comprehensive/:userkey', computeIntensiveLimiter, async (
     healthMonitor.recordRequest(true, responseTime);
     res.json(identityData);
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Ethos comprehensive identity failed', {
       service: 'subnet-scout',
@@ -2606,7 +2606,7 @@ app.get('/api/network/health-index', async (req, res) => {
       await cacheService.set(cacheKey, healthMetrics, 300);
     }
     
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.info('Network health index fetched successfully', {
       service: 'subnet-scout',
@@ -2626,7 +2626,7 @@ app.get('/api/network/health-index', async (req, res) => {
     });
     
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Network health index fetch failed', {
       service: 'subnet-scout',
@@ -2682,7 +2682,7 @@ app.get('/api/network/nakamoto-coefficient', async (req, res) => {
       await cacheService.set(cacheKey, nakamotoData, 600);
     }
     
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     res.json({
       success: true,
@@ -2695,7 +2695,7 @@ app.get('/api/network/nakamoto-coefficient', async (req, res) => {
     });
     
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Nakamoto coefficient fetch failed', {
       service: 'subnet-scout',
@@ -2766,7 +2766,7 @@ app.get('/api/network/emission-distribution', async (req, res) => {
       await cacheService.set(cacheKey, emissionData, 900);
     }
     
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     res.json({
       success: true,
@@ -2779,7 +2779,7 @@ app.get('/api/network/emission-distribution', async (req, res) => {
     });
     
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Emission distribution fetch failed', {
       service: 'subnet-scout',
@@ -2834,7 +2834,7 @@ app.get('/api/network/churn-rates', async (req, res) => {
       await cacheService.set(cacheKey, churnData, 1800);
     }
     
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     res.json({
       success: true,
@@ -2847,7 +2847,7 @@ app.get('/api/network/churn-rates', async (req, res) => {
     });
     
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Churn rates fetch failed', {
       service: 'subnet-scout',
@@ -2907,7 +2907,7 @@ app.get('/api/network/stake-mobility', async (req, res) => {
       await cacheService.set(cacheKey, mobilityData, 1200);
     }
     
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     res.json({
       success: true,
@@ -2920,7 +2920,7 @@ app.get('/api/network/stake-mobility', async (req, res) => {
     });
     
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Stake mobility fetch failed', {
       service: 'subnet-scout',
@@ -3078,7 +3078,7 @@ app.get('/api/identity/bot/:userkey', async (req, res) => {
       throw new Error('Failed to generate identity data');
     }
 
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     logger.aiOperation('ethos_bot_lookup', 'ethos_network', userkey, responseTime, true);
 
     logger.info('API Request Success', {
@@ -3097,7 +3097,7 @@ app.get('/api/identity/bot/:userkey', async (req, res) => {
     res.json(identityData);
 
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Bot Ethos identity failed', {
       service: 'subnet-scout',
@@ -3192,7 +3192,7 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       subscribed_via: 'website'
     });
 
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.info('Newsletter subscription successful', {
       service: 'subnet-scout',
@@ -3225,7 +3225,7 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
     });
 
   } catch (error) {
-    const responseTime = Date.now() - startTime;
+    const _responseTime = Date.now() - startTime;
     
     logger.error('Newsletter subscription failed', {
       service: 'subnet-scout',
