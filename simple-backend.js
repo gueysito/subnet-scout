@@ -2237,7 +2237,113 @@ const server = http.createServer(async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+
+  // ===== SCOUTBRIEF ADMIN ENDPOINTS =====
+  // Admin login endpoint
+  if (pathname === '/api/scoutbrief/admin/login' && method === 'POST') {
+    try {
+      const body = await getRequestBody(req);
+      const { password } = JSON.parse(body);
+      const adminPassword = process.env.SCOUTBRIEF_ADMIN_PASSWORD;
+      
+      if (!adminPassword) {
+        sendJSON(res, 500, { 
+          success: false, 
+          error: 'Admin password not configured' 
+        });
+        return;
+      }
+      
+      if (password === adminPassword) {
+        // Simple authentication - just check password match
+        sendJSON(res, 200, {
+          success: true,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        sendJSON(res, 401, {
+          success: false,
+          error: 'Invalid password'
+        });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+    return;
+  }
+
+  // Admin status endpoint
+  if (pathname === '/api/scoutbrief/admin/status') {
+    const adminPassword = process.env.SCOUTBRIEF_ADMIN_PASSWORD;
+    sendJSON(res, 200, {
+      authenticated: false, // Simple backend doesn't support sessions
+      has_password: !!adminPassword,
+      timestamp: new Date().toISOString()
+    });
+    return;
+  }
+
+  // Admin stats endpoint  
+  if (pathname === '/api/scoutbrief/admin/stats') {
+    sendJSON(res, 200, {
+      active_subscribers: 0, // Simple backend - no database
+      brief_contexts: 0,
+      brief_generations: 0,
+      timestamp: new Date().toISOString()
+    });
+    return;
+  }
+
+  // Newsletter subscription endpoint
+  if (pathname === '/api/newsletter/subscribe' && method === 'POST') {
+    try {
+      const body = await getRequestBody(req);
+      const { email } = JSON.parse(body);
+      
+      if (!email || !email.includes('@')) {
+        sendJSON(res, 400, {
+          error: {
+            code: "INVALID_EMAIL",
+            message: "Valid email address is required"
+          }
+        });
+        return;
+      }
+      
+      // Simple backend - just return success
+      sendJSON(res, 200, {
+        success: true,
+        message: "Successfully subscribed to ScoutBrief Quarterly Intelligence!",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+    return;
+  }
 });
+
+// Helper function to read request body
+function getRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      resolve(body);
+    });
+    req.on('error', reject);
+  });
+}
 
 // Start server
 server.listen(PORT, () => {
