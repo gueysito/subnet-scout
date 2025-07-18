@@ -3239,6 +3239,255 @@ app.post('/api/scoutbrief/admin/context', checkAdminAuth, (req, res) => {
   }
 });
 
+// Generate quarterly report with AI agents
+app.post('/api/scoutbrief/admin/generate', checkAdminAuth, async (req, res) => {
+  const requestId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const startTime = Date.now();
+  
+  try {
+    console.log(`🚀 Starting quarterly report generation - Request ID: ${requestId}`);
+    
+    // Get latest admin context
+    const latestContext = scoutBriefDB.getLatestBriefContext();
+    if (!latestContext) {
+      return res.status(400).json({
+        success: false,
+        error: 'No quarterly context found. Please submit context first.',
+        request_id: requestId
+      });
+    }
+    
+    const quarterInfo = {
+      quarter: latestContext.quarter,
+      year: latestContext.year
+    };
+    
+    console.log(`📝 Using context for ${quarterInfo.quarter} ${quarterInfo.year}`);
+    
+    // Clear previous analyses for this quarter (in case of regeneration)
+    const quarterKey = `${quarterInfo.quarter}-${quarterInfo.year}`;
+    scoutBriefDB.clearAgentAnalyses(quarterKey);
+    
+    // Fetch subnet data using existing agents endpoint (top 50 subnets)
+    console.log('📊 Fetching subnet data for analysis...');
+    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8080}`;
+    
+    // Get 3 pages of 20 subnets each = 60 subnets to analyze top performers
+    const subnetDataPromises = [
+      fetch(`${baseUrl}/api/agents?page=1&limit=20`),
+      fetch(`${baseUrl}/api/agents?page=2&limit=20`),
+      fetch(`${baseUrl}/api/agents?page=3&limit=10`) // Only 10 more to get exactly 50
+    ];
+    
+    const subnetResponses = await Promise.all(subnetDataPromises);
+    const subnetDataSets = await Promise.all(subnetResponses.map(r => r.json()));
+    
+    // Combine all subnet data
+    const allSubnets = [];
+    subnetDataSets.forEach(dataSet => {
+      if (dataSet.agents && Array.isArray(dataSet.agents)) {
+        allSubnets.push(...dataSet.agents);
+      }
+    });
+    
+    console.log(`✅ Fetched ${allSubnets.length} subnets for analysis`);
+    
+    if (allSubnets.length === 0) {
+      return res.status(500).json({
+        success: false,
+        error: 'No subnet data available for analysis',
+        request_id: requestId
+      });
+    }
+    
+    // Initialize AI agents
+    console.log('🤖 Initializing AI agents...');
+    const { default: scoutBriefAgents } = await import('../src/services/scoutbrief-agents.js');
+    
+    // Run AI analysis on all subnets
+    console.log('🔍 Running AI agent analysis...');
+    const analysisResult = await scoutBriefAgents.analyzeSubnets(
+      allSubnets, 
+      latestContext.context_data, 
+      quarterInfo,
+      3 // Max 3 concurrent requests to avoid overwhelming IONET
+    );
+    
+    console.log(`📈 Analysis complete: ${analysisResult.results.length} successful, ${analysisResult.errors.length} failed`);
+    
+    // Store individual agent analyses in database
+    console.log('💾 Storing agent analyses to database...');
+    for (const analysis of analysisResult.results) {
+      // Store each agent's analysis separately
+      const agents = ['momentum', 'dr_protocol', 'ops', 'pulse', 'guardian'];
+      for (const agentType of agents) {
+        const agentData = analysis.agents[agentType];
+        if (agentData) {
+          scoutBriefDB.storeAgentAnalysis(
+            quarterKey,
+            analysis.subnet_id,
+            agentType,
+            agentData.score,
+            JSON.stringify(agentData),
+            { analyzed_at: analysis.analyzed_at }
+          );
+        }
+      }
+    }
+    
+    // Rank subnets by overall score
+    const rankedSubnets = analysisResult.results
+      .filter(r => r.overall_score > 0)
+      .sort((a, b) => b.overall_score - a.overall_score);
+    
+    // Create report structure
+    const reportContent = {
+      quarter: quarterInfo.quarter,
+      year: quarterInfo.year,
+      generated_at: new Date().toISOString(),
+      total_analyzed: allSubnets.length,
+      successful_analyses: analysisResult.results.length,
+      failed_analyses: analysisResult.errors.length,
+      
+      // Top performers (top 3)
+      top_performers: rankedSubnets.slice(0, 3).map(subnet => ({
+        subnet_id: subnet.subnet_id,
+        overall_score: subnet.overall_score,
+        key_insights: {
+          momentum: subnet.agents.momentum?.key_finding || 'No analysis',
+          dr_protocol: subnet.agents.dr_protocol?.key_finding || 'No analysis',
+          ops: subnet.agents.ops?.key_finding || 'No analysis',
+          pulse: subnet.agents.pulse?.key_finding || 'No analysis',
+          guardian: subnet.agents.guardian?.key_finding || 'No analysis'
+        }
+      })),
+      
+      // Honorable mentions (4th and 5th place)
+      honorable_mentions: rankedSubnets.slice(3, 5).map(subnet => ({
+        subnet_id: subnet.subnet_id,
+        overall_score: subnet.overall_score,
+        standout_agent: this.getStandoutAgent(subnet.agents)
+      })),
+      
+      // Underperformers (bottom 2)
+      underperformers: rankedSubnets.slice(-2).map(subnet => ({
+        subnet_id: subnet.subnet_id,
+        overall_score: subnet.overall_score,
+        primary_concerns: this.extractConcerns(subnet.agents)
+      })),
+      
+      // Agent summaries
+      agent_summaries: {
+        momentum: this.summarizeAgentFindings(analysisResult.results, 'momentum'),
+        dr_protocol: this.summarizeAgentFindings(analysisResult.results, 'dr_protocol'),
+        ops: this.summarizeAgentFindings(analysisResult.results, 'ops'),
+        pulse: this.summarizeAgentFindings(analysisResult.results, 'pulse'),
+        guardian: this.summarizeAgentFindings(analysisResult.results, 'guardian')
+      }
+    };
+    
+    // Store compiled report
+    const reportData = {
+      analysis_results: analysisResult.results,
+      errors: analysisResult.errors,
+      processing_stats: {
+        total_subnets: allSubnets.length,
+        successful: analysisResult.results.length,
+        failed: analysisResult.errors.length,
+        processing_time_ms: Date.now() - startTime
+      }
+    };
+    
+    scoutBriefDB.storeReport(quarterInfo.quarter, quarterInfo.year, reportData, reportContent);
+    
+    console.log(`✅ Report generation completed in ${Date.now() - startTime}ms`);
+    
+    res.json({
+      success: true,
+      report: reportContent,
+      processing_stats: reportData.processing_stats,
+      request_id: requestId,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Report generation failed:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Report generation failed',
+      details: error.message,
+      request_id: requestId,
+      processing_time_ms: Date.now() - startTime
+    });
+  }
+});
+
+// Helper functions for report generation (attached to app for scope)
+app.getStandoutAgent = function(agents) {
+  let bestAgent = 'momentum';
+  let bestScore = 0;
+  
+  for (const [agentName, agentData] of Object.entries(agents)) {
+    if (agentData && agentData.score > bestScore) {
+      bestScore = agentData.score;
+      bestAgent = agentName;
+    }
+  }
+  
+  return {
+    agent: bestAgent,
+    score: bestScore,
+    finding: agents[bestAgent]?.key_finding || 'No finding available'
+  };
+};
+
+app.extractConcerns = function(agents) {
+  const concerns = [];
+  
+  // Check each agent for concerning scores or findings
+  for (const [agentName, agentData] of Object.entries(agents)) {
+    if (agentData && agentData.score < 40) {
+      concerns.push({
+        agent: agentName,
+        score: agentData.score,
+        concern: agentData.key_finding || `Low ${agentName} score`
+      });
+    }
+  }
+  
+  return concerns.length > 0 ? concerns : [{ agent: 'overall', concern: 'Below average performance across metrics' }];
+};
+
+app.summarizeAgentFindings = function(results, agentType) {
+  const agentResults = results
+    .map(r => r.agents[agentType])
+    .filter(agent => agent && agent.score);
+  
+  if (agentResults.length === 0) {
+    return { average_score: 0, total_analyzed: 0, summary: 'No data available' };
+  }
+  
+  const totalScore = agentResults.reduce((sum, agent) => sum + agent.score, 0);
+  const averageScore = Math.round(totalScore / agentResults.length);
+  
+  // Count trends/ratings
+  const trends = {};
+  agentResults.forEach(agent => {
+    const key = agent.trend || agent.development_status || agent.efficiency_rating || agent.sentiment || agent.risk_level || 'unknown';
+    trends[key] = (trends[key] || 0) + 1;
+  });
+  
+  const dominantTrend = Object.entries(trends).sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
+  
+  return {
+    average_score: averageScore,
+    total_analyzed: agentResults.length,
+    dominant_trend: dominantTrend,
+    summary: `Average ${agentType} score: ${averageScore}/100 with ${dominantTrend} trend across ${agentResults.length} subnets`
+  };
+};
+
 // Newsletter Subscription Endpoint
 app.post('/api/newsletter/subscribe', async (req, res) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

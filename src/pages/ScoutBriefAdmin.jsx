@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, FileText, Send, Eye, EyeOff } from 'lucide-react';
+import { Shield, Users, FileText, Send, Eye, EyeOff, Zap, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import apiClient from '../../shared/utils/apiClient';
 
 const ScoutBriefAdmin = () => {
@@ -13,6 +13,9 @@ const ScoutBriefAdmin = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState(null);
+  const [reportData, setReportData] = useState(null);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -97,6 +100,33 @@ const ScoutBriefAdmin = () => {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    setIsGenerating(true);
+    setGenerationStatus(null);
+    setReportData(null);
+
+    try {
+      const response = await apiClient.post('/api/scoutbrief/admin/generate', {});
+
+      if (response.success) {
+        setGenerationStatus('success');
+        setReportData(response.report);
+        fetchStats(); // Refresh stats after generation
+      } else {
+        setGenerationStatus('error');
+      }
+    } catch (error) {
+      console.error('Report generation error:', error.message);
+      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+        setGenerationStatus('auth_error');
+      } else {
+        setGenerationStatus('error');
+      }
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -289,6 +319,200 @@ const ScoutBriefAdmin = () => {
             </button>
           </form>
         </div>
+
+        {/* Report Generation Section */}
+        <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
+          <h2 className="text-2xl font-bold text-white mb-6">Generate Quarterly Report</h2>
+          
+          <div className="mb-6">
+            <p className="text-gray-300 mb-4">
+              Run AI agent analysis on the top 50 subnets using the latest quarterly context.
+              This will generate a comprehensive intelligence brief with insights from all 5 agents.
+            </p>
+            
+            {generationStatus === 'success' && (
+              <div className="mb-4 p-4 rounded-lg bg-green-900/50 border border-green-700 text-green-300">
+                <div className="flex items-center">
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Report generated successfully! Analysis complete for {reportData?.successful_analyses || 0} subnets.
+                </div>
+              </div>
+            )}
+
+            {generationStatus === 'error' && (
+              <div className="mb-4 p-4 rounded-lg bg-red-900/50 border border-red-700 text-red-300">
+                <div className="flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  Report generation failed. Please try again.
+                </div>
+              </div>
+            )}
+
+            {generationStatus === 'auth_error' && (
+              <div className="mb-4 p-4 rounded-lg bg-yellow-900/50 border border-yellow-700 text-yellow-300">
+                <div className="flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  Session expired. Please refresh the page and log in again.
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleGenerateReport}
+              disabled={isGenerating}
+              className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed px-6 py-3 rounded-lg text-white font-semibold transition-colors duration-200 flex items-center"
+            >
+              {isGenerating ? (
+                <>
+                  <Clock className="w-5 h-5 mr-2 animate-spin" />
+                  Generating Report...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5 mr-2" />
+                  Generate Q3 2025 Report
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Report Preview Section */}
+        {reportData && (
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
+            <h2 className="text-2xl font-bold text-white mb-6">Report Preview</h2>
+            
+            {/* Report Metadata */}
+            <div className="mb-6 p-4 bg-zinc-800/50 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-400">Quarter:</span>
+                  <span className="text-white ml-2">{reportData.quarter} {reportData.year}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Analyzed:</span>
+                  <span className="text-white ml-2">{reportData.successful_analyses} subnets</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Generated:</span>
+                  <span className="text-white ml-2">{new Date(reportData.generated_at).toLocaleDateString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Failed:</span>
+                  <span className="text-white ml-2">{reportData.failed_analyses} subnets</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Top Performers */}
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-green-400 mb-4">🏆 Top Performers</h3>
+              <div className="space-y-4">
+                {reportData.top_performers?.map((subnet, index) => (
+                  <div key={subnet.subnet_id} className="p-4 bg-green-900/20 border border-green-700/30 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-lg font-semibold text-white">
+                        #{index + 1} - Subnet {subnet.subnet_id}
+                      </h4>
+                      <span className="text-green-400 font-bold">{subnet.overall_score}/100</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-green-300">Momentum:</span> <span className="text-gray-300">{subnet.key_insights?.momentum}</span></div>
+                      <div><span className="text-blue-300">Dr. Protocol:</span> <span className="text-gray-300">{subnet.key_insights?.dr_protocol}</span></div>
+                      <div><span className="text-yellow-300">Ops:</span> <span className="text-gray-300">{subnet.key_insights?.ops}</span></div>
+                      <div><span className="text-purple-300">Pulse:</span> <span className="text-gray-300">{subnet.key_insights?.pulse}</span></div>
+                      <div className="md:col-span-2"><span className="text-red-300">Guardian:</span> <span className="text-gray-300">{subnet.key_insights?.guardian}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Honorable Mentions */}
+            {reportData.honorable_mentions?.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-blue-400 mb-4">🎖️ Honorable Mentions</h3>
+                <div className="space-y-3">
+                  {reportData.honorable_mentions.map((subnet) => (
+                    <div key={subnet.subnet_id} className="p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white font-semibold">Subnet {subnet.subnet_id}</span>
+                        <span className="text-blue-400">{subnet.overall_score}/100</span>
+                      </div>
+                      <div className="text-sm text-gray-300 mt-1">
+                        Best Agent: <span className="text-blue-300">{subnet.standout_agent?.agent}</span> ({subnet.standout_agent?.score}/100)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Underperformers */}
+            {reportData.underperformers?.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-red-400 mb-4">⚠️ Underperformers</h3>
+                <div className="space-y-3">
+                  {reportData.underperformers.map((subnet) => (
+                    <div key={subnet.subnet_id} className="p-3 bg-red-900/20 border border-red-700/30 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-white font-semibold">Subnet {subnet.subnet_id}</span>
+                        <span className="text-red-400">{subnet.overall_score}/100</span>
+                      </div>
+                      <div className="text-sm">
+                        {subnet.primary_concerns?.map((concern, index) => (
+                          <div key={index} className="text-gray-300">
+                            {concern.agent}: <span className="text-red-300">{concern.concern}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Agent Summaries */}
+            <div>
+              <h3 className="text-xl font-bold text-white mb-4">📊 Agent Analysis Summary</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(reportData.agent_summaries || {}).map(([agentName, summary]) => (
+                  <div key={agentName} className="p-4 bg-zinc-800/50 rounded-lg">
+                    <h4 className="font-semibold text-white capitalize mb-2">
+                      {agentName.replace('_', ' ')} Agent
+                    </h4>
+                    <div className="text-sm text-gray-300">
+                      <div>Average Score: <span className="text-white">{summary.average_score}/100</span></div>
+                      <div>Analyzed: <span className="text-white">{summary.total_analyzed} subnets</span></div>
+                      <div>Trend: <span className="text-blue-300">{summary.dominant_trend}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-8 p-4 bg-zinc-800/50 rounded-lg">
+              <p className="text-gray-300 text-sm mb-3">
+                This is a draft report generated by AI agents. Review the content above and then send to your {stats?.active_subscribers || 0} subscribers.
+              </p>
+              <div className="flex space-x-4">
+                <button className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white text-sm font-semibold">
+                  Send to Subscribers
+                </button>
+                <button className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white text-sm font-semibold">
+                  Download PDF
+                </button>
+                <button 
+                  onClick={() => setReportData(null)}
+                  className="bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded text-white text-sm font-semibold"
+                >
+                  Close Preview
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
