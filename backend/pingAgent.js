@@ -85,10 +85,10 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    secure: false, // Allow HTTP for Railway deployment
     httpOnly: true, // Prevent XSS
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax' // Allow cross-origin in development
+    sameSite: 'lax' // Allow cross-origin cookies for Railway
   }
 }));
 
