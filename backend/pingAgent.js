@@ -28,8 +28,8 @@ import session from 'express-session';
 // Load .env variables
 dotenv.config();
 
-// Import AITable service (will be initialized lazily after env vars are loaded)
-import aitableService from '../shared/utils/aitableService.js';
+// Import ScoutBrief database for quarterly intelligence brief system
+import scoutBriefDB from '../shared/utils/scoutbriefDatabase.js';
 
 const app = express();
 
@@ -88,7 +88,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true, // Prevent XSS
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'strict' // CSRF protection
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax' // Allow cross-origin in development
   }
 }));
 
@@ -772,10 +772,10 @@ app.get('/health', async (req, res) => {
   try {
     const start = Date.now();
     const healthData = await healthMonitor.runAllChecks();
-    const responseTime = Date.now() - start;
+    const _responseTime = Date.now() - start;
     
     // Record health check metrics
-    healthMonitor.recordRequest(true, responseTime);
+    healthMonitor.recordRequest(true, _responseTime);
     
     res.status(healthData.overall_status === 'healthy' ? 200 : 503).json({
       ...healthData,
@@ -858,16 +858,16 @@ app.post("/api/claude", csrfProtection, authenticateToken, async (req, res) => {
     });
 
     const reply = response.content?.[0]?.text || "No response";
-    const responseTime = Date.now() - start;
+    const _responseTime = Date.now() - start;
     
-    healthMonitor.recordRequest(true, responseTime);
-    logger.aiOperation('claude_chat', 'claude-3-haiku', null, responseTime, true);
+    healthMonitor.recordRequest(true, _responseTime);
+    logger.aiOperation('claude_chat', 'claude-3-haiku', null, _responseTime, true);
     
     res.json({ reply });
   } catch (err) {
-    const responseTime = Date.now() - start;
-    healthMonitor.recordRequest(false, responseTime);
-    logger.aiOperation('claude_chat', 'claude-3-haiku', null, responseTime, false, err.message);
+    const _responseTime = Date.now() - start;
+    healthMonitor.recordRequest(false, _responseTime);
+    logger.aiOperation('claude_chat', 'claude-3-haiku', null, _responseTime, false, err.message);
     logger.error("Claude error:", { error: err.message });
     res.status(500).json({ error: err.message });
   }
@@ -958,9 +958,9 @@ app.post("/api/score/enhanced", authenticateToken, computeIntensiveLimiter, asyn
     const cachedResult = await cacheService.getAIAnalysis(subnet_id, 'enhanced_score');
     
     if (cachedResult) {
-      const responseTime = Date.now() - start;
-      healthMonitor.recordRequest(true, responseTime);
-      logger.cacheOperation('get', cacheKey, true, responseTime);
+      const _responseTime = Date.now() - start;
+      healthMonitor.recordRequest(true, _responseTime);
+      logger.cacheOperation('get', cacheKey, true, _responseTime);
       logger.info('Enhanced scoring cache hit', { subnet_id, cache_key: cacheKey });
       return res.json({
         ...cachedResult,
@@ -994,11 +994,11 @@ app.post("/api/score/enhanced", authenticateToken, computeIntensiveLimiter, asyn
       enhancedOptions
     );
     
-    const responseTime = Date.now() - start;
+    const _responseTime = Date.now() - start;
     
     // Cache the result for future requests (30 minutes TTL)
     await cacheService.setAIAnalysis(subnet_id, 'enhanced_score', enhancedResult, 1800);
-    logger.cacheOperation('set', cacheKey, false, responseTime);
+    logger.cacheOperation('set', cacheKey, false, _responseTime);
     
     // Store metrics in database if available
     if (database.isConnected) {
@@ -1010,20 +1010,20 @@ app.post("/api/score/enhanced", authenticateToken, computeIntensiveLimiter, asyn
     }
     
     // Record performance metrics
-    healthMonitor.recordRequest(true, responseTime);
-    logger.aiOperation('enhanced_score', 'ionet', subnet_id, responseTime, true);
+    healthMonitor.recordRequest(true, _responseTime);
+    logger.aiOperation('enhanced_score', 'ionet', subnet_id, _responseTime, true);
     
     console.log(`🤖 Enhanced score calculated for subnet ${subnet_id}: ${enhancedResult.overall_score}/100 (Level: ${enhancedResult.enhancement_status?.enhancement_level})`);
     res.json({
       ...enhancedResult,
       cached: false,
-      response_time: `${responseTime}ms`
+      response_time: `${_responseTime}ms`
     });
 
   } catch (err) {
-    const responseTime = Date.now() - start;
-    healthMonitor.recordRequest(false, responseTime);
-    logger.aiOperation('enhanced_score', 'ionet', subnet_id, responseTime, false, err.message);
+    const _responseTime = Date.now() - start;
+    healthMonitor.recordRequest(false, _responseTime);
+    logger.aiOperation('enhanced_score', 'ionet', subnet_id, _responseTime, false, err.message);
     logger.error("Enhanced scoring error:", { error: err.message, subnet_id });
     res.status(500).json({ 
       error: {
@@ -1706,7 +1706,7 @@ function extractTwitterUsername(twitterUrl) {
     const url = new URL(twitterUrl);
     const pathParts = url.pathname.split('/').filter(part => part);
     return pathParts[0] || null;
-  } catch (_error) {
+  } catch {
     return null;
   }
 }
@@ -2238,7 +2238,7 @@ app.get('/api/identity/health', async (req, res) => {
     const healthStatus = ethosService.getHealthStatus();
     const _responseTime = Date.now() - startTime;
 
-    logger.aiOperation('ethos_health', 'ethos_network', null, responseTime, true);
+    logger.aiOperation('ethos_health', 'ethos_network', null, _responseTime, true);
     
     logger.info('API Request Success', {
       service: 'subnet-scout',
@@ -2248,11 +2248,11 @@ app.get('/api/identity/health', async (req, res) => {
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 200,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(true, responseTime);
+    healthMonitor.recordRequest(true, _responseTime);
     res.json(healthStatus);
   } catch (error) {
     const _responseTime = Date.now() - startTime;
@@ -2271,11 +2271,11 @@ app.get('/api/identity/health', async (req, res) => {
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 500,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(false, responseTime);
+    healthMonitor.recordRequest(false, _responseTime);
     res.status(500).json({ 
       error: 'Ethos identity health check failed',
       details: error.message,
@@ -2305,7 +2305,7 @@ app.get('/api/identity/profile/:userkey', async (req, res) => {
     const profileData = await ethosService.getUserProfile(userkey, token);
     const _responseTime = Date.now() - startTime;
 
-    logger.aiOperation('ethos_profile', 'ethos_network', userkey, responseTime, true);
+    logger.aiOperation('ethos_profile', 'ethos_network', userkey, _responseTime, true);
 
     logger.info('API Request Success', {
       service: 'subnet-scout',
@@ -2315,11 +2315,11 @@ app.get('/api/identity/profile/:userkey', async (req, res) => {
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 200,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(true, responseTime);
+    healthMonitor.recordRequest(true, _responseTime);
     res.json({
       userkey,
       profile: profileData,
@@ -2343,11 +2343,11 @@ app.get('/api/identity/profile/:userkey', async (req, res) => {
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 500,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(false, responseTime);
+    healthMonitor.recordRequest(false, _responseTime);
     res.status(500).json({ 
       error: 'Failed to retrieve Ethos profile',
       details: error.message,
@@ -2378,7 +2378,7 @@ app.get('/api/identity/comprehensive/:userkey', computeIntensiveLimiter, async (
     const identityData = await ethosService.getComprehensiveIdentity(userkey, token);
     const _responseTime = Date.now() - startTime;
 
-    logger.aiOperation('ethos_comprehensive', 'ethos_network', userkey, responseTime, true);
+    logger.aiOperation('ethos_comprehensive', 'ethos_network', userkey, _responseTime, true);
 
     logger.info('API Request Success', {
       service: 'subnet-scout',
@@ -2388,11 +2388,11 @@ app.get('/api/identity/comprehensive/:userkey', computeIntensiveLimiter, async (
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 200,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(true, responseTime);
+    healthMonitor.recordRequest(true, _responseTime);
     res.json(identityData);
   } catch (error) {
     const _responseTime = Date.now() - startTime;
@@ -2412,11 +2412,11 @@ app.get('/api/identity/comprehensive/:userkey', computeIntensiveLimiter, async (
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 500,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(false, responseTime);
+    healthMonitor.recordRequest(false, _responseTime);
     res.status(500).json({ 
       error: 'Failed to retrieve comprehensive identity data',
       details: error.message,
@@ -2449,7 +2449,7 @@ app.get('/api/mindshare/:username', async (req, res) => {
     const reputationScore = kaitoYapsService.calculateReputationScore(mindshareData);
     const badge = kaitoYapsService.getReputationBadge(reputationScore.score);
 
-    const responseTime = Date.now() - start;
+    const _responseTime = Date.now() - start;
     
     const response = {
       success: true,
@@ -2458,16 +2458,16 @@ app.get('/api/mindshare/:username', async (req, res) => {
         reputation: reputationScore,
         badge: badge
       },
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       timestamp: new Date().toISOString()
     };
 
-    logger.aiOperation('kaito_mindshare', 'kaito_yaps', username, responseTime, true);
+    logger.aiOperation('kaito_mindshare', 'kaito_yaps', username, _responseTime, true);
     res.json(response);
 
   } catch (error) {
-    const responseTime = Date.now() - start;
-    logger.aiOperation('kaito_mindshare', 'kaito_yaps', req.params.username, responseTime, false, error.message);
+    const _responseTime = Date.now() - start;
+    logger.aiOperation('kaito_mindshare', 'kaito_yaps', req.params.username, _responseTime, false, error.message);
     logger.error('Kaito mindshare error', { error: error.message, username: req.params.username });
     
     res.status(500).json({
@@ -2520,7 +2520,7 @@ app.post('/api/mindshare/batch', computeIntensiveLimiter, async (req, res) => {
       };
     });
 
-    const responseTime = Date.now() - start;
+    const _responseTime = Date.now() - start;
     
     const response = {
       success: batchResult.success,
@@ -2531,16 +2531,16 @@ app.post('/api/mindshare/batch', computeIntensiveLimiter, async (req, res) => {
         successful: batchResult.successful,
         failed: batchResult.errors.length
       },
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       timestamp: new Date().toISOString()
     };
 
-    logger.aiOperation('kaito_batch_mindshare', 'kaito_yaps', null, responseTime, true);
+    logger.aiOperation('kaito_batch_mindshare', 'kaito_yaps', null, _responseTime, true);
     res.json(response);
 
   } catch (error) {
-    const responseTime = Date.now() - start;
-    logger.aiOperation('kaito_batch_mindshare', 'kaito_yaps', null, responseTime, false, error.message);
+    const _responseTime = Date.now() - start;
+    logger.aiOperation('kaito_batch_mindshare', 'kaito_yaps', null, _responseTime, false, error.message);
     logger.error('Kaito batch mindshare error', { error: error.message });
     
     res.status(500).json({
@@ -2611,7 +2611,7 @@ app.get('/api/network/health-index', async (req, res) => {
     logger.info('Network health index fetched successfully', {
       service: 'subnet-scout',
       endpoint: '/api/network/health-index',
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
     
@@ -2620,7 +2620,7 @@ app.get('/api/network/health-index', async (req, res) => {
       data: healthMetrics,
       meta: {
         request_id: requestId,
-        response_time: `${responseTime}ms`,
+        response_time: `${_responseTime}ms`,
         timestamp: new Date().toISOString()
       }
     });
@@ -2632,7 +2632,7 @@ app.get('/api/network/health-index', async (req, res) => {
       service: 'subnet-scout',
       endpoint: '/api/network/health-index',
       error: error.message,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
     
@@ -2689,7 +2689,7 @@ app.get('/api/network/nakamoto-coefficient', async (req, res) => {
       data: nakamotoData,
       meta: {
         request_id: requestId,
-        response_time: `${responseTime}ms`,
+        response_time: `${_responseTime}ms`,
         timestamp: new Date().toISOString()
       }
     });
@@ -2773,7 +2773,7 @@ app.get('/api/network/emission-distribution', async (req, res) => {
       data: emissionData,
       meta: {
         request_id: requestId,
-        response_time: `${responseTime}ms`,
+        response_time: `${_responseTime}ms`,
         timestamp: new Date().toISOString()
       }
     });
@@ -2841,7 +2841,7 @@ app.get('/api/network/churn-rates', async (req, res) => {
       data: churnData,
       meta: {
         request_id: requestId,
-        response_time: `${responseTime}ms`,
+        response_time: `${_responseTime}ms`,
         timestamp: new Date().toISOString()
       }
     });
@@ -2914,7 +2914,7 @@ app.get('/api/network/stake-mobility', async (req, res) => {
       data: mobilityData,
       meta: {
         request_id: requestId,
-        response_time: `${responseTime}ms`,
+        response_time: `${_responseTime}ms`,
         timestamp: new Date().toISOString()
       }
     });
@@ -3079,7 +3079,7 @@ app.get('/api/identity/bot/:userkey', async (req, res) => {
     }
 
     const _responseTime = Date.now() - startTime;
-    logger.aiOperation('ethos_bot_lookup', 'ethos_network', userkey, responseTime, true);
+    logger.aiOperation('ethos_bot_lookup', 'ethos_network', userkey, _responseTime, true);
 
     logger.info('API Request Success', {
       service: 'subnet-scout',
@@ -3089,11 +3089,11 @@ app.get('/api/identity/bot/:userkey', async (req, res) => {
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 200,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(true, responseTime);
+    healthMonitor.recordRequest(true, _responseTime);
     res.json(identityData);
 
   } catch (error) {
@@ -3115,11 +3115,11 @@ app.get('/api/identity/bot/:userkey', async (req, res) => {
       user_agent: req.get('User-Agent'),
       status_code: 500,
       error: error.message,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
-    healthMonitor.recordRequest(false, responseTime);
+    healthMonitor.recordRequest(false, _responseTime);
     res.status(500).json({
       error: {
         code: "ETHOS_IDENTITY_ERROR",
@@ -3127,6 +3127,114 @@ app.get('/api/identity/bot/:userkey', async (req, res) => {
         request_id: requestId,
         timestamp: new Date().toISOString()
       }
+    });
+  }
+});
+
+// ==============================================
+// 📊 SCOUTBRIEF ADMIN ENDPOINTS
+// ==============================================
+
+// Admin authentication middleware
+const checkAdminAuth = (req, res, next) => {
+  const adminPassword = process.env.SCOUTBRIEF_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  const sessionPassword = req.session?.scoutbriefAdmin;
+  if (sessionPassword === adminPassword) {
+    next();
+  } else {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+};
+
+// Check admin authentication status
+app.get('/api/scoutbrief/admin/status', (req, res) => {
+  const adminPassword = process.env.SCOUTBRIEF_ADMIN_PASSWORD;
+  const isAuthenticated = adminPassword && req.session?.scoutbriefAdmin === adminPassword;
+  
+  res.json({
+    authenticated: isAuthenticated,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Admin login
+app.post('/api/scoutbrief/admin/login', (req, res) => {
+  const { password } = req.body;
+  const adminPassword = process.env.SCOUTBRIEF_ADMIN_PASSWORD;
+  
+  if (!adminPassword) {
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Admin password not configured' 
+    });
+  }
+  
+  if (password === adminPassword) {
+    req.session.scoutbriefAdmin = adminPassword;
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    res.status(401).json({
+      success: false,
+      error: 'Invalid password'
+    });
+  }
+});
+
+// Get admin stats
+app.get('/api/scoutbrief/admin/stats', checkAdminAuth, (req, res) => {
+  try {
+    const stats = scoutBriefDB.getStats();
+    res.json({
+      ...stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get stats',
+      details: error.message
+    });
+  }
+});
+
+// Submit brief context
+app.post('/api/scoutbrief/admin/context', checkAdminAuth, (req, res) => {
+  try {
+    const { quarter, year, context } = req.body;
+    
+    if (!quarter || !year || !context) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: quarter, year, context'
+      });
+    }
+    
+    const result = scoutBriefDB.addBriefContext(quarter, year, context);
+    
+    if (result.success) {
+      logger.info('Brief context submitted', { quarter, year, context_id: result.id });
+      res.json({
+        success: true,
+        context_id: result.id,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to save context'
+      });
+    }
+  } catch (error) {
+    logger.error('Brief context submission failed', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
     });
   }
 });
@@ -3171,35 +3279,62 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       request_id: requestId
     });
 
-    // Check if already subscribed (optional)
-    const isAlreadySubscribed = await aitableService.isSubscribed(email.trim());
-    if (isAlreadySubscribed) {
-      return res.status(409).json({
-        error: {
-          code: "ALREADY_SUBSCRIBED",
-          message: "This email is already subscribed to our newsletter",
-          request_id: requestId,
-          timestamp: new Date().toISOString()
-        }
-      });
+    // Add subscriber to ScoutBrief SQLite database
+    const result = scoutBriefDB.addSubscriber(email.trim(), source);
+    
+    if (!result.success) {
+      if (result.error === 'ALREADY_SUBSCRIBED') {
+        return res.status(409).json({
+          error: {
+            code: "ALREADY_SUBSCRIBED",
+            message: "This email is already subscribed to our intelligence briefs",
+            request_id: requestId,
+            timestamp: new Date().toISOString()
+          }
+        });
+      }
+      throw new Error('Database error: ' + result.error);
     }
 
-    // Add subscriber to AITable
-    const result = await aitableService.addSubscriber(email.trim(), {
-      source,
-      user_agent: req.get('User-Agent'),
-      ip: req.ip,
-      subscribed_via: 'website'
-    });
+    // SendFox integration for email delivery (optional)
+    try {
+      if (process.env.SENDFOX_API_TOKEN) {
+        const sendfoxResponse = await fetch('https://api.sendfox.com/contacts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.SENDFOX_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: email.trim(),
+            lists: [process.env.SENDFOX_LIST_ID || 'default'],
+            tags: ['quarterly-intelligence', 'subnet-scout', source]
+          })
+        });
+        
+        if (sendfoxResponse.ok) {
+          logger.info('SendFox subscription successful', { email: email.trim(), source });
+        } else {
+          logger.warn('SendFox subscription failed', { 
+            email: email.trim(), 
+            status: sendfoxResponse.status,
+            error: await sendfoxResponse.text() 
+          });
+        }
+      }
+    } catch (sendfoxError) {
+      logger.warn('SendFox integration error', { error: sendfoxError.message });
+      // Don't fail the main subscription if SendFox fails
+    }
 
     const _responseTime = Date.now() - startTime;
     
-    logger.info('Newsletter subscription successful', {
+    logger.info('ScoutBrief subscription successful', {
       service: 'subnet-scout',
       email: email.trim(),
-      record_id: result.recordId,
-      demo_mode: result.demo || false,
-      response_time: `${responseTime}ms`,
+      subscriber_id: result.id,
+      source,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
@@ -3211,15 +3346,15 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       ip: req.ip,
       user_agent: req.get('User-Agent'),
       status_code: 200,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
     res.json({
       success: true,
-      message: "Successfully subscribed to Subnet Scout Intelligence Briefs!",
+      message: "Successfully subscribed to ScoutBrief Quarterly Intelligence!",
       email: email.trim(),
-      demo_mode: result.demo || false,
+      subscriber_id: result.id,
       request_id: requestId,
       timestamp: new Date().toISOString()
     });
@@ -3227,10 +3362,10 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
   } catch (error) {
     const _responseTime = Date.now() - startTime;
     
-    logger.error('Newsletter subscription failed', {
+    logger.error('ScoutBrief subscription failed', {
       service: 'subnet-scout',
       error: error.message,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 
@@ -3243,7 +3378,7 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       user_agent: req.get('User-Agent'),
       status_code: 500,
       error: error.message,
-      response_time: `${responseTime}ms`,
+      response_time: `${_responseTime}ms`,
       request_id: requestId
     });
 

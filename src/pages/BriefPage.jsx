@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MessageCircle, Twitter } from 'lucide-react'
+import { MessageCircle, Twitter, Brain, Shield, TrendingUp, Cpu, Users } from 'lucide-react'
 import apiClient from '../../shared/utils/apiClient'
 import { ENV_CONFIG } from '../config/env.js'
 
@@ -47,44 +47,102 @@ const BriefPage = () => {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-12 text-center">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-normal text-blue-400 mb-6">
-            Intelligence Briefs
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-400 mb-4">
+            Quarterly Intelligence Briefs
           </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Get exclusive bi-monthly intelligence reports powered by decentralized AI. 
-            We analyze all 118+ Bittensor subnets to identify emerging opportunities, 
-            track major movements, and spotlight the most bullish developments in the ecosystem.
+          <p className="text-xl sm:text-2xl text-gray-300 mb-2">
+            5 AI Agents. 118 Subnets. 1 Quarterly Report.
+          </p>
+          <p className="text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed">
+            Get exclusive quarterly intelligence powered by our specialized AI research team. 
+            We analyze all 118 Bittensor subnets to uncover patterns invisible to human analysis 
+            and deliver professional insights you won't find anywhere else.
           </p>
         </div>
       </div>
 
-      {/* Value Proposition */}
-      <div className="max-w-5xl mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-700">
-            <div className="text-3xl mb-4">🧠</div>
-            <h3 className="text-xl font-semibold text-blue-400 mb-3">Decentralized Intelligence</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Our AI agents process real-time data from TaoStats, GitHub activity, social sentiment, 
-              and validator metrics to identify trends before they become obvious.
+      {/* AI Agents Showcase */}
+      <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Meet Your AI Research Team
+          </h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Five specialized agents working 24/7 to analyze patterns, trends, and opportunities 
+            across the entire Bittensor ecosystem that human analysts simply cannot detect.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {/* Momentum - Growth Analyst */}
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-6 rounded-xl border border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300">
+            <div className="text-green-400 mb-4">
+              <TrendingUp className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-green-400 mb-2">Momentum</h3>
+            <p className="text-sm text-gray-500 font-medium mb-3 uppercase tracking-wide">Growth Analyst</p>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Tracks explosive subnet adoption and identifies breakthrough growth patterns that signal massive opportunity.
             </p>
           </div>
-          
-          <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-700">
-            <div className="text-3xl mb-4">📈</div>
-            <h3 className="text-xl font-semibold text-green-400 mb-3">Alpha Opportunities</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Early identification of subnet momentum shifts, development breakthroughs, 
-              and validator migration patterns that signal significant upside potential.
+
+          {/* Dr. Protocol - Tech Evaluator */}
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-6 rounded-xl border border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300">
+            <div className="text-blue-400 mb-4">
+              <Cpu className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-blue-400 mb-2">Dr. Protocol</h3>
+            <p className="text-sm text-gray-500 font-medium mb-3 uppercase tracking-wide">Tech Evaluator</p>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Examines code quality, innovation metrics, and technical infrastructure to identify technological breakthroughs.
             </p>
           </div>
-          
-          <div className="bg-zinc-900/50 p-6 rounded-xl border border-zinc-700">
-            <div className="text-3xl mb-4">🎯</div>
-            <h3 className="text-xl font-semibold text-purple-400 mb-3">Professional Analysis</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Curated insights for serious TAO investors. No noise, no speculation - 
-              just actionable intelligence backed by comprehensive data analysis.
+
+          {/* Ops - Performance Analyst */}
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-6 rounded-xl border border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300">
+            <div className="text-purple-400 mb-4">
+              <Brain className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-purple-400 mb-2">Ops</h3>
+            <p className="text-sm text-gray-500 font-medium mb-3 uppercase tracking-wide">Performance Analyst</p>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Monitors network efficiency, validator optimization, and system reliability to spot performance leaders.
+            </p>
+          </div>
+
+          {/* Pulse - Community Sentiment */}
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-6 rounded-xl border border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300">
+            <div className="text-orange-400 mb-4">
+              <Users className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-orange-400 mb-2">Pulse</h3>
+            <p className="text-sm text-gray-500 font-medium mb-3 uppercase tracking-wide">Community Sentiment</p>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Reads social signals, developer engagement, and community momentum shifts across all platforms.
+            </p>
+          </div>
+
+          {/* Guardian - Risk Assessor */}
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-6 rounded-xl border border-zinc-700/50 hover:border-zinc-600/50 transition-all duration-300">
+            <div className="text-red-400 mb-4">
+              <Shield className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-red-400 mb-2">Guardian</h3>
+            <p className="text-sm text-gray-500 font-medium mb-3 uppercase tracking-wide">Risk Assessor</p>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Identifies threats, vulnerabilities, and governance risks with mitigation strategies to protect investments.
+            </p>
+          </div>
+
+          {/* Team Summary Card */}
+          <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 p-6 rounded-xl border border-purple-500/30">
+            <div className="text-purple-400 mb-4">
+              <Brain className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-purple-400 mb-2">Collective Intelligence</h3>
+            <p className="text-sm text-gray-500 font-medium mb-3 uppercase tracking-wide">AI Orchestration</p>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Our agents work together, cross-referencing findings to deliver the most comprehensive Bittensor intelligence available.
             </p>
           </div>
         </div>
@@ -96,7 +154,7 @@ const BriefPage = () => {
               Join the Intelligence Network
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Be among the first to receive our exclusive bi-monthly briefings. 
+              Be among the first to receive our exclusive quarterly intelligence briefings. 
               Each report delivers deep subnet analysis, emerging trend identification, 
               and strategic insights you won't find anywhere else.
             </p>

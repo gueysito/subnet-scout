@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage'
 import ExplorerPage from './pages/ExplorerPage'
 import AboutPage from './pages/AboutPage'
 import BriefPage from './pages/BriefPage'
+import ScoutBriefAdmin from './pages/ScoutBriefAdmin'
 import NetworkHealthPage from './pages/NetworkHealthPage'
 import MiningTrendsPage from './pages/MiningTrendsPage'
 import ValidatorRadarPage from './pages/ValidatorRadarPage'
@@ -20,6 +21,7 @@ function App() {
             <Route path="/explorer" element={<ExplorerPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/brief" element={<BriefPage />} />
+            <Route path="/brief/admin" element={<ScoutBriefAdmin />} />
             <Route path="/network-health" element={<NetworkHealthPage />} />
             <Route path="/mining-trends" element={<MiningTrendsPage />} />
             <Route path="/validator-radar" element={<ValidatorRadarPage />} />

@@ -33,6 +33,7 @@ class ApiClient {
       
       const response = await fetch(url, {
         ...options,
+        credentials: 'include', // Include cookies for session management
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
