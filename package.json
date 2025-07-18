@@ -9,7 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "backend": "node simple-backend.js",
+    "backend": "node backend/pingAgent.js",
     "backend:simple": "node simple-backend.js",
     "telegram-bot": "node backend/telegramBot.js",
     "dev:full": "concurrently \"npm run backend\" \"npm run dev\"",
