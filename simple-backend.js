@@ -19,6 +19,7 @@ import Database from 'better-sqlite3';
 let db;
 let briefGenerations = 0;
 const analysisJobs = []; // Track background analysis jobs
+const reports = []; // Store generated reports
 
 // Initialize SQLite database
 function initDatabase() {
@@ -2551,6 +2552,42 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Latest report endpoint
+  if (pathname === '/api/scoutbrief/admin/latest-report' && method === 'GET') {
+    // Get the most recent completed job
+    const completedJobs = analysisJobs
+      .filter(job => job.status === 'completed' && job.result)
+      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+    
+    if (completedJobs.length === 0) {
+      sendJSON(res, 404, { error: 'No completed reports found' });
+      return;
+    }
+    
+    const latestJob = completedJobs[0];
+    sendJSON(res, 200, {
+      report: latestJob.result,
+      jobId: latestJob.id,
+      completedAt: latestJob.completedAt,
+      processingTime: latestJob.processingTime
+    });
+    return;
+  }
+
+  // Reports list endpoint
+  if (pathname === '/api/scoutbrief/admin/reports-list' && method === 'GET') {
+    const allReports = reports.map((report, index) => ({
+      id: report.id,
+      title: report.title,
+      generated_at: report.generated_at,
+      subnets_analyzed: report.statistics?.subnets_analyzed || 0,
+      index: index
+    }));
+    
+    sendJSON(res, 200, { reports: allReports });
+    return;
+  }
+
   // Brief generation endpoint - REAL AI AGENT INTELLIGENCE
   if (pathname === '/api/scoutbrief/admin/generate' && method === 'POST') {
     try {
@@ -2874,6 +2911,10 @@ const server = http.createServer(async (req, res) => {
       
       console.log(`✅ Intelligence report generated successfully!`);
       console.log(`📈 Analyzed ${analysisResult?.results?.length || 0} subnets with average score: ${report.statistics.average_score}`);
+      
+      // Save report to reports array
+      reports.push(report);
+      console.log(`📁 Report saved to reports array. Total reports: ${reports.length}`);
       
       sendJSON(res, 200, {
         success: true,

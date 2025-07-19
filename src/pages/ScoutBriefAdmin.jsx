@@ -16,6 +16,9 @@ const ScoutBriefAdmin = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState(null);
   const [reportData, setReportData] = useState(null);
+  const [isLoadingLatest, setIsLoadingLatest] = useState(false);
+  const [reportsList, setReportsList] = useState([]);
+  const [showReportsHistory, setShowReportsHistory] = useState(false);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -143,6 +146,36 @@ const ScoutBriefAdmin = () => {
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
+  };
+
+  const handleViewLatestReport = async () => {
+    setIsLoadingLatest(true);
+    try {
+      const response = await apiClient.get('/api/scoutbrief/admin/latest-report');
+      if (response.report) {
+        setReportData(response.report);
+        setGenerationStatus('success');
+      }
+    } catch (error) {
+      console.error('Failed to load latest report:', error.message);
+      if (error.message.includes('404')) {
+        setGenerationStatus('no_reports');
+      } else {
+        setGenerationStatus('error');
+      }
+    } finally {
+      setIsLoadingLatest(false);
+    }
+  };
+
+  const handleLoadReportsHistory = async () => {
+    try {
+      const response = await apiClient.get('/api/scoutbrief/admin/reports-list');
+      setReportsList(response.reports || []);
+      setShowReportsHistory(true);
+    } catch (error) {
+      console.error('Failed to load reports history:', error.message);
+    }
   };
 
   // Login form
@@ -389,8 +422,98 @@ const ScoutBriefAdmin = () => {
                 </>
               )}
             </button>
+
+            {/* Additional Action Buttons */}
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                onClick={handleViewLatestReport}
+                disabled={isLoadingLatest}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-white font-semibold transition-colors duration-200 flex items-center"
+              >
+                {isLoadingLatest ? (
+                  <>
+                    <Clock className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 mr-2" />
+                    View Latest Report
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={handleLoadReportsHistory}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-semibold transition-colors duration-200 flex items-center"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Reports History
+              </button>
+            </div>
+
+            {/* Status Messages */}
+            {generationStatus === 'no_reports' && (
+              <div className="mt-4 p-4 rounded-lg bg-yellow-900/50 border border-yellow-700 text-yellow-300">
+                <div className="flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  No reports found. Generate a report first.
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Reports History Section */}
+        {showReportsHistory && (
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Reports History</h2>
+              <button
+                onClick={() => setShowReportsHistory(false)}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-white font-semibold"
+              >
+                Close
+              </button>
+            </div>
+            
+            {reportsList.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No reports generated yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reportsList.map((report) => (
+                  <div key={report.id} className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-600">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{report.title}</h3>
+                        <div className="text-sm text-gray-400 mt-1">
+                          <span>Generated: {new Date(report.generated_at).toLocaleString()}</span>
+                          <span className="mx-2">•</span>
+                          <span>Subnets: {report.subnets_analyzed}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            // Set this report as the current reportData
+                            // Note: This would require fetching the full report data
+                            console.log('View report:', report.id);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-sm"
+                        >
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Report Preview Section */}
         {reportData && (
