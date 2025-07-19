@@ -130,6 +130,21 @@ const ScoutBriefAdmin = () => {
     }
   };
 
+  const handleDownloadReport = () => {
+    if (!reportData) return;
+    
+    // Create downloadable JSON file
+    const dataStr = JSON.stringify(reportData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `ScoutBrief_${reportData.quarter}_${reportData.year}_Report.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
   // Login form
   if (!isAuthenticated) {
     return (
@@ -500,8 +515,11 @@ const ScoutBriefAdmin = () => {
                 <button className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white text-sm font-semibold">
                   Send to Subscribers
                 </button>
-                <button className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white text-sm font-semibold">
-                  Download PDF
+                <button 
+                  onClick={handleDownloadReport}
+                  className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white text-sm font-semibold"
+                >
+                  Download JSON
                 </button>
                 <button 
                   onClick={() => setReportData(null)}

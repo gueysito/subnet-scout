@@ -2551,10 +2551,10 @@ const server = http.createServer(async (req, res) => {
       console.log('Subnet data results:', subnetsData?.length || 0, 'subnets');
       console.log('First subnet example:', JSON.stringify(subnetsData?.[0] || 'NONE'));
       
-      // 4. Run REAL AI agent analysis on top 3 subnets (reduced for testing and rate limits)
+      // 4. Run REAL AI agent analysis on top 50 subnets for comprehensive report
       const topSubnets = subnetsData
         .sort((a, b) => (b.registration_count || 0) - (a.registration_count || 0))
-        .slice(0, 3);
+        .slice(0, 50);
       
       console.log('Top subnets after filtering:', topSubnets?.length || 0);
       console.log('Agent import type:', typeof scoutBriefAgents);
@@ -2671,8 +2671,88 @@ const server = http.createServer(async (req, res) => {
           ionet_api_used: true,
           agents_used: ['Momentum', 'Dr. Protocol', 'Ops', 'Pulse', 'Guardian'],
           processing_time_ms: Date.now() - now.getTime()
+        },
+        
+        // Frontend compatibility properties
+        successful_analyses: analysisResult?.results?.length || 0,
+        failed_analyses: analysisResult?.errors?.length || 0,
+        
+        // Top performers (top 5 by overall score)
+        top_performers: (analysisResult?.results || [])
+          .filter(r => r.overall_score > 0)
+          .sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0))
+          .slice(0, 5)
+          .map(r => ({
+            subnet_id: r.subnet.subnet_id,
+            overall_score: r.overall_score || 0,
+            key_insights: {
+              momentum: r.analysis?.momentum?.key_finding || 'No insight available',
+              dr_protocol: r.analysis?.protocol?.key_finding || 'No insight available', 
+              ops: r.analysis?.ops?.key_finding || 'No insight available',
+              pulse: r.analysis?.pulse?.key_finding || 'No insight available',
+              guardian: r.analysis?.guardian?.key_finding || 'No insight available'
+            }
+          })),
+          
+        // Honorable mentions (scores 60-79)
+        honorable_mentions: (analysisResult?.results || [])
+          .filter(r => r.overall_score >= 60 && r.overall_score < 80)
+          .map(r => ({
+            subnet_id: r.subnet.subnet_id,
+            overall_score: r.overall_score || 0,
+            standout_agent: {
+              agent: 'Momentum', // TODO: Calculate actual best agent
+              score: r.analysis?.momentum?.score || 0
+            }
+          })),
+          
+        // Underperformers (scores below 50)
+        underperformers: (analysisResult?.results || [])
+          .filter(r => r.overall_score < 50)
+          .map(r => ({
+            subnet_id: r.subnet.subnet_id,
+            overall_score: r.overall_score || 0,
+            primary_concerns: [
+              { agent: 'Momentum', concern: r.analysis?.momentum?.key_finding || 'Low performance' },
+              { agent: 'Ops', concern: r.analysis?.ops?.key_finding || 'Operational issues' }
+            ]
+          })),
+          
+        // Agent summaries for frontend display
+        agent_summaries: {
+          momentum: {
+            title: 'Growth & Momentum Analysis',
+            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.momentum?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
+            insights_count: (analysisResult?.results || []).length
+          },
+          protocol: {
+            title: 'Technical Health Assessment', 
+            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.protocol?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
+            insights_count: (analysisResult?.results || []).length
+          },
+          ops: {
+            title: 'Operational Performance',
+            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.ops?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
+            insights_count: (analysisResult?.results || []).length
+          },
+          pulse: {
+            title: 'Community Sentiment',
+            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.pulse?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
+            insights_count: (analysisResult?.results || []).length
+          },
+          guardian: {
+            title: 'Risk Assessment',
+            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.guardian?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
+            insights_count: (analysisResult?.results || []).length
+          }
         }
       };
+      
+      // DEBUG: Log complete report structure
+      console.log('Report data structure:', JSON.stringify(report, null, 2));
+      console.log('Successful analyses:', (analysisResult?.results || []).length);
+      console.log('Report subnet_analyses length:', report.subnet_analyses?.length || 0);
+      console.log('Report agent_insights keys:', Object.keys(report.agent_insights || {}));
       
       console.log(`✅ Intelligence report generated successfully!`);
       console.log(`📈 Analyzed ${analysisResult?.results?.length || 0} subnets with average score: ${report.statistics.average_score}`);
