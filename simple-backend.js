@@ -11,6 +11,11 @@ import path from 'path';
 
 const PORT = process.env.PORT || 8080;
 
+// In-memory storage for ScoutBrief admin panel
+let subscribers = new Set(); // Use Set to avoid duplicate emails  
+let briefContexts = [];
+let briefGenerations = 0;
+
 // IO.net API Configuration
 const IONET_API_KEY = process.env.IONET_API_KEY;
 const IONET_BASE_URL = 'https://api.intelligence.io.solutions/api/v1';
@@ -2266,9 +2271,9 @@ const server = http.createServer(async (req, res) => {
   // Admin stats endpoint  
   if (pathname === '/api/scoutbrief/admin/stats') {
     sendJSON(res, 200, {
-      active_subscribers: 0, // Simple backend - no database
-      brief_contexts: 0,
-      brief_generations: 0,
+      active_subscribers: subscribers.size,
+      brief_contexts: briefContexts.length,
+      brief_generations: briefGenerations,
       timestamp: new Date().toISOString()
     });
     return;
@@ -2290,14 +2295,105 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
-      // Simple backend - just return success
+      // Store email in subscribers set (avoids duplicates)
+      subscribers.add(email.toLowerCase().trim());
+      
       sendJSON(res, 200, {
         success: true,
         message: "Successfully subscribed to ScoutBrief Quarterly Intelligence!",
+        total_subscribers: subscribers.size,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
       console.error('Newsletter subscription error:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+    return;
+  }
+
+  // Brief context submission endpoint
+  if (pathname === '/api/scoutbrief/admin/context' && method === 'POST') {
+    try {
+      const body = await getRequestBody(req);
+      const { quarter, year, context } = JSON.parse(body);
+      
+      if (!context || !context.trim()) {
+        sendJSON(res, 400, {
+          success: false,
+          error: 'Context is required'
+        });
+        return;
+      }
+      
+      // Store context data
+      const contextData = {
+        id: Date.now().toString(),
+        quarter: quarter || 'Q1',
+        year: year || new Date().getFullYear(),
+        context: context.trim(),
+        created_at: new Date().toISOString()
+      };
+      
+      briefContexts.push(contextData);
+      
+      sendJSON(res, 200, {
+        success: true,
+        message: 'Context submitted successfully!',
+        context_id: contextData.id,
+        total_contexts: briefContexts.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Context submission error:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+    return;
+  }
+
+  // Brief generation endpoint
+  if (pathname === '/api/scoutbrief/admin/generate' && method === 'POST') {
+    try {
+      // Increment generation counter
+      briefGenerations++;
+      
+      // Mock report data
+      const reportData = {
+        id: Date.now().toString(),
+        title: `ScoutBrief Q${Math.ceil(new Date().getMonth() / 3)} ${new Date().getFullYear()} Intelligence Report`,
+        status: 'generated',
+        generated_at: new Date().toISOString(),
+        summary: `Generated intelligence brief using ${briefContexts.length} context(s) for ${subscribers.size} subscriber(s).`,
+        sections: [
+          {
+            title: 'Market Overview',
+            content: 'AI-powered analysis of subnet performance and trends.'
+          },
+          {
+            title: 'Key Insights', 
+            content: 'Strategic recommendations based on current data.'
+          },
+          {
+            title: 'Future Outlook',
+            content: 'Predictive analysis for upcoming quarter.'
+          }
+        ]
+      };
+      
+      sendJSON(res, 200, {
+        success: true,
+        message: 'Intelligence brief generated successfully!',
+        report: reportData,
+        generation_number: briefGenerations,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Brief generation error:', error);
       sendJSON(res, 500, {
         success: false,
         error: 'Internal server error'
@@ -2359,6 +2455,8 @@ server.listen(PORT, () => {
   console.log(`   POST /api/scoutbrief/admin/login - Admin authentication`);
   console.log(`   GET /api/scoutbrief/admin/status - Check auth status`);
   console.log(`   GET /api/scoutbrief/admin/stats - Admin statistics`);
+  console.log(`   POST /api/scoutbrief/admin/context - Submit brief context`);
+  console.log(`   POST /api/scoutbrief/admin/generate - Generate intelligence brief`);
   console.log(`   POST /api/newsletter/subscribe - Newsletter subscription`);
   console.log(`✅ ZERO DEPENDENCIES - Pure Node.js HTTP server ready!`);
   console.log(`🔧 No Express, no path-to-regexp, no crashes!`);
