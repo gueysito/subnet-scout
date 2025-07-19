@@ -98,11 +98,11 @@ SCORING RUBRIC:
 You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
 
 {
-  "score": <int>,
-  "trend": "accelerating|steady|decelerating", 
-  "key_finding": "<one sentence insight>",
-  "analysis": "<150 word detailed analysis>",
-  "data_points": [<specific numbers that support analysis>]
+  "score": 85,
+  "trend": "accelerating", 
+  "key_finding": "one sentence insight",
+  "analysis": "150 word detailed analysis",
+  "data_points": [12.5, 450, 15.8]
 }`;
 
     const variables = {
@@ -189,11 +189,11 @@ SCORING RUBRIC:
 You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
 
 {
-  "score": <int>,
-  "development_status": "highly_active|active|maintaining|declining|abandoned",
-  "key_finding": "<one sentence insight>",
-  "analysis": "<150 word detailed analysis>",
-  "red_flags": [<any security or technical concerns>]
+  "score": 79,
+  "development_status": "active",
+  "key_finding": "one sentence insight",
+  "analysis": "150 word detailed analysis",
+  "red_flags": ["security concern 1", "technical concern 2"]
 }`;
 
     const variables = {
@@ -264,23 +264,23 @@ INSTRUCTIONS:
 5. Score operational excellence 0-100
 
 SCORING RUBRIC:
-- 90-100: >2x network efficiency, 99.9%+ uptime
-- 70-89: Above average efficiency, 99%+ uptime
-- 50-69: Average performance, 95%+ uptime
-- 30-49: Below average, <95% uptime
+- 90-100: Over 2x network efficiency, 99.9% or higher uptime
+- 70-89: Above average efficiency, 99% or higher uptime
+- 50-69: Average performance, 95% or higher uptime
+- 30-49: Below average, under 95% uptime
 - 0-29: Poor efficiency or major outages
 
 You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
 
 {
-  "score": <int>,
-  "efficiency_rating": "excellent|good|average|poor",
-  "key_finding": "<one sentence insight>",
-  "analysis": "<150 word detailed analysis>",
+  "score": 85,
+  "efficiency_rating": "excellent",
+  "key_finding": "one sentence insight",
+  "analysis": "150 word detailed analysis",
   "performance_metrics": {
-    "tao_per_dollar": <float>,
-    "uptime": <float>,
-    "response_time": <int>
+    "tao_per_dollar": 1.25,
+    "uptime": 99.5,
+    "response_time": 250
   }
 }`;
 
@@ -338,7 +338,7 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
 Analyze subnet {{id}} community health for Q{{quarter}} {{year}}.
 
 METRICS TO ANALYZE:
-- Discord members: {{discord_members}} (+{{discord_growth}})
+- Discord members: {{discord_members}} (grew by {{discord_growth}})
 - Twitter followers: {{twitter_followers}}
 - Mentions this quarter: {{mentions}}
 - Sentiment score: {{sentiment}}/100
@@ -365,11 +365,11 @@ SCORING RUBRIC:
 You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
 
 {
-  "score": <int>,
-  "sentiment": "very_positive|positive|neutral|negative|very_negative", 
-  "key_finding": "<one sentence insight>",
-  "analysis": "<150 word detailed analysis>",
-  "community_highlights": [<top 3 community topics>]
+  "score": 78,
+  "sentiment": "positive", 
+  "key_finding": "one sentence insight",
+  "analysis": "150 word detailed analysis",
+  "community_highlights": ["topic 1", "topic 2", "topic 3"]
 }`;
 
     const variables = {
@@ -450,12 +450,12 @@ SCORING RUBRIC:
 You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
 
 {
-  "score": <int>,
-  "risk_level": "minimal|low|moderate|high|critical",
-  "key_finding": "<one sentence insight>",
-  "analysis": "<150 word detailed analysis>", 
-  "risk_factors": [<list of specific risks>],
-  "recommendations": [<mitigation suggestions>]
+  "score": 82,
+  "risk_level": "low",
+  "key_finding": "one sentence insight",
+  "analysis": "150 word detailed analysis", 
+  "risk_factors": ["specific risk 1", "specific risk 2"],
+  "recommendations": ["mitigation suggestion 1", "mitigation suggestion 2"]
 }`;
 
     const variables = {
