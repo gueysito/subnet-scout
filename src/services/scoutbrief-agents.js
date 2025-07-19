@@ -203,14 +203,26 @@ You must respond ONLY with valid JSON in this exact format:
   }
 }`;
 
+  let response;
   try {
-    const response = await makeInferenceRequest(prompt, apiKey);
+    response = await makeInferenceRequest(prompt, apiKey);
     const cleanedResponse = response.replace(/(-?\d+)%/g, '$1');
-    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    
+    // Find ONLY the first complete JSON object
+    const jsonMatch = cleanedResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
     if (!jsonMatch) throw new Error('No JSON found in response');
-    return JSON.parse(jsonMatch[0]);
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (!parsed.score || !parsed.efficiency_rating || !parsed.performance_metrics) {
+      throw new Error('Missing required fields in Ops response');
+    }
+    
+    return parsed;
   } catch (error) {
-    console.error('Ops agent failed:', error.message);
+    console.error('Ops agent JSON parsing failed:', error.message);
+    console.error('Raw response:', response || 'No response received');
     throw error;
   }
 }
