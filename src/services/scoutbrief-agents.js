@@ -14,41 +14,65 @@ class ScoutBriefAgents {
     console.log('🤖 ScoutBrief Agents initialized with IONET intelligence');
   }
 
-  // Direct IONET API call - no wrapper dependencies
+  // Direct IONET API call with retry logic for 500 errors
   async makeInferenceRequest(model, messages, options = {}) {
     const { temperature = 0.7, maxTokens = 400 } = options;
+    let retries = 3;
     
-    try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: temperature,
-          max_tokens: maxTokens
-        })
-      });
+    while (retries > 0) {
+      try {
+        const response = await fetch(`${this.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: messages,
+            temperature: temperature,
+            max_tokens: maxTokens
+          })
+        });
 
-      if (!response.ok) {
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || 'No response from IONET API';
+          
+          console.log('✅ IONET API success:', model);
+          
+          return {
+            content: content
+          };
+        }
+
+        // Handle 500 errors with retry
+        if (response.status === 500) {
+          console.log(`⚠️ IONET 500 error for ${model}, retrying... (${retries} attempts left)`);
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second wait
+            continue;
+          }
+        }
+
+        // Non-500 errors or no retries left
         const errorData = await response.json().catch(() => ({}));
         throw new Error(`IONET API Error ${response.status}: ${errorData.error?.message || response.statusText}`);
-      }
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || 'No response from IONET API';
-      
-      console.log('IONET raw response:', content);
-      
-      return {
-        content: content
-      };
-    } catch (error) {
-      console.error('IONET API call failed:', error.message);
-      throw error;
+      } catch (fetchError) {
+        if (fetchError.message.includes('IONET API Error 500') && retries > 0) {
+          console.log(`⚠️ IONET network error for ${model}, retrying... (${retries} attempts left)`);
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            continue;
+          }
+        }
+        
+        console.error('❌ IONET API call failed:', fetchError.message);
+        throw fetchError;
+      }
     }
   }
 
@@ -303,11 +327,6 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
 
     const filledPrompt = this.fillTemplate(prompt, variables);
 
-    console.log('=== OPS PROMPT DEBUG ===');
-    console.log('Full prompt:', filledPrompt);
-    console.log('Prompt length:', filledPrompt.length);
-    console.log('Contains special chars:', /[<>+]/.test(filledPrompt));
-
     try {
       const response = await this.makeInferenceRequest(
         'deepseek-ai/DeepSeek-R1', // Performance analysis model
@@ -516,20 +535,30 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
     try {
       console.log(`🤖 Running 5 IONET API calls for subnet ${subnetId} SEQUENTIALLY to avoid rate limits...`);
       
-      // Run agents sequentially with delays to avoid 429 rate limit errors
+      // Run agents sequentially with longer delays to handle IONET server instability
+      console.log('🤖 Running Momentum agent...');
       const momentum = await this.runMomentumAgent(subnetData, adminContext, quarterInfo);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      console.log('✅ Momentum agent completed successfully');
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay
       
+      console.log('🤖 Running Dr. Protocol agent...');
       const drProtocol = await this.runDrProtocolAgent(subnetData, adminContext, quarterInfo);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      console.log('✅ Dr. Protocol agent completed successfully');
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay
       
+      console.log('🤖 Running Ops agent...');
       const ops = await this.runOpsAgent(subnetData, adminContext, quarterInfo);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      console.log('✅ Ops agent completed successfully');
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay
       
+      console.log('🤖 Running Pulse agent...');
       const pulse = await this.runPulseAgent(subnetData, adminContext, quarterInfo);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      console.log('✅ Pulse agent completed successfully');
+      await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay
       
+      console.log('🤖 Running Guardian agent...');
       const guardian = await this.runGuardianAgent(subnetData, adminContext, quarterInfo);
+      console.log('✅ Guardian agent completed successfully');
       
       const elapsed = Date.now() - startTime;
       console.log(`✅ Subnet ${subnetId} analysis completed in ${elapsed}ms (${(elapsed/1000).toFixed(1)}s)`);
@@ -555,6 +584,7 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
       };
     } catch (error) {
       console.error(`❌ Failed to analyze subnet ${subnetData.subnet_id || subnetData.id}:`, error.message);
+      console.error(`❌ Agent failure details: Check which agent failed in the logs above`);
       throw error;
     }
   }
