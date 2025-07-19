@@ -2623,20 +2623,15 @@ const server = http.createServer(async (req, res) => {
     const job = analysisJobs.find(j => j.id === jobId);
     
     if (!job) {
-      sendJSON(res, 404, { error: 'Job not found' });
+      sendJSON(res, 404, { status: 'not found' });
       return;
     }
     
     sendJSON(res, 200, {
-      id: job.id,
       status: job.status,
-      progress: job.progress,
-      total: job.total,
-      currentSubnet: job.currentSubnet,
-      startedAt: job.startedAt,
-      completedAt: job.completedAt,
-      processingTime: job.processingTime,
-      hasResult: !!job.result,
+      progress: job.progress || 0,
+      total: job.total || 20,
+      currentSubnet: job.currentSubnet || 'Initializing...',
       error: job.error
     });
     return;
@@ -2684,6 +2679,7 @@ const server = http.createServer(async (req, res) => {
     const index = reports.findIndex(r => r.id === id);
     if (index !== -1) {
       reports.splice(index, 1);
+      await saveReports(); // CRITICAL: Save to disk
       sendJSON(res, 200, { success: true });
     } else {
       sendJSON(res, 404, { error: 'Report not found' });

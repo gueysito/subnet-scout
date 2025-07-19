@@ -78,39 +78,60 @@ const ScoutBriefAdmin = () => {
         const res = await fetch(`/api/scoutbrief/admin/analysis-status/${jobId}`);
         const status = await res.json();
         
-        setAnalysisProgress(`${status.progress}/${status.total} - ${status.currentSubnet || 'Processing...'}`);
+        // Handle job not found
+        if (status.status === 'not found') {
+          clearInterval(interval);
+          localStorage.removeItem('currentAnalysisJob');
+          setIsAnalyzing(false);
+          setAnalysisProgress('');
+          return;
+        }
+        
+        // Proper progress display with null checks
+        const progress = status.progress || 0;
+        const total = status.total || 20;
+        const current = status.currentSubnet || 'Processing...';
+        setAnalysisProgress(`${progress}/${total} - ${current}`);
         
         if (status.status === 'completed') {
           clearInterval(interval);
           localStorage.removeItem('currentAnalysisJob');
           setIsAnalyzing(false);
+          setAnalysisProgress('');
           
           // Auto-download
-          const reportRes = await fetch('/api/scoutbrief/admin/latest-report');
-          const { report } = await reportRes.json();
-          downloadReport(report);
+          try {
+            const reportRes = await fetch('/api/scoutbrief/admin/latest-report');
+            const { report } = await reportRes.json();
+            downloadReport(report);
+            alert('Report completed and downloaded!');
+          } catch (downloadError) {
+            console.error('Download failed:', downloadError);
+            alert('Report completed but download failed. Use "Download Latest Report".');
+          }
           
-          alert('Report completed and downloaded!');
           fetchReports();
           updateStats();
         } else if (status.status === 'failed') {
           clearInterval(interval);
           localStorage.removeItem('currentAnalysisJob');
           setIsAnalyzing(false);
-          alert('Analysis failed. Check logs.');
+          setAnalysisProgress('');
+          alert(`Analysis failed: ${status.error || 'Unknown error'}`);
         }
         
         if (attempts >= MAX_ATTEMPTS) {
           clearInterval(interval);
           setIsAnalyzing(false);
-          alert('Analysis taking too long. Use "Download Latest Report".');
+          setAnalysisProgress('');
+          alert('Analysis timeout. Use "Download Latest Report".');
         }
-      } catch {
-        console.error('Poll error - continuing');
-        // Keep polling
+      } catch (error) {
+        console.error('Poll error:', error);
+        // Continue polling but don't spam errors
       }
     }, 10000); // Every 10 seconds
-  }, [fetchReports, updateStats, downloadReport, setIsAnalyzing, setAnalysisProgress]);
+  }, [fetchReports, updateStats, downloadReport]);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -120,29 +141,32 @@ const ScoutBriefAdmin = () => {
         if (response.authenticated) {
           setIsAuthenticated(true);
           updateStats();
+          
+          // Only check for saved jobs after authentication succeeds
+          const savedJob = localStorage.getItem('currentAnalysisJob');
+          if (savedJob) {
+            // Verify job still exists before starting poll
+            try {
+              const statusRes = await fetch(`/api/scoutbrief/admin/analysis-status/${savedJob}`);
+              const statusData = await statusRes.json();
+              
+              if (statusData.status && statusData.status !== 'not found' && 
+                  statusData.status !== 'completed' && statusData.status !== 'failed') {
+                pollForStatus(savedJob);
+              } else {
+                localStorage.removeItem('currentAnalysisJob');
+              }
+            } catch {
+              localStorage.removeItem('currentAnalysisJob');
+            }
+          }
         }
       } catch (error) {
         console.warn('Auth check failed:', error.message);
       }
     };
+    
     checkAuth();
-
-    // Check for saved job
-    const savedJob = localStorage.getItem('currentAnalysisJob');
-    if (savedJob) {
-      pollForStatus(savedJob);
-    } else {
-      // Check backend for running jobs
-      fetch('/api/scoutbrief/admin/running-jobs')
-        .then(res => res.json())
-        .then(data => {
-          if (data.runningJob) {
-            localStorage.setItem('currentAnalysisJob', data.runningJob);
-            pollForStatus(data.runningJob);
-          }
-        })
-        .catch(console.error);
-    }
   }, [pollForStatus, updateStats]);
 
   const handleLogin = async (e) => {
