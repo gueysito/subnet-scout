@@ -2391,13 +2391,39 @@ const server = http.createServer(async (req, res) => {
       console.log(`📊 Analyzing subnets for ${quarterInfo.quarter} ${quarterInfo.year}`);
       console.log(`📝 Using admin context: ${adminContext.substring(0, 100)}...`);
       
-      // 3. Fetch real subnet data from our existing endpoint
-      const subnetResponse = await fetch(`http://localhost:${PORT}/api/agents`);
-      if (!subnetResponse.ok) {
-        throw new Error('Failed to fetch subnet data');
+      // 3. Get real subnet data directly (no self-fetch)
+      console.log('🔍 Fetching subnet data internally...');
+      
+      // Get top 20 subnets directly using same logic as /api/agents endpoint
+      const subnetIds = [];
+      for (let i = 1; i <= 20; i++) {
+        subnetIds.push(i);
       }
       
-      const subnetsData = await subnetResponse.json();
+      const subnetDataPromises = subnetIds.map(id => generateSubnetData(id));
+      const subnetDataResults = await Promise.all(subnetDataPromises);
+      
+      const subnetsData = subnetDataResults.map((subnetData, index) => {
+        const data = subnetData.data;
+        const subnetId = subnetIds[index];
+        
+        return {
+          id: subnetId,
+          subnet_id: subnetId,
+          name: data.name,
+          description: data.description,
+          type: data.type,
+          github_url: data.github_url,
+          status: data.status,
+          score: data.activity_score,
+          validator_count: data.validator_count,
+          miner_count: data.miner_count,
+          total_stake: data.total_stake,
+          emission_rate: data.emission_rate,
+          github_activity: data.github_activity,
+          last_updated: data.last_updated
+        };
+      });
       console.log(`🔍 Found ${subnetsData.length} subnets to analyze`);
       
       // 4. Run REAL AI agent analysis on top 10 subnets (to avoid overwhelming IONET)
@@ -2407,12 +2433,21 @@ const server = http.createServer(async (req, res) => {
       
       console.log(`🤖 Running 5 AI agents on top ${topSubnets.length} subnets...`);
       
-      const analysisResult = await scoutBriefAgents.analyzeSubnets(
-        topSubnets,
-        adminContext,
-        quarterInfo,
-        3 // Max 3 concurrent to avoid rate limits
-      );
+      let analysisResult;
+      try {
+        console.log('🔧 Initializing AI agents...');
+        analysisResult = await scoutBriefAgents.analyzeSubnets(
+          topSubnets,
+          adminContext,
+          quarterInfo,
+          3 // Max 3 concurrent to avoid rate limits
+        );
+        console.log('✅ AI agent analysis completed successfully');
+      } catch (agentError) {
+        console.error('❌ AI agent analysis failed:', agentError.message);
+        console.error('Agent error details:', agentError);
+        throw new Error(`AI agent analysis failed: ${agentError.message}`);
+      }
       
       // 5. Generate comprehensive report from agent results
       const report = {
