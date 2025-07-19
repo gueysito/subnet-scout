@@ -1,4 +1,5 @@
 // ScoutBrief AI Agent Service - 5 Specialized Agents for Quarterly Intelligence Reports
+/* global process */
 
 class ScoutBriefAgents {
   constructor() {
@@ -246,7 +247,7 @@ Analyze subnet {{id}} operational efficiency for Q{{quarter}} {{year}}.
 
 METRICS TO ANALYZE:
 - TAO emissions: {{tao_emitted}}
-- Compute cost: ${{compute_cost}}
+- Compute cost: \${{compute_cost}}
 - TAO per dollar: {{tao_per_dollar}}
 - Uptime: {{uptime}}%
 - Avg response time: {{response_ms}}ms
@@ -256,7 +257,7 @@ CONTEXT FROM ADMIN:
 {{admin_context}}
 
 INSTRUCTIONS:
-1. Calculate efficiency ratio (TAO/$ spent)
+1. Calculate efficiency ratio (TAO per dollar spent)
 2. Compare to network average of {{network_avg_efficiency}}
 3. Identify performance bottlenecks
 4. Assess validator reliability
