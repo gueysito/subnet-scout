@@ -127,11 +127,15 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
         { temperature: 0.6, maxTokens: 400 }
       );
 
-      // Parse JSON response with better handling
+      // Parse JSON response with cleaning
       console.log('Momentum agent response content:', response.content);
       
-      // Try to extract JSON from response
-      let jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      // Clean the response before parsing (remove % signs from numbers)
+      const cleanedResponse = response.content.replace(/(-?\d+)%/g, '$1');
+      console.log('Cleaned response:', cleanedResponse);
+      
+      // Try to extract JSON from cleaned response
+      let jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
           return JSON.parse(jsonMatch[0]);
@@ -213,11 +217,19 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
         { temperature: 0.5, maxTokens: 400 }
       );
 
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      // Clean the response before parsing (remove % signs from numbers)
+      const cleanedResponse = response.content.replace(/(-?\d+)%/g, '$1');
+      
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('Agent JSON parse error:', parseError.message);
+          throw new Error(`JSON parse failed: ${parseError.message}`);
+        }
       } else {
-        throw new Error('No JSON found in response');
+        throw new Error(`No JSON found in agent response: ${response.content.substring(0, 200)}...`);
       }
     } catch (error) {
       console.error('Dr. Protocol agent failed:', error.message);
@@ -297,11 +309,19 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
         { temperature: 0.4, maxTokens: 400 }
       );
 
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      // Clean the response before parsing (remove % signs from numbers)
+      const cleanedResponse = response.content.replace(/(-?\d+)%/g, '$1');
+      
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('Agent JSON parse error:', parseError.message);
+          throw new Error(`JSON parse failed: ${parseError.message}`);
+        }
       } else {
-        throw new Error('No JSON found in response');
+        throw new Error(`No JSON found in agent response: ${response.content.substring(0, 200)}...`);
       }
     } catch (error) {
       console.error('Ops agent failed:', error.message);
@@ -374,11 +394,19 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
         { temperature: 0.7, maxTokens: 400 }
       );
 
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      // Clean the response before parsing (remove % signs from numbers)
+      const cleanedResponse = response.content.replace(/(-?\d+)%/g, '$1');
+      
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('Agent JSON parse error:', parseError.message);
+          throw new Error(`JSON parse failed: ${parseError.message}`);
+        }
       } else {
-        throw new Error('No JSON found in response');
+        throw new Error(`No JSON found in agent response: ${response.content.substring(0, 200)}...`);
       }
     } catch (error) {
       console.error('Pulse agent failed:', error.message);
@@ -451,11 +479,19 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
         { temperature: 0.3, maxTokens: 500 }
       );
 
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      // Clean the response before parsing (remove % signs from numbers)
+      const cleanedResponse = response.content.replace(/(-?\d+)%/g, '$1');
+      
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('Agent JSON parse error:', parseError.message);
+          throw new Error(`JSON parse failed: ${parseError.message}`);
+        }
       } else {
-        throw new Error('No JSON found in response');
+        throw new Error(`No JSON found in agent response: ${response.content.substring(0, 200)}...`);
       }
     } catch (error) {
       console.error('Guardian agent failed:', error.message);
