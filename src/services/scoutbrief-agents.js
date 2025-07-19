@@ -95,19 +95,37 @@ You must respond ONLY with valid JSON in this exact format:
   "data_points": [50, 1234567.89, 25]
 }`;
 
+  let response;
   try {
-    const response = await makeInferenceRequest(prompt, apiKey);
-    
-    // Clean response - remove % signs
+    response = await makeInferenceRequest(prompt, apiKey);
     const cleanedResponse = response.replace(/(-?\d+)%/g, '$1');
     
-    // Try to parse JSON
-    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    // Find the first complete JSON object
+    const jsonMatch = cleanedResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
     if (!jsonMatch) throw new Error('No JSON found in response');
     
-    return JSON.parse(jsonMatch[0]);
+    // Parse the structured data
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (!parsed.score || !parsed.trend || !parsed.key_finding) {
+      throw new Error('Missing required fields in Momentum response');
+    }
+    
+    // IMPORTANT: Capture any additional insights after the JSON
+    const jsonEndIndex = cleanedResponse.indexOf(jsonMatch[0]) + jsonMatch[0].length;
+    const extraContent = cleanedResponse.substring(jsonEndIndex).trim();
+    
+    if (extraContent && extraContent.length > 10) {
+      // Add extra insights to the parsed object
+      parsed.additional_insights = extraContent;
+      console.log('📝 Captured additional Momentum insights:', extraContent.substring(0, 100) + '...');
+    }
+    
+    return parsed;
   } catch (error) {
-    console.error('Momentum agent failed:', error.message);
+    console.error('Momentum agent JSON parsing failed:', error.message);
+    console.error('Raw response:', response || 'No response received');
     throw error;
   }
 }
@@ -146,14 +164,37 @@ You must respond ONLY with valid JSON in this exact format:
   "red_flags": ["concern 1", "concern 2"]
 }`;
 
+  let response;
   try {
-    const response = await makeInferenceRequest(prompt, apiKey);
+    response = await makeInferenceRequest(prompt, apiKey);
     const cleanedResponse = response.replace(/(-?\d+)%/g, '$1');
-    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    
+    // Find the first complete JSON object
+    const jsonMatch = cleanedResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
     if (!jsonMatch) throw new Error('No JSON found in response');
-    return JSON.parse(jsonMatch[0]);
+    
+    // Parse the structured data
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (!parsed.score || !parsed.development_status || !parsed.key_finding) {
+      throw new Error('Missing required fields in Dr. Protocol response');
+    }
+    
+    // IMPORTANT: Capture any additional insights after the JSON
+    const jsonEndIndex = cleanedResponse.indexOf(jsonMatch[0]) + jsonMatch[0].length;
+    const extraContent = cleanedResponse.substring(jsonEndIndex).trim();
+    
+    if (extraContent && extraContent.length > 10) {
+      // Add extra insights to the parsed object
+      parsed.additional_insights = extraContent;
+      console.log('📝 Captured additional Dr. Protocol insights:', extraContent.substring(0, 100) + '...');
+    }
+    
+    return parsed;
   } catch (error) {
-    console.error('Dr. Protocol agent failed:', error.message);
+    console.error('Dr. Protocol agent JSON parsing failed:', error.message);
+    console.error('Raw response:', response || 'No response received');
     throw error;
   }
 }
@@ -208,15 +249,26 @@ You must respond ONLY with valid JSON in this exact format:
     response = await makeInferenceRequest(prompt, apiKey);
     const cleanedResponse = response.replace(/(-?\d+)%/g, '$1');
     
-    // Find ONLY the first complete JSON object
+    // Find the first complete JSON object
     const jsonMatch = cleanedResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
     if (!jsonMatch) throw new Error('No JSON found in response');
     
+    // Parse the structured data
     const parsed = JSON.parse(jsonMatch[0]);
     
     // Validate required fields
     if (!parsed.score || !parsed.efficiency_rating || !parsed.performance_metrics) {
       throw new Error('Missing required fields in Ops response');
+    }
+    
+    // IMPORTANT: Capture any additional insights after the JSON
+    const jsonEndIndex = cleanedResponse.indexOf(jsonMatch[0]) + jsonMatch[0].length;
+    const extraContent = cleanedResponse.substring(jsonEndIndex).trim();
+    
+    if (extraContent && extraContent.length > 10) {
+      // Add extra insights to the parsed object
+      parsed.additional_insights = extraContent;
+      console.log('📝 Captured additional Ops insights:', extraContent.substring(0, 100) + '...');
     }
     
     return parsed;
@@ -266,14 +318,37 @@ You must respond ONLY with valid JSON in this exact format:
   }
 }`;
 
+  let response;
   try {
-    const response = await makeInferenceRequest(prompt, apiKey);
+    response = await makeInferenceRequest(prompt, apiKey);
     const cleanedResponse = response.replace(/(-?\d+)%/g, '$1');
-    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    
+    // Find the first complete JSON object
+    const jsonMatch = cleanedResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
     if (!jsonMatch) throw new Error('No JSON found in response');
-    return JSON.parse(jsonMatch[0]);
+    
+    // Parse the structured data
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (!parsed.score || !parsed.community_health || !parsed.key_finding) {
+      throw new Error('Missing required fields in Pulse response');
+    }
+    
+    // IMPORTANT: Capture any additional insights after the JSON
+    const jsonEndIndex = cleanedResponse.indexOf(jsonMatch[0]) + jsonMatch[0].length;
+    const extraContent = cleanedResponse.substring(jsonEndIndex).trim();
+    
+    if (extraContent && extraContent.length > 10) {
+      // Add extra insights to the parsed object
+      parsed.additional_insights = extraContent;
+      console.log('📝 Captured additional Pulse insights:', extraContent.substring(0, 100) + '...');
+    }
+    
+    return parsed;
   } catch (error) {
-    console.error('Pulse agent failed:', error.message);
+    console.error('Pulse agent JSON parsing failed:', error.message);
+    console.error('Raw response:', response || 'No response received');
     throw error;
   }
 }
@@ -313,14 +388,37 @@ You must respond ONLY with valid JSON in this exact format:
   "risk_factors": ["risk 1", "risk 2", "risk 3"]
 }`;
 
+  let response;
   try {
-    const response = await makeInferenceRequest(prompt, apiKey);
+    response = await makeInferenceRequest(prompt, apiKey);
     const cleanedResponse = response.replace(/(-?\d+)%/g, '$1');
-    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    
+    // Find the first complete JSON object
+    const jsonMatch = cleanedResponse.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
     if (!jsonMatch) throw new Error('No JSON found in response');
-    return JSON.parse(jsonMatch[0]);
+    
+    // Parse the structured data
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    // Validate required fields
+    if (!parsed.score || !parsed.risk_level || !parsed.key_finding) {
+      throw new Error('Missing required fields in Guardian response');
+    }
+    
+    // IMPORTANT: Capture any additional insights after the JSON
+    const jsonEndIndex = cleanedResponse.indexOf(jsonMatch[0]) + jsonMatch[0].length;
+    const extraContent = cleanedResponse.substring(jsonEndIndex).trim();
+    
+    if (extraContent && extraContent.length > 10) {
+      // Add extra insights to the parsed object
+      parsed.additional_insights = extraContent;
+      console.log('📝 Captured additional Guardian insights:', extraContent.substring(0, 100) + '...');
+    }
+    
+    return parsed;
   } catch (error) {
-    console.error('Guardian agent failed:', error.message);
+    console.error('Guardian agent JSON parsing failed:', error.message);
+    console.error('Raw response:', response || 'No response received');
     throw error;
   }
 }
