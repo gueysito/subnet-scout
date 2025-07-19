@@ -13,27 +13,62 @@ const ScoutBriefAdmin = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState('');
   const [reportsList, setReportsList] = useState([]);
   const [showReportsHistory, setShowReportsHistory] = useState(false);
-  const [showContextsManager, setShowContextsManager] = useState(false);
-  const [contextsList, setContextsList] = useState([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState('');
+  const [reportData, setReportData] = useState(null);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await apiClient.get('/api/scoutbrief/admin/status');
+        if (response.authenticated) {
+          setIsAuthenticated(true);
+          updateStats();
+        }
+      } catch (error) {
+        console.warn('Auth check failed:', error.message);
+      }
+    };
+    checkAuth();
+
+    // Check for saved job
+    const savedJob = localStorage.getItem('currentAnalysisJob');
+    if (savedJob) {
+      pollForStatus(savedJob);
+    } else {
+      // Check backend for running jobs
+      fetch('/api/scoutbrief/admin/running-jobs')
+        .then(res => res.json())
+        .then(data => {
+          if (data.runningJob) {
+            localStorage.setItem('currentAnalysisJob', data.runningJob);
+            pollForStatus(data.runningJob);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [pollForStatus, updateStats]);
 
   const updateStats = useCallback(async () => {
     try {
       const [contextsRes, reportsRes] = await Promise.all([
-        apiClient.get('/api/scoutbrief/admin/contexts'),
-        apiClient.get('/api/scoutbrief/admin/reports-list')
+        fetch('/api/scoutbrief/admin/contexts'),
+        fetch('/api/scoutbrief/admin/reports-list')
       ]);
+      
+      const contextsData = await contextsRes.json();
+      const reportsData = await reportsRes.json();
       
       setStats({
         active_subscribers: 0,
-        brief_contexts: contextsRes.contexts?.length || 0,
-        brief_generations: reportsRes.reports?.length || 0
+        brief_contexts: contextsData.contexts?.length || 0,
+        brief_generations: reportsData.reports?.length || 0
       });
     } catch (error) {
-      console.error('Failed to fetch stats:', error.message);
+      console.error('Failed to update stats:', error);
       setStats({
         active_subscribers: 0,
         brief_contexts: 0,
@@ -42,6 +77,73 @@ const ScoutBriefAdmin = () => {
       });
     }
   }, []);
+
+  const downloadReport = useCallback((report) => {
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ScoutBrief_${report.id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const fetchReports = useCallback(async () => {
+    try {
+      const response = await fetch('/api/scoutbrief/admin/reports-list');
+      const data = await response.json();
+      setReportsList(data.reports || []);
+    } catch (error) {
+      console.error('Failed to fetch reports:', error);
+    }
+  }, []);
+
+  const pollForStatus = useCallback(async (jobId) => {
+    setIsAnalyzing(true);
+    let attempts = 0;
+    const MAX_ATTEMPTS = 1000; // 2.7 hours
+    
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch(`/api/scoutbrief/admin/analysis-status/${jobId}`);
+        const status = await res.json();
+        
+        setAnalysisProgress(`${status.progress}/${status.total} - ${status.currentSubnet || 'Processing...'}`);
+        
+        if (status.status === 'completed') {
+          clearInterval(interval);
+          localStorage.removeItem('currentAnalysisJob');
+          setIsAnalyzing(false);
+          
+          // Auto-download
+          const reportRes = await fetch('/api/scoutbrief/admin/latest-report');
+          const { report } = await reportRes.json();
+          downloadReport(report);
+          
+          alert('Report completed and downloaded!');
+          fetchReports();
+          updateStats();
+        } else if (status.status === 'failed') {
+          clearInterval(interval);
+          localStorage.removeItem('currentAnalysisJob');
+          setIsAnalyzing(false);
+          alert('Analysis failed. Check logs.');
+        }
+        
+        if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(interval);
+          setIsAnalyzing(false);
+          alert('Analysis taking too long. Use "Download Latest Report".');
+        }
+      } catch {
+        console.error('Poll error - continuing');
+        // Keep polling
+      }
+    }, 10000); // Every 10 seconds
+  }, [fetchReports, updateStats, downloadReport, setIsAnalyzing, setAnalysisProgress]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -98,125 +200,6 @@ const ScoutBriefAdmin = () => {
     }
   };
 
-  const downloadLatestReport = async () => {
-    try {
-      const res = await fetch('/api/scoutbrief/admin/latest-report');
-      const { report } = await res.json();
-      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ScoutBrief_${report.id}.json`;
-      a.click();
-    } catch {
-      alert('No reports available for download');
-    }
-  };
-
-  const fetchReports = useCallback(async () => {
-    try {
-      const response = await apiClient.get('/api/scoutbrief/admin/reports-list');
-      setReportsList(response.reports || []);
-    } catch (error) {
-      console.error('Failed to load reports:', error.message);
-    }
-  }, []);
-
-  const handleLoadReportsHistory = async () => {
-    await fetchReports();
-    setShowReportsHistory(true);
-  };
-
-  const fetchContexts = async () => {
-    try {
-      const response = await apiClient.get('/api/scoutbrief/admin/contexts');
-      setContextsList(response.contexts || []);
-    } catch (error) {
-      console.error('Failed to load contexts:', error.message);
-    }
-  };
-
-  const pollForStatus = useCallback(async (jobId) => {
-    let attempts = 0;
-    const MAX_ATTEMPTS = 1000; // ~2.7 hours
-    
-    const checkStatus = setInterval(async () => {
-      attempts++;
-      try {
-        const res = await fetch(`/api/scoutbrief/admin/analysis-status/${jobId}`);
-        const status = await res.json();
-        
-        setAnalysisProgress(`${status.progress}/${status.total} - ${status.currentSubnet}`);
-        
-        if (status.status === 'completed') {
-          clearInterval(checkStatus);
-          localStorage.removeItem('currentAnalysisJob');
-          const reportRes = await fetch('/api/scoutbrief/admin/latest-report');
-          const { report } = await reportRes.json();
-          
-          // Auto-download
-          const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `ScoutBrief_${report.id}.json`;
-          a.click();
-          
-          alert('Report completed and downloaded!');
-          fetchReports();
-          setIsAnalyzing(false);
-        }
-        
-        if (attempts >= MAX_ATTEMPTS) {
-          clearInterval(checkStatus);
-          alert('Check "View Latest Report" manually');
-          setIsAnalyzing(false);
-        }
-      } catch (error) {
-        console.error('Poll error - continuing:', error);
-      }
-    }, 10000);
-  }, [fetchReports, setIsAnalyzing]);
-
-  // Check authentication status and job tracking on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await apiClient.get('/api/scoutbrief/admin/status');
-        if (response.authenticated) {
-          setIsAuthenticated(true);
-          updateStats();
-        }
-      } catch (error) {
-        console.warn('Auth check failed:', error.message);
-      }
-    };
-    checkAuth();
-    
-    // Persistent job tracking
-    const savedJob = localStorage.getItem('currentAnalysisJob');
-    if (savedJob) {
-      setIsAnalyzing(true);
-      pollForStatus(savedJob);
-    } else {
-      fetch('/api/scoutbrief/admin/running-jobs')
-        .then(res => res.json())
-        .then(data => {
-          if (data.runningJob) {
-            localStorage.setItem('currentAnalysisJob', data.runningJob);
-            setIsAnalyzing(true);
-            pollForStatus(data.runningJob);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [pollForStatus, updateStats]);
-
-  const handleManageContexts = async () => {
-    await fetchContexts();
-    setShowContextsManager(true);
-  };
-
   const startBackgroundAnalysis = async () => {
     setIsAnalyzing(true);
     setAnalysisProgress('Starting...');
@@ -236,6 +219,26 @@ const ScoutBriefAdmin = () => {
       setIsAnalyzing(false);
       alert('Failed to start analysis');
     }
+  };
+
+  const handleDownloadReport = () => {
+    if (!reportData) return;
+    
+    // Create downloadable JSON file
+    const dataStr = JSON.stringify(reportData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `ScoutBrief_${reportData.quarter}_${reportData.year}_Report.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+  };
+
+  const handleLoadReportsHistory = async () => {
+    await fetchReports();
+    setShowReportsHistory(true);
   };
 
   // Login form
@@ -338,9 +341,9 @@ const ScoutBriefAdmin = () => {
               <Send className="w-8 h-8 text-purple-400 mr-3" />
               <div>
                 <h3 className="text-lg font-bold text-white">
-                  {stats ? stats.brief_generations : 0}
+                  {stats ? stats.brief_generations : '...'}
                 </h3>
-                <p className="text-sm text-gray-400">Generated Reports</p>
+                <p className="text-sm text-gray-400">Generated Briefs</p>
               </div>
             </div>
           </div>
@@ -430,13 +433,15 @@ const ScoutBriefAdmin = () => {
 
         {/* Report Generation Section */}
         <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
-          <h2 className="text-2xl font-bold text-white mb-6">ScoutBrief Intelligence System</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Generate Quarterly Report</h2>
           
           <div className="mb-6">
-            <p className="text-gray-300 mb-6">
-              AI-powered analysis of the top 20 Bittensor subnets using all 5 specialist agents.
+            <p className="text-gray-300 mb-4">
+              Run AI agent analysis on the top 20 subnets using the latest quarterly context.
+              This will generate a comprehensive intelligence brief with insights from all 5 agents.
             </p>
             
+
             {/* Single Generate Button */}
             <div className="mb-6">
               <button
@@ -461,7 +466,15 @@ const ScoutBriefAdmin = () => {
             {/* Big Download Latest Button */}
             <div className="mb-6">
               <button 
-                onClick={downloadLatestReport}
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/scoutbrief/admin/latest-report');
+                    const { report } = await res.json();
+                    downloadReport(report);
+                  } catch {
+                    alert('No reports found');
+                  }
+                }}
                 className="w-full text-white font-bold transition-colors duration-200 flex items-center justify-center"
                 style={{ fontSize: '20px', padding: '20px', backgroundColor: '#4CAF50' }}
               >
@@ -479,15 +492,8 @@ const ScoutBriefAdmin = () => {
                 <FileText className="w-4 h-4 mr-2" />
                 Reports History
               </button>
-              
-              <button
-                onClick={handleManageContexts}
-                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white font-semibold transition-colors duration-200 flex items-center"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Manage Contexts
-              </button>
             </div>
+
           </div>
         </div>
 
@@ -524,14 +530,7 @@ const ScoutBriefAdmin = () => {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `ScoutBrief_${report.id}.json`;
-                            a.click();
-                          }}
+                          onClick={() => downloadReport(report)}
                           className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white text-sm"
                         >
                           Download
@@ -561,75 +560,169 @@ const ScoutBriefAdmin = () => {
           </div>
         )}
 
-        {/* Context Manager Section */}
-        {showContextsManager && (
+        {/* Report Preview Section */}
+        {reportData && (
           <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Context Manager</h2>
-              <button
-                onClick={() => setShowContextsManager(false)}
-                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-white font-semibold"
-              >
-                Close
-              </button>
-            </div>
+            <h2 className="text-2xl font-bold text-white mb-6">Report Preview</h2>
             
-            {contextsList.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">
-                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No contexts added yet.</p>
+            {/* Report Metadata */}
+            <div className="mb-6 p-4 bg-zinc-800/50 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-400">Quarter:</span>
+                  <span className="text-white ml-2">{reportData.quarter} {reportData.year}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Analyzed:</span>
+                  <span className="text-white ml-2">{reportData.successful_analyses} subnets</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Generated:</span>
+                  <span className="text-white ml-2">{new Date(reportData.generated_at).toLocaleDateString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Failed:</span>
+                  <span className="text-white ml-2">{reportData.failed_analyses} subnets</span>
+                </div>
               </div>
-            ) : (
+            </div>
+
+            {/* Executive Summary */}
+            <div className="mb-8 p-6 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+              <h3 className="text-xl font-bold text-blue-400 mb-4">📊 Executive Summary</h3>
+              <div className="space-y-3 text-gray-300">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400">{reportData.statistics?.average_score || 0}</div>
+                    <div className="text-sm text-gray-400">Average Score</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-400">{reportData.successful_analyses || 0}</div>
+                    <div className="text-sm text-gray-400">Subnets Analyzed</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-400">{Object.keys(reportData.agent_summaries || {}).length}</div>
+                    <div className="text-sm text-gray-400">AI Agents Used</div>
+                  </div>
+                </div>
+                <p className="mt-4 text-gray-300">
+                  {reportData.summary || 'Comprehensive AI-powered analysis completed successfully.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Top Performers */}
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-green-400 mb-4">🏆 Top Performers</h3>
               <div className="space-y-4">
-                {contextsList.map((context, index) => (
-                  <div key={index} className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-600">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-white">
-                          {context.quarter} {context.year} Context
-                        </h3>
-                        <div className="text-sm text-gray-400 mt-1">
-                          <span>Created: {new Date(context.created_at).toLocaleString()}</span>
-                        </div>
-                        <div className="mt-3 p-3 bg-zinc-700/50 rounded text-sm text-gray-300 max-h-32 overflow-y-auto">
-                          {context.content}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        <button
-                          onClick={() => {
-                            // Copy context to clipboard
-                            navigator.clipboard.writeText(context.content);
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-sm"
-                        >
-                          Copy
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm('Delete this context?')) {
-                              try {
-                                await fetch(`/api/scoutbrief/admin/context/${index}`, { method: 'DELETE' });
-                                fetchContexts();
-                                updateStats();
-                              } catch {
-                                alert('Failed to delete context');
-                              }
-                            }
-                          }}
-                          className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-white text-sm"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                {reportData.top_performers?.map((subnet, index) => (
+                  <div key={subnet.subnet_id} className="p-4 bg-green-900/20 border border-green-700/30 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-lg font-semibold text-white">
+                        #{index + 1} - {subnet.name || `Subnet ${subnet.subnet_id}`}
+                      </h4>
+                      <span className="text-green-400 font-bold">{subnet.overall_score}/100</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-green-300">Momentum:</span> <span className="text-gray-300">{subnet.key_insights?.momentum}</span></div>
+                      <div><span className="text-blue-300">Dr. Protocol:</span> <span className="text-gray-300">{subnet.key_insights?.dr_protocol}</span></div>
+                      <div><span className="text-yellow-300">Ops:</span> <span className="text-gray-300">{subnet.key_insights?.ops}</span></div>
+                      <div><span className="text-purple-300">Pulse:</span> <span className="text-gray-300">{subnet.key_insights?.pulse}</span></div>
+                      <div className="md:col-span-2"><span className="text-red-300">Guardian:</span> <span className="text-gray-300">{subnet.key_insights?.guardian}</span></div>
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Honorable Mentions */}
+            {reportData.honorable_mentions?.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-blue-400 mb-4">🎖️ Honorable Mentions</h3>
+                <div className="space-y-3">
+                  {reportData.honorable_mentions.map((subnet) => (
+                    <div key={subnet.subnet_id} className="p-3 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-white font-semibold">Subnet {subnet.subnet_id}</span>
+                        <span className="text-blue-400">{subnet.overall_score}/100</span>
+                      </div>
+                      <div className="text-sm text-gray-300 mt-1">
+                        Best Agent: <span className="text-blue-300">{subnet.standout_agent?.agent}</span> ({subnet.standout_agent?.score}/100)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
+
+            {/* Underperformers */}
+            {reportData.underperformers?.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-bold text-red-400 mb-4">⚠️ Underperformers</h3>
+                <div className="space-y-3">
+                  {reportData.underperformers.map((subnet) => (
+                    <div key={subnet.subnet_id} className="p-3 bg-red-900/20 border border-red-700/30 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-white font-semibold">Subnet {subnet.subnet_id}</span>
+                        <span className="text-red-400">{subnet.overall_score}/100</span>
+                      </div>
+                      <div className="text-sm">
+                        {subnet.primary_concerns?.map((concern, index) => (
+                          <div key={index} className="text-gray-300">
+                            {concern.agent}: <span className="text-red-300">{concern.concern}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Agent Summaries */}
+            <div>
+              <h3 className="text-xl font-bold text-white mb-4">📊 Agent Analysis Summary</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(reportData.agent_summaries || {}).map(([agentName, summary]) => (
+                  <div key={agentName} className="p-4 bg-zinc-800/50 rounded-lg">
+                    <h4 className="font-semibold text-white capitalize mb-2">
+                      {agentName.replace('_', ' ')} Agent
+                    </h4>
+                    <div className="text-sm text-gray-300">
+                      <div>Average Score: <span className="text-white">{summary.average_score}/100</span></div>
+                      <div>Analyzed: <span className="text-white">{summary.total_analyzed} subnets</span></div>
+                      <div>Trend: <span className="text-blue-300">{summary.dominant_trend}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-8 p-4 bg-zinc-800/50 rounded-lg">
+              <p className="text-gray-300 text-sm mb-3">
+                This is a draft report generated by AI agents. Review the content above and then send to your {stats?.active_subscribers || 0} subscribers.
+              </p>
+              <div className="flex space-x-4">
+                <button className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white text-sm font-semibold">
+                  Send to Subscribers
+                </button>
+                <button 
+                  onClick={handleDownloadReport}
+                  className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white text-sm font-semibold"
+                >
+                  Download JSON
+                </button>
+                <button 
+                  onClick={() => setReportData(null)}
+                  className="bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded text-white text-sm font-semibold"
+                >
+                  Close Preview
+                </button>
+              </div>
+            </div>
           </div>
         )}
-
       </div>
     </div>
   );

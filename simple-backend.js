@@ -2680,53 +2680,21 @@ const server = http.createServer(async (req, res) => {
 
   // Delete report endpoint
   if (pathname.startsWith('/api/scoutbrief/admin/report/') && method === 'DELETE') {
-    try {
-      const reportId = pathname.split('/').pop();
-      const index = reports.findIndex(r => r.id === reportId);
-      
-      if (index !== -1) {
-        reports.splice(index, 1);
-        await saveReports();
-        sendJSON(res, 200, { success: true });
-      } else {
-        sendJSON(res, 404, { error: 'Report not found' });
-      }
-    } catch (error) {
-      console.error('Delete report error:', error);
-      sendJSON(res, 500, { error: 'Internal server error' });
-    }
-    return;
-  }
-
-  // Delete context endpoint
-  if (pathname.startsWith('/api/scoutbrief/admin/context/') && method === 'DELETE') {
-    try {
-      const contextIndex = parseInt(pathname.split('/').pop());
-      
-      if (isNaN(contextIndex) || contextIndex < 0 || contextIndex >= quarterlyContexts.length) {
-        sendJSON(res, 404, { error: 'Context not found' });
-        return;
-      }
-      
-      quarterlyContexts.splice(contextIndex, 1);
-      await saveContexts();
+    const id = pathname.split('/').pop();
+    const index = reports.findIndex(r => r.id === id);
+    if (index !== -1) {
+      reports.splice(index, 1);
       sendJSON(res, 200, { success: true });
-    } catch (error) {
-      console.error('Delete context error:', error);
-      sendJSON(res, 500, { error: 'Internal server error' });
+    } else {
+      sendJSON(res, 404, { error: 'Report not found' });
     }
     return;
   }
 
-  // Running jobs endpoint
+  // Get running jobs endpoint
   if (pathname === '/api/scoutbrief/admin/running-jobs' && method === 'GET') {
-    try {
-      const runningJob = analysisJobs.find(job => job.status === 'running');
-      sendJSON(res, 200, { runningJob: runningJob?.id || null });
-    } catch (error) {
-      console.error('Running jobs error:', error);
-      sendJSON(res, 500, { error: 'Internal server error' });
-    }
+    const runningJob = analysisJobs.find(job => job.status === 'running');
+    sendJSON(res, 200, { runningJob: runningJob?.id || null });
     return;
   }
 
