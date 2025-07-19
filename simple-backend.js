@@ -7,6 +7,7 @@
 import http from 'http';
 import https from 'https';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
 import aitableService from './shared/utils/aitableService.js';
 import scoutBriefAgents from './src/services/scoutbrief-agents.js';
@@ -20,6 +21,10 @@ let db;
 let briefGenerations = 0;
 const analysisJobs = []; // Track background analysis jobs
 const reports = []; // Store generated reports
+
+// Data persistence setup
+const DATA_DIR = './data';
+let quarterlyContexts = []; // This will replace the SQLite contexts for file storage
 
 // Initialize SQLite database
 function initDatabase() {
@@ -92,17 +97,6 @@ function getSubscriberCount() {
   }
 }
 
-function addContext(quarter, year, context) {
-  if (!db) return false;
-  try {
-    const stmt = db.prepare('INSERT INTO contexts (quarter, year, context) VALUES (?, ?, ?)');
-    const result = stmt.run(quarter, year, context);
-    return result.changes > 0;
-  } catch (error) {
-    console.error('Failed to add context:', error);
-    return false;
-  }
-}
 
 function getContextCount() {
   if (!db) return 0;
@@ -116,20 +110,68 @@ function getContextCount() {
   }
 }
 
-function getAllContexts() {
-  if (!db) return [];
-  try {
-    const stmt = db.prepare('SELECT * FROM contexts ORDER BY created_at ASC');
-    return stmt.all();
-  } catch (error) {
-    console.error('Failed to get all contexts:', error);
-    return [];
-  }
-}
 
 
 // Initialize database on startup
 initDatabase();
+
+// Data persistence functions
+async function initDataPersistence() {
+  try {
+    // Create data directory if it doesn't exist
+    await fsPromises.mkdir(DATA_DIR, { recursive: true });
+    console.log('📁 Data directory ready');
+    
+    // Load persisted contexts
+    try {
+      const contextsData = await fsPromises.readFile(path.join(DATA_DIR, 'contexts.json'), 'utf-8');
+      quarterlyContexts.length = 0; // Clear array
+      quarterlyContexts.push(...JSON.parse(contextsData));
+      console.log(`✅ Loaded ${quarterlyContexts.length} contexts from disk`);
+    } catch {
+      console.log('📁 No contexts file found, starting fresh');
+    }
+    
+    // Load persisted reports
+    try {
+      const reportsData = await fsPromises.readFile(path.join(DATA_DIR, 'reports.json'), 'utf-8');
+      reports.length = 0; // Clear array
+      reports.push(...JSON.parse(reportsData));
+      console.log(`✅ Loaded ${reports.length} reports from disk`);
+    } catch {
+      console.log('📁 No reports file found, starting fresh');
+    }
+  } catch (error) {
+    console.error('Error initializing data persistence:', error);
+  }
+}
+
+async function saveContexts() {
+  try {
+    await fsPromises.writeFile(
+      path.join(DATA_DIR, 'contexts.json'),
+      JSON.stringify(quarterlyContexts, null, 2)
+    );
+    console.log('💾 Contexts saved to disk');
+  } catch (error) {
+    console.error('Error saving contexts:', error);
+  }
+}
+
+async function saveReports() {
+  try {
+    await fsPromises.writeFile(
+      path.join(DATA_DIR, 'reports.json'),
+      JSON.stringify(reports, null, 2)
+    );
+    console.log('💾 Reports saved to disk');
+  } catch (error) {
+    console.error('Error saving reports:', error);
+  }
+}
+
+// Initialize data persistence
+initDataPersistence();
 
 // IO.net API Configuration
 const IONET_API_KEY = process.env.IONET_API_KEY;
@@ -2454,38 +2496,86 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
-      // Check if this exact content already exists
-      const allContexts = getAllContexts();
-      const isDuplicate = allContexts.some(ctx => ctx.context === context.trim());
+      // Check if this exact content already exists in file-based storage
+      const isDuplicate = quarterlyContexts.some(ctx => ctx.content === context.trim());
       if (isDuplicate) {
         console.log('⚠️ Duplicate context detected, skipping');
         sendJSON(res, 200, { success: true, message: 'Context already exists' });
         return;
       }
       
-      // Store context in SQLite database
+      // Store context in file-based storage
       const contextQuarter = quarter || 'Q1';
       const contextYear = year || new Date().getFullYear();
-      const added = addContext(contextQuarter, contextYear, context.trim());
+      const contextData = {
+        quarter: contextQuarter,
+        year: contextYear,
+        content: context.trim(),
+        created_at: new Date().toISOString()
+      };
       
-      if (!added) {
-        sendJSON(res, 500, {
-          success: false,
-          error: 'Failed to save context to database'
-        });
-        return;
-      }
+      quarterlyContexts.push(contextData);
+      await saveContexts(); // Save to disk
       
       sendJSON(res, 200, {
         success: true,
         message: 'Context submitted successfully!',
         quarter: contextQuarter,
         year: contextYear,
-        total_contexts: getContextCount(),
+        total_contexts: quarterlyContexts.length,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
       console.error('Context submission error:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+    return;
+  }
+
+  // Get all contexts endpoint
+  if (pathname === '/api/scoutbrief/admin/contexts' && method === 'GET') {
+    try {
+      sendJSON(res, 200, {
+        success: true,
+        contexts: quarterlyContexts,
+        total: quarterlyContexts.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Get contexts error:', error);
+      sendJSON(res, 500, {
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+    return;
+  }
+
+  // Get specific context by ID (index) endpoint
+  if (pathname.startsWith('/api/scoutbrief/admin/context/') && method === 'GET') {
+    try {
+      const contextId = parseInt(pathname.split('/').pop());
+      
+      if (isNaN(contextId) || contextId < 0 || contextId >= quarterlyContexts.length) {
+        sendJSON(res, 404, {
+          success: false,
+          error: 'Context not found'
+        });
+        return;
+      }
+      
+      const context = quarterlyContexts[contextId];
+      sendJSON(res, 200, {
+        success: true,
+        context: context,
+        id: contextId,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Get specific context error:', error);
       sendJSON(res, 500, {
         success: false,
         error: 'Internal server error'
@@ -2611,16 +2701,15 @@ const server = http.createServer(async (req, res) => {
         year: now.getFullYear()
       };
       
-      // 2. Get ALL admin contexts from SQLite database
-      const allContexts = getAllContexts();
-      console.log('📚 Total contexts in database:', allContexts.length);
-      console.log('📝 Context preview:', allContexts.map(c => c.context.substring(0, 100) + '...'));
+      // 2. Get ALL admin contexts from file-based storage
+      console.log('📚 Total contexts in storage:', quarterlyContexts.length);
+      console.log('📝 Context preview:', quarterlyContexts.map(c => c.content.substring(0, 100) + '...'));
       
       // Concatenate ALL contexts, not just the latest
-      const adminContext = allContexts.length > 0 
-        ? allContexts.map(ctx => ctx.context).join('\n\n---\n\n')
+      const adminContext = quarterlyContexts.length > 0 
+        ? quarterlyContexts.map(ctx => ctx.content).join('\n\n---\n\n')
         : 'No specific context provided for this quarter.';
-      console.log('✅ Using ALL contexts:', allContexts.length, 'total');
+      console.log('✅ Using ALL contexts:', quarterlyContexts.length, 'total');
       
       console.log(`📊 Analyzing subnets for ${quarterInfo.quarter} ${quarterInfo.year}`);
       console.log(`📝 Combined admin context: ${adminContext.substring(0, 100)}...`);
@@ -2916,6 +3005,9 @@ const server = http.createServer(async (req, res) => {
       reports.push(report);
       console.log(`📁 Report saved to reports array. Total reports: ${reports.length}`);
       
+      // Save reports to disk
+      await saveReports();
+      
       sendJSON(res, 200, {
         success: true,
         message: 'Real AI intelligence brief generated successfully!',
@@ -2962,10 +3054,9 @@ const server = http.createServer(async (req, res) => {
       const topSubnets = sortedSubnets.slice(0, 20); // Analyze top 20
       job.total = topSubnets.length;
       
-      // Get ALL contexts
-      const allContexts = getAllContexts();
-      const adminContext = allContexts.length > 0 
-        ? allContexts.map(ctx => ctx.context).join('\n\n---\n\n')
+      // Get ALL contexts from file-based storage
+      const adminContext = quarterlyContexts.length > 0 
+        ? quarterlyContexts.map(ctx => ctx.content).join('\n\n---\n\n')
         : 'No specific context provided for this quarter.';
       
       // Run analysis with progress

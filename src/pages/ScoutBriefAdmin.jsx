@@ -19,6 +19,8 @@ const ScoutBriefAdmin = () => {
   const [isLoadingLatest, setIsLoadingLatest] = useState(false);
   const [reportsList, setReportsList] = useState([]);
   const [showReportsHistory, setShowReportsHistory] = useState(false);
+  const [showContextsManager, setShowContextsManager] = useState(false);
+  const [contextsList, setContextsList] = useState([]);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -175,6 +177,70 @@ const ScoutBriefAdmin = () => {
       setShowReportsHistory(true);
     } catch (error) {
       console.error('Failed to load reports history:', error.message);
+    }
+  };
+
+  const handleManageContexts = async () => {
+    try {
+      const response = await apiClient.get('/api/scoutbrief/admin/contexts');
+      setContextsList(response.contexts || []);
+      setShowContextsManager(true);
+    } catch (error) {
+      console.error('Failed to load contexts:', error.message);
+    }
+  };
+
+  const handleStartBackgroundAnalysis = async () => {
+    setIsGenerating(true);
+    setGenerationStatus(null);
+    setReportData(null);
+
+    try {
+      // Start background analysis
+      const response = await apiClient.post('/api/scoutbrief/admin/start-analysis', {});
+      
+      if (response.success && response.jobId) {
+        setGenerationStatus('background_started');
+        
+        // Start polling for results
+        const MAX_POLL_TIME = 3600000; // 60 minutes instead of 5
+        const POLL_INTERVAL = 10000; // Check every 10 seconds
+        
+        let pollStartTime = Date.now();
+        
+        const pollStatus = setInterval(async () => {
+          try {
+            const statusRes = await apiClient.get(`/api/scoutbrief/admin/analysis-status/${response.jobId}`);
+            
+            if (statusRes.status === 'completed') {
+              clearInterval(pollStatus);
+              setGenerationStatus('success');
+              setReportData(statusRes.result || null);
+              setIsGenerating(false);
+            } else if (statusRes.status === 'failed') {
+              clearInterval(pollStatus);
+              setGenerationStatus('error');
+              setIsGenerating(false);
+            } else if (Date.now() - pollStartTime > MAX_POLL_TIME) {
+              clearInterval(pollStatus);
+              // Don't show error - show "Check back later" message
+              setGenerationStatus('check_later');
+              setIsGenerating(false);
+            }
+          } catch (error) {
+            // Don't stop polling on network errors
+            console.error('Poll error:', error);
+          }
+        }, POLL_INTERVAL);
+        
+      } else {
+        setGenerationStatus('error');
+        setIsGenerating(false);
+      }
+    } catch (error) {
+      console.error('Background analysis start failed:', error.message);
+      setGenerationStatus('error');
+      setIsGenerating(false);
     }
   };
 
@@ -405,6 +471,24 @@ const ScoutBriefAdmin = () => {
               </div>
             )}
 
+            {generationStatus === 'background_started' && (
+              <div className="mb-4 p-4 rounded-lg bg-blue-900/50 border border-blue-700 text-blue-300">
+                <div className="flex items-center">
+                  <Clock className="w-5 h-5 mr-2 animate-spin" />
+                  Background analysis started. Processing 20 subnets... This may take up to 60 minutes.
+                </div>
+              </div>
+            )}
+
+            {generationStatus === 'check_later' && (
+              <div className="mb-4 p-4 rounded-lg bg-purple-900/50 border border-purple-700 text-purple-300">
+                <div className="flex items-center">
+                  <Clock className="w-5 h-5 mr-2" />
+                  Analysis is taking longer than expected. Use "View Latest Report" to check results.
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleGenerateReport}
               disabled={isGenerating}
@@ -422,6 +506,27 @@ const ScoutBriefAdmin = () => {
                 </>
               )}
             </button>
+
+            {/* Background Analysis Button */}
+            <div className="mt-4">
+              <button
+                onClick={handleStartBackgroundAnalysis}
+                disabled={isGenerating}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-800 disabled:cursor-not-allowed px-6 py-3 rounded-lg text-white font-semibold transition-colors duration-200 flex items-center"
+              >
+                {isGenerating ? (
+                  <>
+                    <Clock className="w-5 h-5 mr-2 animate-spin" />
+                    Background Processing...
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-5 h-5 mr-2" />
+                    Start Background Analysis (20 Subnets)
+                  </>
+                )}
+              </button>
+            </div>
 
             {/* Additional Action Buttons */}
             <div className="mt-4 flex flex-wrap gap-3">
@@ -449,6 +554,14 @@ const ScoutBriefAdmin = () => {
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Reports History
+              </button>
+              
+              <button
+                onClick={handleManageContexts}
+                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white font-semibold transition-colors duration-200 flex items-center"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Manage Contexts
               </button>
             </div>
 
@@ -505,6 +618,59 @@ const ScoutBriefAdmin = () => {
                           className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-sm"
                         >
                           View
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Context Manager Section */}
+        {showContextsManager && (
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Context Manager</h2>
+              <button
+                onClick={() => setShowContextsManager(false)}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-white font-semibold"
+              >
+                Close
+              </button>
+            </div>
+            
+            {contextsList.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No contexts added yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contextsList.map((context, index) => (
+                  <div key={index} className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-600">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white">
+                          {context.quarter} {context.year} Context
+                        </h3>
+                        <div className="text-sm text-gray-400 mt-1">
+                          <span>Created: {new Date(context.created_at).toLocaleString()}</span>
+                        </div>
+                        <div className="mt-3 p-3 bg-zinc-700/50 rounded text-sm text-gray-300 max-h-32 overflow-y-auto">
+                          {context.content}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() => {
+                            // Copy context to clipboard
+                            navigator.clipboard.writeText(context.content);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-sm"
+                        >
+                          Copy
                         </button>
                       </div>
                     </div>
