@@ -2597,7 +2597,7 @@ const server = http.createServer(async (req, res) => {
         quarter: quarterInfo.quarter,
         year: quarterInfo.year,
         admin_context: adminContext,
-        summary: `AI-powered analysis of ${analysisResult.results.length} subnets using 5 specialized agents (Momentum, Dr. Protocol, Ops, Pulse, Guardian). Generated for ${subscribers.size} subscribers.`,
+        summary: `AI-powered analysis of ${analysisResult.results.length} subnets using 5 specialized agents (Momentum, Dr. Protocol, Ops, Pulse, Guardian). Generated for ${getSubscriberCount()} subscribers.`,
         
         // Overall statistics
         statistics: {
