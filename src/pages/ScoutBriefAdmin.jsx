@@ -419,6 +419,30 @@ const ScoutBriefAdmin = () => {
               </div>
             </div>
 
+            {/* Executive Summary */}
+            <div className="mb-8 p-6 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+              <h3 className="text-xl font-bold text-blue-400 mb-4">📊 Executive Summary</h3>
+              <div className="space-y-3 text-gray-300">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400">{reportData.statistics?.average_score || 0}</div>
+                    <div className="text-sm text-gray-400">Average Score</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-400">{reportData.successful_analyses || 0}</div>
+                    <div className="text-sm text-gray-400">Subnets Analyzed</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-800/50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-400">{Object.keys(reportData.agent_summaries || {}).length}</div>
+                    <div className="text-sm text-gray-400">AI Agents Used</div>
+                  </div>
+                </div>
+                <p className="mt-4 text-gray-300">
+                  {reportData.summary || 'Comprehensive AI-powered analysis completed successfully.'}
+                </p>
+              </div>
+            </div>
+
             {/* Top Performers */}
             <div className="mb-8">
               <h3 className="text-xl font-bold text-green-400 mb-4">🏆 Top Performers</h3>
@@ -427,7 +451,7 @@ const ScoutBriefAdmin = () => {
                   <div key={subnet.subnet_id} className="p-4 bg-green-900/20 border border-green-700/30 rounded-lg">
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="text-lg font-semibold text-white">
-                        #{index + 1} - Subnet {subnet.subnet_id}
+                        #{index + 1} - {subnet.name || `Subnet ${subnet.subnet_id}`}
                       </h4>
                       <span className="text-green-400 font-bold">{subnet.overall_score}/100</span>
                     </div>

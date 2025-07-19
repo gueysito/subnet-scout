@@ -2624,10 +2624,10 @@ const server = http.createServer(async (req, res) => {
       console.log('Subnet data results:', subnetsData?.length || 0, 'subnets');
       console.log('First subnet example:', JSON.stringify(subnetsData?.[0] || 'NONE'));
       
-      // 4. Run REAL AI agent analysis on top 5 subnets (prevent timeout)
+      // 4. Run REAL AI agent analysis on top 20 subnets 
       const topSubnets = subnetsData
         .sort((a, b) => (b.registration_count || 0) - (a.registration_count || 0))
-        .slice(0, 5);
+        .slice(0, 20);
       
       console.log('Top subnets after filtering:', topSubnets?.length || 0);
       console.log('Agent import type:', typeof scoutBriefAgents);
@@ -2651,6 +2651,25 @@ const server = http.createServer(async (req, res) => {
         );
         console.log('✅ AI agent analysis completed successfully');
         console.log('Analysis results count:', analysisResult?.results?.length || 0);
+        
+        // Calculate overall_score for each result
+        analysisResult.results = analysisResult.results.map(result => {
+          if (result.success && result.analysis) {
+            const scores = [
+              result.analysis.momentum?.score || 0,
+              result.analysis.protocol?.score || 0,
+              result.analysis.ops?.score || 0,
+              result.analysis.pulse?.score || 0,
+              result.analysis.guardian?.score || 0
+            ];
+            result.overall_score = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+            console.log(`📊 Subnet ${result.subnet.subnet_id} overall score: ${result.overall_score}`);
+          } else {
+            result.overall_score = 0;
+          }
+          return result;
+        });
+        
       } catch (agentError) {
         console.error('❌ AI agent analysis failed:', agentError.message);
         console.error('Agent error details:', agentError);
@@ -2687,48 +2706,58 @@ const server = http.createServer(async (req, res) => {
         agent_insights: {
           momentum: {
             title: 'Growth & Momentum Analysis',
-            insights: (analysisResult?.results || []).map(r => ({
-              subnet_id: r.subnet_id,
-              score: r.agents?.momentum?.score || 0,
-              trend: r.agents?.momentum?.trend || 'unknown',
-              finding: r.agents?.momentum?.key_finding || 'No analysis available'
-            }))
+            insights: (analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.momentum)
+              .map(r => ({
+                subnet_id: r.subnet.subnet_id,
+                score: r.analysis.momentum.score || 0,
+                trend: r.analysis.momentum.trend || 'unknown',
+                finding: r.analysis.momentum.key_finding || 'No analysis available'
+              }))
           },
           technical: {
             title: 'Technical Health Assessment',
-            insights: (analysisResult?.results || []).map(r => ({
-              subnet_id: r.subnet_id,
-              score: r.agents?.dr_protocol?.score || 0,
-              status: r.agents?.dr_protocol?.development_status || 'unknown',
-              finding: r.agents?.dr_protocol?.key_finding || 'No analysis available'
-            }))
+            insights: (analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.protocol)
+              .map(r => ({
+                subnet_id: r.subnet.subnet_id,
+                score: r.analysis.protocol.score || 0,
+                status: r.analysis.protocol.development_status || 'unknown',
+                finding: r.analysis.protocol.key_finding || 'No analysis available'
+              }))
           },
           performance: {
             title: 'Operational Performance',
-            insights: (analysisResult?.results || []).map(r => ({
-              subnet_id: r.subnet_id,
-              score: r.agents?.ops?.score || 0,
-              efficiency: r.agents?.ops?.efficiency_rating || 'unknown',
-              finding: r.agents?.ops?.key_finding || 'No analysis available'
-            }))
+            insights: (analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.ops)
+              .map(r => ({
+                subnet_id: r.subnet.subnet_id,
+                score: r.analysis.ops.score || 0,
+                efficiency: r.analysis.ops.efficiency_rating || 'unknown',
+                finding: r.analysis.ops.key_finding || 'No analysis available'
+              }))
           },
           community: {
             title: 'Community Sentiment',
-            insights: (analysisResult?.results || []).map(r => ({
-              subnet_id: r.subnet_id,
-              score: r.agents?.pulse?.score || 0,
-              sentiment: r.agents?.pulse?.sentiment || 'unknown',
-              finding: r.agents?.pulse?.key_finding || 'No analysis available'
-            }))
+            insights: (analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.pulse)
+              .map(r => ({
+                subnet_id: r.subnet.subnet_id,
+                score: r.analysis.pulse.score || 0,
+                sentiment: r.analysis.pulse.community_health || 'unknown',
+                finding: r.analysis.pulse.key_finding || 'No analysis available'
+              }))
           },
           risk: {
             title: 'Risk Assessment',
-            insights: (analysisResult?.results || []).map(r => ({
-              subnet_id: r.subnet_id,
-              score: r.agents?.guardian?.score || 0,
-              risk_level: r.agents?.guardian?.risk_level || 'unknown',
-              finding: r.agents?.guardian?.key_finding || 'No analysis available'
-            }))
+            insights: (analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.guardian)
+              .map(r => ({
+                subnet_id: r.subnet.subnet_id,
+                score: r.analysis.guardian.score || 0,
+                risk_level: r.analysis.guardian.risk_level || 'unknown',
+                finding: r.analysis.guardian.key_finding || 'No analysis available'
+              }))
           }
         },
         
@@ -2750,13 +2779,14 @@ const server = http.createServer(async (req, res) => {
         successful_analyses: analysisResult?.results?.length || 0,
         failed_analyses: analysisResult?.errors?.length || 0,
         
-        // Top performers (top 5 by overall score)
+        // Top performers (top 3 by overall score)
         top_performers: (analysisResult?.results || [])
           .filter(r => r.overall_score > 0)
           .sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0))
-          .slice(0, 5)
+          .slice(0, 3)
           .map(r => ({
             subnet_id: r.subnet.subnet_id,
+            name: r.subnet.name || `Subnet ${r.subnet.subnet_id}`,
             overall_score: r.overall_score || 0,
             key_insights: {
               momentum: r.analysis?.momentum?.key_finding || 'No insight available',
@@ -2795,28 +2825,43 @@ const server = http.createServer(async (req, res) => {
         agent_summaries: {
           momentum: {
             title: 'Growth & Momentum Analysis',
-            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.momentum?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
-            insights_count: (analysisResult?.results || []).length
+            average_score: Math.round((analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.momentum)
+              .reduce((sum, r) => sum + (r.analysis.momentum.score || 0), 0) / 
+              Math.max((analysisResult?.results || []).filter(r => r.success && r.analysis?.momentum).length, 1)),
+            insights_count: (analysisResult?.results || []).filter(r => r.success && r.analysis?.momentum).length
           },
           protocol: {
             title: 'Technical Health Assessment', 
-            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.protocol?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
-            insights_count: (analysisResult?.results || []).length
+            average_score: Math.round((analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.protocol)
+              .reduce((sum, r) => sum + (r.analysis.protocol.score || 0), 0) / 
+              Math.max((analysisResult?.results || []).filter(r => r.success && r.analysis?.protocol).length, 1)),
+            insights_count: (analysisResult?.results || []).filter(r => r.success && r.analysis?.protocol).length
           },
           ops: {
             title: 'Operational Performance',
-            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.ops?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
-            insights_count: (analysisResult?.results || []).length
+            average_score: Math.round((analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.ops)
+              .reduce((sum, r) => sum + (r.analysis.ops.score || 0), 0) / 
+              Math.max((analysisResult?.results || []).filter(r => r.success && r.analysis?.ops).length, 1)),
+            insights_count: (analysisResult?.results || []).filter(r => r.success && r.analysis?.ops).length
           },
           pulse: {
             title: 'Community Sentiment',
-            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.pulse?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
-            insights_count: (analysisResult?.results || []).length
+            average_score: Math.round((analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.pulse)
+              .reduce((sum, r) => sum + (r.analysis.pulse.score || 0), 0) / 
+              Math.max((analysisResult?.results || []).filter(r => r.success && r.analysis?.pulse).length, 1)),
+            insights_count: (analysisResult?.results || []).filter(r => r.success && r.analysis?.pulse).length
           },
           guardian: {
             title: 'Risk Assessment',
-            average_score: Math.round((analysisResult?.results || []).reduce((sum, r) => sum + (r.analysis?.guardian?.score || 0), 0) / ((analysisResult?.results || []).length || 1)),
-            insights_count: (analysisResult?.results || []).length
+            average_score: Math.round((analysisResult?.results || [])
+              .filter(r => r.success && r.analysis?.guardian)
+              .reduce((sum, r) => sum + (r.analysis.guardian.score || 0), 0) / 
+              Math.max((analysisResult?.results || []).filter(r => r.success && r.analysis?.guardian).length, 1)),
+            insights_count: (analysisResult?.results || []).filter(r => r.success && r.analysis?.guardian).length
           }
         }
       };
