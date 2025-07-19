@@ -125,17 +125,6 @@ function getLatestContext() {
   }
 }
 
-function saveReport(quarter, year, title, reportData) {
-  if (!db) return false;
-  try {
-    const stmt = db.prepare('INSERT INTO reports (quarter, year, title, data) VALUES (?, ?, ?, ?)');
-    const result = stmt.run(quarter, year, title, JSON.stringify(reportData));
-    return result.lastInsertRowid;
-  } catch (error) {
-    console.error('Failed to save report:', error);
-    return false;
-  }
-}
 
 // Initialize database on startup
 initDatabase();
@@ -2585,8 +2574,7 @@ const server = http.createServer(async (req, res) => {
         analysisResult = await scoutBriefAgents.analyzeSubnets(
           topSubnets,
           adminContext,
-          quarterInfo,
-          1 // Max 1 concurrent to avoid rate limits (sequential processing)
+          process.env.IONET_API_KEY  // CRITICAL: Pass the API key!
         );
         console.log('✅ AI agent analysis completed successfully');
         console.log('Analysis results count:', analysisResult?.results?.length || 0);
@@ -2608,17 +2596,17 @@ const server = http.createServer(async (req, res) => {
         quarter: quarterInfo.quarter,
         year: quarterInfo.year,
         admin_context: adminContext,
-        summary: `AI-powered analysis of ${analysisResult.results.length} subnets using 5 specialized agents (Momentum, Dr. Protocol, Ops, Pulse, Guardian). Generated for ${getSubscriberCount()} subscribers.`,
+        summary: `AI-powered analysis of ${analysisResult?.results?.length || 0} subnets using 5 specialized agents (Momentum, Dr. Protocol, Ops, Pulse, Guardian). Generated for ${getSubscriberCount()} subscribers.`,
         
         // Overall statistics
         statistics: {
-          subnets_analyzed: analysisResult.results.length,
-          failed_analyses: analysisResult.errors.length,
-          average_score: analysisResult.results.length > 0 
-            ? Math.round(analysisResult.results.reduce((sum, r) => sum + r.overall_score, 0) / analysisResult.results.length)
+          subnets_analyzed: analysisResult?.results?.length || 0,
+          failed_analyses: analysisResult?.errors?.length || 0,
+          average_score: (analysisResult?.results && analysisResult.results.length > 0) 
+            ? Math.round(analysisResult.results.reduce((sum, r) => sum + (r.overall_score || 0), 0) / analysisResult.results.length)
             : 0,
-          top_performer: analysisResult.results.length > 0 
-            ? analysisResult.results.reduce((max, current) => current.overall_score > max.overall_score ? current : max)
+          top_performer: (analysisResult?.results && analysisResult.results.length > 0) 
+            ? analysisResult.results.reduce((max, current) => (current.overall_score || 0) > (max.overall_score || 0) ? current : max)
             : null
         },
         
@@ -2626,47 +2614,47 @@ const server = http.createServer(async (req, res) => {
         agent_insights: {
           momentum: {
             title: 'Growth & Momentum Analysis',
-            insights: analysisResult.results.map(r => ({
+            insights: (analysisResult?.results || []).map(r => ({
               subnet_id: r.subnet_id,
-              score: r.agents.momentum.score,
-              trend: r.agents.momentum.trend,
-              finding: r.agents.momentum.key_finding
+              score: r.agents?.momentum?.score || 0,
+              trend: r.agents?.momentum?.trend || 'unknown',
+              finding: r.agents?.momentum?.key_finding || 'No analysis available'
             }))
           },
           technical: {
             title: 'Technical Health Assessment',
-            insights: analysisResult.results.map(r => ({
+            insights: (analysisResult?.results || []).map(r => ({
               subnet_id: r.subnet_id,
-              score: r.agents.dr_protocol.score,
-              status: r.agents.dr_protocol.development_status,
-              finding: r.agents.dr_protocol.key_finding
+              score: r.agents?.dr_protocol?.score || 0,
+              status: r.agents?.dr_protocol?.development_status || 'unknown',
+              finding: r.agents?.dr_protocol?.key_finding || 'No analysis available'
             }))
           },
           performance: {
             title: 'Operational Performance',
-            insights: analysisResult.results.map(r => ({
+            insights: (analysisResult?.results || []).map(r => ({
               subnet_id: r.subnet_id,
-              score: r.agents.ops.score,
-              efficiency: r.agents.ops.efficiency_rating,
-              finding: r.agents.ops.key_finding
+              score: r.agents?.ops?.score || 0,
+              efficiency: r.agents?.ops?.efficiency_rating || 'unknown',
+              finding: r.agents?.ops?.key_finding || 'No analysis available'
             }))
           },
           community: {
             title: 'Community Sentiment',
-            insights: analysisResult.results.map(r => ({
+            insights: (analysisResult?.results || []).map(r => ({
               subnet_id: r.subnet_id,
-              score: r.agents.pulse.score,
-              sentiment: r.agents.pulse.sentiment,
-              finding: r.agents.pulse.key_finding
+              score: r.agents?.pulse?.score || 0,
+              sentiment: r.agents?.pulse?.sentiment || 'unknown',
+              finding: r.agents?.pulse?.key_finding || 'No analysis available'
             }))
           },
           risk: {
             title: 'Risk Assessment',
-            insights: analysisResult.results.map(r => ({
+            insights: (analysisResult?.results || []).map(r => ({
               subnet_id: r.subnet_id,
-              score: r.agents.guardian.score,
-              risk_level: r.agents.guardian.risk_level,
-              finding: r.agents.guardian.key_finding
+              score: r.agents?.guardian?.score || 0,
+              risk_level: r.agents?.guardian?.risk_level || 'unknown',
+              finding: r.agents?.guardian?.key_finding || 'No analysis available'
             }))
           }
         },
@@ -2687,7 +2675,7 @@ const server = http.createServer(async (req, res) => {
       };
       
       console.log(`✅ Intelligence report generated successfully!`);
-      console.log(`📈 Analyzed ${analysisResult.results.length} subnets with average score: ${report.statistics.average_score}`);
+      console.log(`📈 Analyzed ${analysisResult?.results?.length || 0} subnets with average score: ${report.statistics.average_score}`);
       
       sendJSON(res, 200, {
         success: true,
