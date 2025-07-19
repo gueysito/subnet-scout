@@ -2497,6 +2497,14 @@ const server = http.createServer(async (req, res) => {
   // Brief generation endpoint - REAL AI AGENT INTELLIGENCE
   if (pathname === '/api/scoutbrief/admin/generate' && method === 'POST') {
     try {
+      console.log('=== GENERATE BUTTON PRESSED ===');
+      console.log('ENV CHECK:', {
+        IONET_API_KEY: process.env.IONET_API_KEY ? 'EXISTS' : 'MISSING',
+        NODE_ENV: process.env.NODE_ENV,
+        All_ENV_KEYS: Object.keys(process.env).filter(k => k.includes('IONET'))
+      });
+      console.log('IONET_API_KEY exists?', !!process.env.IONET_API_KEY);
+      console.log('IONET_API_KEY length:', process.env.IONET_API_KEY?.length || 0);
       console.log('🚀 Starting REAL AI agent intelligence generation...');
       
       // Increment generation counter
@@ -2519,7 +2527,7 @@ const server = http.createServer(async (req, res) => {
       console.log(`📝 Using admin context: ${adminContext.substring(0, 100)}...`);
       
       // 3. Get real subnet data directly (no self-fetch)
-      console.log('🔍 Fetching subnet data internally...');
+      console.log('About to fetch subnet data...');
       
       // Get top 20 subnets directly using same logic as /api/agents endpoint
       const subnetIds = [];
@@ -2551,20 +2559,23 @@ const server = http.createServer(async (req, res) => {
           last_updated: data.last_updated
         };
       });
-      console.log(`🔍 Found ${subnetsData.length} subnets to analyze`);
+      console.log('Subnet data results:', subnetsData?.length || 0, 'subnets');
+      console.log('First subnet example:', JSON.stringify(subnetsData?.[0] || 'NONE'));
       
       // 4. Run REAL AI agent analysis on top 10 subnets (to avoid overwhelming IONET)
       const topSubnets = subnetsData
         .sort((a, b) => (b.registration_count || 0) - (a.registration_count || 0))
         .slice(0, 10);
       
+      console.log('Top subnets after filtering:', topSubnets?.length || 0);
+      console.log('Agent import type:', typeof scoutBriefAgents);
       console.log(`🤖 Running 5 AI agents on top ${topSubnets.length} subnets...`);
       
       let analysisResult;
       try {
         console.log('🔧 Checking if scoutBriefAgents is available...');
         console.log('ScoutBrief agents type:', typeof scoutBriefAgents);
-        console.log('IONET_API_KEY available:', !!IONET_API_KEY);
+        console.log('IONET_API_KEY available in agents context:', !!IONET_API_KEY);
         
         if (typeof scoutBriefAgents === 'undefined' || !scoutBriefAgents) {
           throw new Error('ScoutBrief agents not imported correctly - frontend dependencies missing');
