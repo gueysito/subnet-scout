@@ -18,6 +18,7 @@ import Database from 'better-sqlite3';
 
 let db;
 let briefGenerations = 0;
+const analysisJobs = []; // Track background analysis jobs
 
 // Initialize SQLite database
 function initDatabase() {
@@ -114,14 +115,14 @@ function getContextCount() {
   }
 }
 
-function getLatestContext() {
-  if (!db) return null;
+function getAllContexts() {
+  if (!db) return [];
   try {
-    const stmt = db.prepare('SELECT * FROM contexts ORDER BY created_at DESC LIMIT 1');
-    return stmt.get();
+    const stmt = db.prepare('SELECT * FROM contexts ORDER BY created_at ASC');
+    return stmt.all();
   } catch (error) {
-    console.error('Failed to get latest context:', error);
-    return null;
+    console.error('Failed to get all contexts:', error);
+    return [];
   }
 }
 
@@ -2452,6 +2453,15 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
+      // Check if this exact content already exists
+      const allContexts = getAllContexts();
+      const isDuplicate = allContexts.some(ctx => ctx.context === context.trim());
+      if (isDuplicate) {
+        console.log('⚠️ Duplicate context detected, skipping');
+        sendJSON(res, 200, { success: true, message: 'Context already exists' });
+        return;
+      }
+      
       // Store context in SQLite database
       const contextQuarter = quarter || 'Q1';
       const contextYear = year || new Date().getFullYear();
@@ -2483,6 +2493,64 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Start background analysis endpoint
+  if (pathname === '/api/scoutbrief/admin/start-analysis' && method === 'POST') {
+    const jobId = Date.now().toString();
+    
+    // Create job record
+    const job = {
+      id: jobId,
+      status: 'running',
+      progress: 0,
+      total: 0,
+      currentSubnet: '',
+      startedAt: new Date(),
+      result: null,
+      error: null
+    };
+    
+    analysisJobs.push(job);
+    
+    // Return job ID immediately
+    sendJSON(res, 200, { 
+      success: true, 
+      jobId: jobId,
+      message: 'Analysis started in background'
+    });
+    
+    // Run analysis in background (don't await)
+    runBackgroundAnalysis(jobId).catch(error => {
+      job.status = 'failed';
+      job.error = error.message;
+    });
+    return;
+  }
+
+  // Analysis status check endpoint
+  if (pathname.startsWith('/api/scoutbrief/admin/analysis-status/') && method === 'GET') {
+    const jobId = pathname.split('/').pop();
+    const job = analysisJobs.find(j => j.id === jobId);
+    
+    if (!job) {
+      sendJSON(res, 404, { error: 'Job not found' });
+      return;
+    }
+    
+    sendJSON(res, 200, {
+      id: job.id,
+      status: job.status,
+      progress: job.progress,
+      total: job.total,
+      currentSubnet: job.currentSubnet,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      processingTime: job.processingTime,
+      hasResult: !!job.result,
+      error: job.error
+    });
+    return;
+  }
+
   // Brief generation endpoint - REAL AI AGENT INTELLIGENCE
   if (pathname === '/api/scoutbrief/admin/generate' && method === 'POST') {
     try {
@@ -2506,14 +2574,19 @@ const server = http.createServer(async (req, res) => {
         year: now.getFullYear()
       };
       
-      // 2. Get admin context from SQLite database (use most recent)
-      const latestContext = getLatestContext();
-      const adminContext = latestContext 
-        ? latestContext.context
+      // 2. Get ALL admin contexts from SQLite database
+      const allContexts = getAllContexts();
+      console.log('📚 Total contexts in database:', allContexts.length);
+      console.log('📝 Context preview:', allContexts.map(c => c.context.substring(0, 100) + '...'));
+      
+      // Concatenate ALL contexts, not just the latest
+      const adminContext = allContexts.length > 0 
+        ? allContexts.map(ctx => ctx.context).join('\n\n---\n\n')
         : 'No specific context provided for this quarter.';
+      console.log('✅ Using ALL contexts:', allContexts.length, 'total');
       
       console.log(`📊 Analyzing subnets for ${quarterInfo.quarter} ${quarterInfo.year}`);
-      console.log(`📝 Using admin context: ${adminContext.substring(0, 100)}...`);
+      console.log(`📝 Combined admin context: ${adminContext.substring(0, 100)}...`);
       
       // 3. Get real subnet data directly (no self-fetch)
       console.log('About to fetch subnet data...');
@@ -2774,6 +2847,126 @@ const server = http.createServer(async (req, res) => {
       });
     }
     return;
+  }
+
+  // Background analysis function
+  async function runBackgroundAnalysis(jobId) {
+    const job = analysisJobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    try {
+      // Get subnets (same as current generate)
+      console.log('🚀 Starting background analysis of 20 subnets');
+      
+      // Get top 20 subnets using same logic
+      const subnetIds = [];
+      for (let i = 1; i <= 20; i++) {
+        subnetIds.push(i);
+      }
+      
+      const subnetsDataPromises = subnetIds.map(async (subnetId) => {
+        return await aitableService.getSubnetData(subnetId);
+      });
+      
+      const subnetsData = (await Promise.all(subnetsDataPromises)).filter(Boolean);
+      const sortedSubnets = subnetsData
+        .filter(subnet => subnet.score >= 50)
+        .sort((a, b) => b.score - a.score);
+        
+      const topSubnets = sortedSubnets.slice(0, 20); // Analyze top 20
+      job.total = topSubnets.length;
+      
+      // Get ALL contexts
+      const allContexts = getAllContexts();
+      const adminContext = allContexts.length > 0 
+        ? allContexts.map(ctx => ctx.context).join('\n\n---\n\n')
+        : 'No specific context provided for this quarter.';
+      
+      // Run analysis with progress
+      console.log('🚀 Starting background analysis of', topSubnets.length, 'subnets');
+      
+      const startTime = Date.now();
+      const results = [];
+      
+      // Process one at a time with progress updates
+      for (let i = 0; i < topSubnets.length; i++) {
+        try {
+          // Update progress
+          job.progress = i + 1;
+          job.currentSubnet = `Subnet ${topSubnets[i].subnet_id}`;
+          console.log(`📊 Background processing subnet ${i + 1}/${topSubnets.length}: ${topSubnets[i].subnet_id}`);
+          
+          const analysis = await scoutBriefAgents.analyzeSubnets([topSubnets[i]], adminContext, process.env.IONET_API_KEY);
+          results.push({
+            subnet: topSubnets[i],
+            analysis: analysis.results[0]?.analysis,
+            overall_score: Math.round((
+              (analysis.results[0]?.analysis?.momentum?.score || 0) +
+              (analysis.results[0]?.analysis?.protocol?.score || 0) + 
+              (analysis.results[0]?.analysis?.ops?.score || 0) +
+              (analysis.results[0]?.analysis?.pulse?.score || 0) +
+              (analysis.results[0]?.analysis?.guardian?.score || 0)
+            ) / 5),
+            success: true
+          });
+          
+          // 5 second delay between subnets
+          if (i < topSubnets.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+        } catch (error) {
+          console.error(`❌ Failed to analyze subnet ${topSubnets[i].subnet_id}:`, error.message);
+          results.push({
+            subnet: topSubnets[i],
+            error: error.message,
+            success: false
+          });
+        }
+      }
+      
+      // Generate report
+      const quarterInfo = {
+        quarter: `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`,
+        year: new Date().getFullYear()
+      };
+      
+      const report = {
+        id: Date.now().toString(),
+        title: `ScoutBrief ${quarterInfo.quarter} ${quarterInfo.year} Intelligence Report (Background)`,
+        status: 'generated',
+        generated_at: new Date().toISOString(),
+        quarter: quarterInfo.quarter,
+        year: quarterInfo.year,
+        admin_context: adminContext,
+        summary: `AI-powered background analysis of ${results.filter(r => r.success).length} subnets using 5 specialized agents.`,
+        statistics: {
+          subnets_analyzed: results.filter(r => r.success).length,
+          failed_analyses: results.filter(r => !r.success).length,
+          average_score: results.filter(r => r.success).length > 0 
+            ? Math.round(results.filter(r => r.success).reduce((sum, r) => sum + (r.overall_score || 0), 0) / results.filter(r => r.success).length)
+            : 0
+        },
+        subnet_analyses: results,
+        generation_metadata: {
+          background_job: true,
+          processing_time_ms: Date.now() - startTime
+        }
+      };
+      
+      // Update job
+      job.status = 'completed';
+      job.result = report;
+      job.completedAt = new Date();
+      job.processingTime = Date.now() - startTime;
+      
+      console.log(`✅ Background analysis complete: ${results.filter(r => r.success).length} successful`);
+      
+    } catch (error) {
+      console.error('❌ Background analysis failed:', error);
+      job.status = 'failed';
+      job.error = error.message;
+      throw error;
+    }
   }
   
   // SPA fallback - serve index.html for all non-API routes
