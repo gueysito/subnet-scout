@@ -2562,10 +2562,10 @@ const server = http.createServer(async (req, res) => {
       console.log('Subnet data results:', subnetsData?.length || 0, 'subnets');
       console.log('First subnet example:', JSON.stringify(subnetsData?.[0] || 'NONE'));
       
-      // 4. Run REAL AI agent analysis on top 10 subnets (to avoid overwhelming IONET)
+      // 4. Run REAL AI agent analysis on top 3 subnets (reduced for testing and rate limits)
       const topSubnets = subnetsData
         .sort((a, b) => (b.registration_count || 0) - (a.registration_count || 0))
-        .slice(0, 10);
+        .slice(0, 3);
       
       console.log('Top subnets after filtering:', topSubnets?.length || 0);
       console.log('Agent import type:', typeof scoutBriefAgents);
@@ -2586,7 +2586,7 @@ const server = http.createServer(async (req, res) => {
           topSubnets,
           adminContext,
           quarterInfo,
-          3 // Max 3 concurrent to avoid rate limits
+          1 // Max 1 concurrent to avoid rate limits (sequential processing)
         );
         console.log('✅ AI agent analysis completed successfully');
         console.log('Analysis results count:', analysisResult?.results?.length || 0);

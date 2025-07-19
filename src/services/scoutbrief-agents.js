@@ -454,14 +454,22 @@ Return JSON:
     console.log(`🔍 Starting REAL agent analysis for subnet ${subnetId} at ${new Date().toISOString()}`);
     
     try {
-      console.log(`🤖 Running 5 IONET API calls for subnet ${subnetId}...`);
-      const [momentum, drProtocol, ops, pulse, guardian] = await Promise.all([
-        this.runMomentumAgent(subnetData, adminContext, quarterInfo),
-        this.runDrProtocolAgent(subnetData, adminContext, quarterInfo),
-        this.runOpsAgent(subnetData, adminContext, quarterInfo),
-        this.runPulseAgent(subnetData, adminContext, quarterInfo),
-        this.runGuardianAgent(subnetData, adminContext, quarterInfo)
-      ]);
+      console.log(`🤖 Running 5 IONET API calls for subnet ${subnetId} SEQUENTIALLY to avoid rate limits...`);
+      
+      // Run agents sequentially with delays to avoid 429 rate limit errors
+      const momentum = await this.runMomentumAgent(subnetData, adminContext, quarterInfo);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      
+      const drProtocol = await this.runDrProtocolAgent(subnetData, adminContext, quarterInfo);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      
+      const ops = await this.runOpsAgent(subnetData, adminContext, quarterInfo);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      
+      const pulse = await this.runPulseAgent(subnetData, adminContext, quarterInfo);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+      
+      const guardian = await this.runGuardianAgent(subnetData, adminContext, quarterInfo);
       
       const elapsed = Date.now() - startTime;
       console.log(`✅ Subnet ${subnetId} analysis completed in ${elapsed}ms (${(elapsed/1000).toFixed(1)}s)`);
@@ -526,9 +534,10 @@ Return JSON:
         }
       });
 
-      // Small delay between batches
+      // Longer delay between batches to avoid rate limits
       if (i + maxConcurrent < subnetsData.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('⏱️ Waiting 5 seconds before next batch to avoid rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
 
