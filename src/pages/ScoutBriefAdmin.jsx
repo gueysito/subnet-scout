@@ -20,41 +20,7 @@ const ScoutBriefAdmin = () => {
   const [showContextsManager, setShowContextsManager] = useState(false);
   const [contextsList, setContextsList] = useState([]);
 
-  // Check authentication status and job tracking on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await apiClient.get('/api/scoutbrief/admin/status');
-        if (response.authenticated) {
-          setIsAuthenticated(true);
-          updateStats();
-        }
-      } catch (error) {
-        console.warn('Auth check failed:', error.message);
-      }
-    };
-    checkAuth();
-    
-    // Persistent job tracking
-    const savedJob = localStorage.getItem('currentAnalysisJob');
-    if (savedJob) {
-      setIsAnalyzing(true);
-      pollForStatus(savedJob);
-    } else {
-      fetch('/api/scoutbrief/admin/running-jobs')
-        .then(res => res.json())
-        .then(data => {
-          if (data.runningJob) {
-            localStorage.setItem('currentAnalysisJob', data.runningJob);
-            setIsAnalyzing(true);
-            pollForStatus(data.runningJob);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [pollForStatus]);
-
-  const updateStats = async () => {
+  const updateStats = useCallback(async () => {
     try {
       const [contextsRes, reportsRes] = await Promise.all([
         apiClient.get('/api/scoutbrief/admin/contexts'),
@@ -75,7 +41,7 @@ const ScoutBriefAdmin = () => {
         error: true
       });
     }
-  };
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -147,14 +113,14 @@ const ScoutBriefAdmin = () => {
     }
   };
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       const response = await apiClient.get('/api/scoutbrief/admin/reports-list');
       setReportsList(response.reports || []);
     } catch (error) {
       console.error('Failed to load reports:', error.message);
     }
-  };
+  }, []);
 
   const handleLoadReportsHistory = async () => {
     await fetchReports();
@@ -168,11 +134,6 @@ const ScoutBriefAdmin = () => {
     } catch (error) {
       console.error('Failed to load contexts:', error.message);
     }
-  };
-
-  const handleManageContexts = async () => {
-    await fetchContexts();
-    setShowContextsManager(true);
   };
 
   const pollForStatus = useCallback(async (jobId) => {
@@ -216,6 +177,45 @@ const ScoutBriefAdmin = () => {
       }
     }, 10000);
   }, [fetchReports, setIsAnalyzing]);
+
+  // Check authentication status and job tracking on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await apiClient.get('/api/scoutbrief/admin/status');
+        if (response.authenticated) {
+          setIsAuthenticated(true);
+          updateStats();
+        }
+      } catch (error) {
+        console.warn('Auth check failed:', error.message);
+      }
+    };
+    checkAuth();
+    
+    // Persistent job tracking
+    const savedJob = localStorage.getItem('currentAnalysisJob');
+    if (savedJob) {
+      setIsAnalyzing(true);
+      pollForStatus(savedJob);
+    } else {
+      fetch('/api/scoutbrief/admin/running-jobs')
+        .then(res => res.json())
+        .then(data => {
+          if (data.runningJob) {
+            localStorage.setItem('currentAnalysisJob', data.runningJob);
+            setIsAnalyzing(true);
+            pollForStatus(data.runningJob);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [pollForStatus, updateStats]);
+
+  const handleManageContexts = async () => {
+    await fetchContexts();
+    setShowContextsManager(true);
+  };
 
   const startBackgroundAnalysis = async () => {
     setIsAnalyzing(true);
