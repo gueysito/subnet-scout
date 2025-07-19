@@ -2551,10 +2551,10 @@ const server = http.createServer(async (req, res) => {
       console.log('Subnet data results:', subnetsData?.length || 0, 'subnets');
       console.log('First subnet example:', JSON.stringify(subnetsData?.[0] || 'NONE'));
       
-      // 4. Run REAL AI agent analysis on top 50 subnets for comprehensive report
+      // 4. Run REAL AI agent analysis on top 5 subnets (prevent timeout)
       const topSubnets = subnetsData
         .sort((a, b) => (b.registration_count || 0) - (a.registration_count || 0))
-        .slice(0, 50);
+        .slice(0, 5);
       
       console.log('Top subnets after filtering:', topSubnets?.length || 0);
       console.log('Agent import type:', typeof scoutBriefAgents);
