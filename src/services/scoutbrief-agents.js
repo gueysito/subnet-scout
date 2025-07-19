@@ -303,6 +303,11 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
 
     const filledPrompt = this.fillTemplate(prompt, variables);
 
+    console.log('=== OPS PROMPT DEBUG ===');
+    console.log('Full prompt:', filledPrompt);
+    console.log('Prompt length:', filledPrompt.length);
+    console.log('Contains special chars:', /[<>+]/.test(filledPrompt));
+
     try {
       const response = await this.makeInferenceRequest(
         'deepseek-ai/DeepSeek-R1', // Performance analysis model
