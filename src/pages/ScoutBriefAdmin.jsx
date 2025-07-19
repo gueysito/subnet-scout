@@ -19,39 +19,6 @@ const ScoutBriefAdmin = () => {
   const [analysisProgress, setAnalysisProgress] = useState('');
   const [reportData, setReportData] = useState(null);
 
-  // Check authentication status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await apiClient.get('/api/scoutbrief/admin/status');
-        if (response.authenticated) {
-          setIsAuthenticated(true);
-          updateStats();
-        }
-      } catch (error) {
-        console.warn('Auth check failed:', error.message);
-      }
-    };
-    checkAuth();
-
-    // Check for saved job
-    const savedJob = localStorage.getItem('currentAnalysisJob');
-    if (savedJob) {
-      pollForStatus(savedJob);
-    } else {
-      // Check backend for running jobs
-      fetch('/api/scoutbrief/admin/running-jobs')
-        .then(res => res.json())
-        .then(data => {
-          if (data.runningJob) {
-            localStorage.setItem('currentAnalysisJob', data.runningJob);
-            pollForStatus(data.runningJob);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [pollForStatus, updateStats]);
-
   const updateStats = useCallback(async () => {
     try {
       const [contextsRes, reportsRes] = await Promise.all([
@@ -144,6 +111,39 @@ const ScoutBriefAdmin = () => {
       }
     }, 10000); // Every 10 seconds
   }, [fetchReports, updateStats, downloadReport, setIsAnalyzing, setAnalysisProgress]);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await apiClient.get('/api/scoutbrief/admin/status');
+        if (response.authenticated) {
+          setIsAuthenticated(true);
+          updateStats();
+        }
+      } catch (error) {
+        console.warn('Auth check failed:', error.message);
+      }
+    };
+    checkAuth();
+
+    // Check for saved job
+    const savedJob = localStorage.getItem('currentAnalysisJob');
+    if (savedJob) {
+      pollForStatus(savedJob);
+    } else {
+      // Check backend for running jobs
+      fetch('/api/scoutbrief/admin/running-jobs')
+        .then(res => res.json())
+        .then(data => {
+          if (data.runningJob) {
+            localStorage.setItem('currentAnalysisJob', data.runningJob);
+            pollForStatus(data.runningJob);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [pollForStatus, updateStats]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
