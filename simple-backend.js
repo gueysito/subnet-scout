@@ -3059,7 +3059,8 @@ const server = http.createServer(async (req, res) => {
       }
       
       const subnetsDataPromises = subnetIds.map(async (subnetId) => {
-        return await aitableService.getSubnetData(subnetId);
+        const subnetData = await generateSubnetData(subnetId);
+        return subnetData.data;
       });
       
       const subnetsData = (await Promise.all(subnetsDataPromises)).filter(Boolean);
