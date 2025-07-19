@@ -273,8 +273,8 @@ METRICS TO ANALYZE:
 - TAO emissions: {{tao_emitted}}
 - Compute cost: \${{compute_cost}}
 - TAO per dollar: {{tao_per_dollar}}
-- Uptime: {{uptime}}%
-- Avg response time: {{response_ms}}ms
+- Uptime: {{uptime}}
+- Avg response time: {{response_ms}}
 - Validator count: {{validator_count}}
 
 CONTEXT FROM ADMIN:
@@ -318,8 +318,8 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
       tao_emitted: taoEmitted,
       compute_cost: computeCost,
       tao_per_dollar: subnetData.tao_per_dollar || (taoEmitted / Math.max(computeCost, 1)).toFixed(2),
-      uptime: subnetData.uptime || subnetData.uptime_percentage || 95 + Math.random() * 4,
-      response_ms: subnetData.response_time || subnetData.response_ms || 200 + Math.random() * 300,
+      uptime: subnetData.uptime || subnetData.uptime_percentage || Math.round((95 + Math.random() * 4) * 100) / 100,
+      response_ms: subnetData.response_time || subnetData.response_ms || Math.round(200 + Math.random() * 300),
       validator_count: subnetData.validators || subnetData.validator_count || 0,
       network_avg_efficiency: 1.25,
       admin_context: adminContext
@@ -365,9 +365,9 @@ METRICS TO ANALYZE:
 - Discord members: {{discord_members}} (grew by {{discord_growth}})
 - Twitter followers: {{twitter_followers}}
 - Mentions this quarter: {{mentions}}
-- Sentiment score: {{sentiment}}/100
+- Sentiment score: {{sentiment}}
 - Active discussions: {{discussions}}
-- Dev response rate: {{dev_response}}%
+- Dev response rate: {{dev_response}}
 
 CONTEXT FROM ADMIN:
 {{admin_context}}
@@ -404,9 +404,9 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
       discord_growth: subnetData.discord_growth || Math.floor((subnetData.discord_members || 0) * 0.1),
       twitter_followers: subnetData.twitter_followers || Math.floor((subnetData.discord_members || 0) * 1.5),
       mentions: subnetData.mentions || Math.floor((subnetData.validators || 0) * 3),
-      sentiment: subnetData.sentiment || 60 + Math.random() * 30,
+      sentiment: subnetData.sentiment || Math.round((60 + Math.random() * 30) * 100) / 100,
       discussions: subnetData.discussions || Math.floor((subnetData.discord_members || 0) * 0.05),
-      dev_response: subnetData.dev_response || 70 + Math.random() * 25,
+      dev_response: subnetData.dev_response || Math.round((70 + Math.random() * 25) * 100) / 100,
       admin_context: adminContext
     };
 
@@ -448,11 +448,11 @@ Analyze subnet {{id}} risk profile for Q{{quarter}} {{year}}.
 
 RISK METRICS:
 - Security incidents: {{incidents}}
-- Validator churn: {{churn_rate}}%
-- Top 10 validators control: {{concentration}}%
+- Validator churn: {{churn_rate}}
+- Top 10 validators control: {{concentration}}
 - Failed proposals: {{failed_proposals}}
 - Last audit: {{last_audit_date}}
-- Treasury balance: {{treasury}} TAO
+- Treasury balance: {{treasury}}
 
 CONTEXT FROM ADMIN:
 {{admin_context}}
@@ -487,8 +487,8 @@ You must respond ONLY with valid JSON in this exact format. Do not include any o
       quarter: quarterInfo.quarter,
       year: quarterInfo.year,
       incidents: subnetData.security_incidents || 0,
-      churn_rate: subnetData.churn_rate || 5 + Math.random() * 10,
-      concentration: subnetData.concentration || 25 + Math.random() * 20,
+      churn_rate: subnetData.churn_rate || Math.round((5 + Math.random() * 10) * 100) / 100,
+      concentration: subnetData.concentration || Math.round((25 + Math.random() * 20) * 100) / 100,
       failed_proposals: subnetData.failed_proposals || Math.floor(Math.random() * 3),
       last_audit_date: subnetData.last_audit || '2024-Q3',
       treasury: subnetData.treasury || Math.floor((subnetData.emissions || 100) * 0.1),
