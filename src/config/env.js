@@ -15,7 +15,7 @@ const getEnvVar = (name) => {
 
 export const ENV_CONFIG = {
   // API Mode Configuration
-  USE_MOCK_API: getEnvVar('VITE_USE_MOCK_API') === 'true' || false, // Default to REAL data (no more shortcuts!)
+  USE_MOCK_API: false, // ALWAYS use real APIs - no more mock server issues!
   
   // API Endpoints
   MOCK_API_URL: getEnvVar('VITE_MOCK_API_URL') || 'http://localhost:3001',

@@ -294,10 +294,10 @@ class ApiClient {
 
   // Generic GET method for any endpoint
   async get(endpoint) {
-    // If endpoint starts with slash, treat as relative to mock server
+    // If endpoint starts with slash, treat as relative to backend server
     // Otherwise, treat as absolute URL
     const url = endpoint.startsWith('/') 
-      ? `${API_CONFIG.MOCK_BASE_URL}${endpoint}`
+      ? `${API_CONFIG.BACKEND_BASE_URL}${endpoint}`
       : endpoint;
 
     return this.fetchWithErrorHandling(url);
