@@ -1,16 +1,50 @@
 // ScoutBrief AI Agent Service - 5 Specialized Agents for Quarterly Intelligence Reports
-import IONetClient from '../../shared/scoring/IONetClient.js';
-import { ENV_CONFIG } from '../config/env.js';
 
 class ScoutBriefAgents {
   constructor() {
-    // Initialize IONET client ONLY - no fallbacks, no mock data
-    if (!ENV_CONFIG.IONET_API_KEY) {
+    // Initialize with direct IONET API access - no frontend dependencies
+    this.apiKey = process.env.IONET_API_KEY;
+    this.baseUrl = 'https://api.intelligence.io.solutions/api/v1';
+    
+    if (!this.apiKey) {
       throw new Error('IONET_API_KEY is required for ScoutBrief agent analysis');
     }
     
-    this.ionetClient = new IONetClient(ENV_CONFIG.IONET_API_KEY);
     console.log('🤖 ScoutBrief Agents initialized with IONET intelligence');
+  }
+
+  // Direct IONET API call - no wrapper dependencies
+  async makeInferenceRequest(model, messages, options = {}) {
+    const { temperature = 0.7, maxTokens = 400 } = options;
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: temperature,
+          max_tokens: maxTokens
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`IONET API Error ${response.status}: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return {
+        content: data.choices?.[0]?.message?.content || 'No response from IONET API'
+      };
+    } catch (error) {
+      console.error('IONET API call failed:', error.message);
+      throw error;
+    }
   }
 
   /**
@@ -82,7 +116,7 @@ Return JSON:
     const filledPrompt = this.fillTemplate(prompt, variables);
 
     try {
-      const response = await this.ionetClient.makeInferenceRequest(
+      const response = await this.makeInferenceRequest(
         'meta-llama/Llama-3.3-70B-Instruct', // Growth analysis model
         [{ role: 'user', content: filledPrompt }],
         { temperature: 0.6, maxTokens: 400 }
@@ -158,7 +192,7 @@ Return JSON:
     const filledPrompt = this.fillTemplate(prompt, variables);
 
     try {
-      const response = await this.ionetClient.makeInferenceRequest(
+      const response = await this.makeInferenceRequest(
         'meta-llama/Llama-3.3-70B-Instruct', // Technical analysis model
         [{ role: 'user', content: filledPrompt }],
         { temperature: 0.5, maxTokens: 400 }
@@ -241,7 +275,7 @@ Return JSON:
     const filledPrompt = this.fillTemplate(prompt, variables);
 
     try {
-      const response = await this.ionetClient.makeInferenceRequest(
+      const response = await this.makeInferenceRequest(
         'deepseek-ai/DeepSeek-R1', // Performance analysis model
         [{ role: 'user', content: filledPrompt }],
         { temperature: 0.4, maxTokens: 400 }
@@ -317,7 +351,7 @@ Return JSON:
     const filledPrompt = this.fillTemplate(prompt, variables);
 
     try {
-      const response = await this.ionetClient.makeInferenceRequest(
+      const response = await this.makeInferenceRequest(
         'meta-llama/Llama-3.3-70B-Instruct', // Sentiment analysis model
         [{ role: 'user', content: filledPrompt }],
         { temperature: 0.7, maxTokens: 400 }
@@ -393,7 +427,7 @@ Return JSON:
     const filledPrompt = this.fillTemplate(prompt, variables);
 
     try {
-      const response = await this.ionetClient.makeInferenceRequest(
+      const response = await this.makeInferenceRequest(
         'meta-llama/Llama-3.3-70B-Instruct', // Risk analysis model
         [{ role: 'user', content: filledPrompt }],
         { temperature: 0.3, maxTokens: 500 }
@@ -415,9 +449,12 @@ Return JSON:
    * Run all 5 agents on a single subnet
    */
   async analyzeSubnet(subnetData, adminContext, quarterInfo) {
-    console.log(`🔍 Analyzing subnet ${subnetData.subnet_id || subnetData.id} with all 5 agents...`);
+    const startTime = Date.now();
+    const subnetId = subnetData.subnet_id || subnetData.id;
+    console.log(`🔍 Starting REAL agent analysis for subnet ${subnetId} at ${new Date().toISOString()}`);
     
     try {
+      console.log(`🤖 Running 5 IONET API calls for subnet ${subnetId}...`);
       const [momentum, drProtocol, ops, pulse, guardian] = await Promise.all([
         this.runMomentumAgent(subnetData, adminContext, quarterInfo),
         this.runDrProtocolAgent(subnetData, adminContext, quarterInfo),
@@ -425,6 +462,12 @@ Return JSON:
         this.runPulseAgent(subnetData, adminContext, quarterInfo),
         this.runGuardianAgent(subnetData, adminContext, quarterInfo)
       ]);
+      
+      const elapsed = Date.now() - startTime;
+      console.log(`✅ Subnet ${subnetId} analysis completed in ${elapsed}ms (${(elapsed/1000).toFixed(1)}s)`);
+      if (elapsed < 10000) {
+        console.warn(`⚠️ WARNING: Analysis completed too quickly (${elapsed}ms) - this might indicate API calls failed`);
+      }
 
       // Calculate overall score (average of all agents)
       const scores = [momentum.score, drProtocol.score, ops.score, pulse.score, guardian.score];
@@ -452,7 +495,9 @@ Return JSON:
    * Run analysis on multiple subnets (batch processing)
    */
   async analyzeSubnets(subnetsData, adminContext, quarterInfo, maxConcurrent = 5) {
-    console.log(`🚀 Starting analysis of ${subnetsData.length} subnets with ${maxConcurrent} concurrent requests...`);
+    const totalStartTime = Date.now();
+    console.log(`🚀 Starting REAL AI agent analysis of ${subnetsData.length} subnets at ${new Date().toISOString()}`);
+    console.log(`📊 Expected completion time: ${Math.ceil(subnetsData.length * 30 / maxConcurrent)} seconds for real IONET API calls`);
     
     const results = [];
     const errors = [];
@@ -487,7 +532,13 @@ Return JSON:
       }
     }
 
-    console.log(`✅ Analysis complete: ${results.length} successful, ${errors.length} failed`);
+    const totalElapsed = Date.now() - totalStartTime;
+    console.log(`✅ REAL Analysis complete: ${results.length} successful, ${errors.length} failed`);
+    console.log(`⏱️ Total time: ${totalElapsed}ms (${(totalElapsed/1000).toFixed(1)}s) - should be 60+ seconds for real API calls`);
+    
+    if (totalElapsed < 30000) {
+      console.error(`❌ ANALYSIS TOO FAST: ${totalElapsed}ms indicates fake/failed analysis - real IONET calls should take 60+ seconds`);
+    }
     
     return { results, errors };
   }
