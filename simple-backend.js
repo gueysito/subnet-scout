@@ -3060,7 +3060,32 @@ const server = http.createServer(async (req, res) => {
       
       const subnetsDataPromises = subnetIds.map(async (subnetId) => {
         const subnetData = await generateSubnetData(subnetId);
-        return subnetData.data;
+        const data = subnetData.data;
+        return {
+          subnet_id: subnetId,
+          name: data.name,
+          description: data.description,
+          type: data.type,
+          github_url: data.github_url,
+          twitter_url: data.twitter_url,
+          website_url: data.website_url,
+          status: data.status,
+          score: data.activity_score, // THIS IS THE KEY FIX
+          yield: data.yield_percentage,
+          activity: data.activity_score,
+          credibility: data.credibility_score,
+          market_cap: data.market_cap,
+          price: data.price,
+          change_24h: data.change_24h,
+          validator_count: data.validator_count,
+          miner_count: data.miner_count,
+          total_stake: data.total_stake,
+          emission_rate: data.emission_rate,
+          github_activity: data.github_activity,
+          kaito_score: data.kaito_score,
+          ethos_score: data.ethos_score,
+          last_updated: data.last_updated
+        };
       });
       
       const subnetsData = (await Promise.all(subnetsDataPromises)).filter(Boolean);
