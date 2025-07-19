@@ -13,10 +13,132 @@ import scoutBriefAgents from './src/services/scoutbrief-agents.js';
 
 const PORT = process.env.PORT || 8080;
 
-// In-memory storage for ScoutBrief admin panel
-let subscribers = new Set(); // Use Set to avoid duplicate emails  
-let briefContexts = [];
+// SQLite database for persistent storage
+import Database from 'better-sqlite3';
+
+let db;
 let briefGenerations = 0;
+
+// Initialize SQLite database
+function initDatabase() {
+  try {
+    // Use /tmp for Railway compatibility
+    const dbPath = '/tmp/scoutbrief.db';
+    db = new Database(dbPath);
+    
+    // Create tables
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS subscribers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS contexts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quarter TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        context TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quarter TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        data TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log('📊 SQLite database initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize database:', error);
+    // Fallback to in-memory if SQLite fails
+    console.log('⚠️ Falling back to in-memory storage');
+    db = null;
+  }
+}
+
+// Database helper functions
+function addSubscriber(email) {
+  if (!db) return false;
+  try {
+    const stmt = db.prepare('INSERT OR IGNORE INTO subscribers (email) VALUES (?)');
+    const result = stmt.run(email);
+    return result.changes > 0;
+  } catch (error) {
+    console.error('Failed to add subscriber:', error);
+    return false;
+  }
+}
+
+function getSubscriberCount() {
+  if (!db) return 0;
+  try {
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM subscribers');
+    const result = stmt.get();
+    return result.count;
+  } catch (error) {
+    console.error('Failed to get subscriber count:', error);
+    return 0;
+  }
+}
+
+function addContext(quarter, year, context) {
+  if (!db) return false;
+  try {
+    const stmt = db.prepare('INSERT INTO contexts (quarter, year, context) VALUES (?, ?, ?)');
+    const result = stmt.run(quarter, year, context);
+    return result.changes > 0;
+  } catch (error) {
+    console.error('Failed to add context:', error);
+    return false;
+  }
+}
+
+function getContextCount() {
+  if (!db) return 0;
+  try {
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM contexts');
+    const result = stmt.get();
+    return result.count;
+  } catch (error) {
+    console.error('Failed to get context count:', error);
+    return 0;
+  }
+}
+
+function getLatestContext() {
+  if (!db) return null;
+  try {
+    const stmt = db.prepare('SELECT * FROM contexts ORDER BY created_at DESC LIMIT 1');
+    return stmt.get();
+  } catch (error) {
+    console.error('Failed to get latest context:', error);
+    return null;
+  }
+}
+
+function saveReport(quarter, year, title, reportData) {
+  if (!db) return false;
+  try {
+    const stmt = db.prepare('INSERT INTO reports (quarter, year, title, data) VALUES (?, ?, ?, ?)');
+    const result = stmt.run(quarter, year, title, JSON.stringify(reportData));
+    return result.lastInsertRowid;
+  } catch (error) {
+    console.error('Failed to save report:', error);
+    return false;
+  }
+}
+
+// Initialize database on startup
+initDatabase();
 
 // IO.net API Configuration
 const IONET_API_KEY = process.env.IONET_API_KEY;
@@ -2273,8 +2395,8 @@ const server = http.createServer(async (req, res) => {
   // Admin stats endpoint  
   if (pathname === '/api/scoutbrief/admin/stats') {
     sendJSON(res, 200, {
-      active_subscribers: subscribers.size,
-      brief_contexts: briefContexts.length,
+      active_subscribers: getSubscriberCount(),
+      brief_contexts: getContextCount(),
       brief_generations: briefGenerations,
       timestamp: new Date().toISOString()
     });
@@ -2297,14 +2419,14 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
-      // Store email in subscribers set (avoids duplicates)
+      // Store email in SQLite database (avoids duplicates)
       const cleanEmail = email.toLowerCase().trim();
-      subscribers.add(cleanEmail);
+      const added = addSubscriber(cleanEmail);
       
       // ALSO add to AITable for external integration
       try {
         await aitableService.addSubscriber(cleanEmail, { source: 'scoutbrief_admin' });
-        console.log(`✅ Email added to both in-memory storage and AITable: ${cleanEmail}`);
+        console.log(`✅ Email added to both SQLite and AITable: ${cleanEmail}`);
       } catch (aitableError) {
         console.warn(`⚠️ AITable integration failed (continuing anyway): ${aitableError.message}`);
         // Don't fail the subscription if AITable fails
@@ -2313,7 +2435,8 @@ const server = http.createServer(async (req, res) => {
       sendJSON(res, 200, {
         success: true,
         message: "Successfully subscribed to ScoutBrief Quarterly Intelligence!",
-        total_subscribers: subscribers.size,
+        total_subscribers: getSubscriberCount(),
+        added_new: added,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -2340,22 +2463,25 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       
-      // Store context data
-      const contextData = {
-        id: Date.now().toString(),
-        quarter: quarter || 'Q1',
-        year: year || new Date().getFullYear(),
-        context: context.trim(),
-        created_at: new Date().toISOString()
-      };
+      // Store context in SQLite database
+      const contextQuarter = quarter || 'Q1';
+      const contextYear = year || new Date().getFullYear();
+      const added = addContext(contextQuarter, contextYear, context.trim());
       
-      briefContexts.push(contextData);
+      if (!added) {
+        sendJSON(res, 500, {
+          success: false,
+          error: 'Failed to save context to database'
+        });
+        return;
+      }
       
       sendJSON(res, 200, {
         success: true,
         message: 'Context submitted successfully!',
-        context_id: contextData.id,
-        total_contexts: briefContexts.length,
+        quarter: contextQuarter,
+        year: contextYear,
+        total_contexts: getContextCount(),
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -2383,9 +2509,10 @@ const server = http.createServer(async (req, res) => {
         year: now.getFullYear()
       };
       
-      // 2. Get admin context from stored contexts (use most recent)
-      const adminContext = briefContexts.length > 0 
-        ? briefContexts[briefContexts.length - 1].context
+      // 2. Get admin context from SQLite database (use most recent)
+      const latestContext = getLatestContext();
+      const adminContext = latestContext 
+        ? latestContext.context
         : 'No specific context provided for this quarter.';
       
       console.log(`📊 Analyzing subnets for ${quarterInfo.quarter} ${quarterInfo.year}`);
@@ -2435,7 +2562,15 @@ const server = http.createServer(async (req, res) => {
       
       let analysisResult;
       try {
-        console.log('🔧 Initializing AI agents...');
+        console.log('🔧 Checking if scoutBriefAgents is available...');
+        console.log('ScoutBrief agents type:', typeof scoutBriefAgents);
+        console.log('IONET_API_KEY available:', !!IONET_API_KEY);
+        
+        if (typeof scoutBriefAgents === 'undefined' || !scoutBriefAgents) {
+          throw new Error('ScoutBrief agents not imported correctly - frontend dependencies missing');
+        }
+        
+        console.log('🤖 Starting AI agent analysis...');
         analysisResult = await scoutBriefAgents.analyzeSubnets(
           topSubnets,
           adminContext,
@@ -2443,10 +2578,14 @@ const server = http.createServer(async (req, res) => {
           3 // Max 3 concurrent to avoid rate limits
         );
         console.log('✅ AI agent analysis completed successfully');
+        console.log('Analysis results count:', analysisResult?.results?.length || 0);
       } catch (agentError) {
         console.error('❌ AI agent analysis failed:', agentError.message);
         console.error('Agent error details:', agentError);
-        throw new Error(`AI agent analysis failed: ${agentError.message}`);
+        console.error('Stack trace:', agentError.stack);
+        
+        // Return a clear error instead of fake data
+        throw new Error(`REAL AI AGENTS FAILED: ${agentError.message}. This means the agents are not working, not that we're returning mock data.`);
       }
       
       // 5. Generate comprehensive report from agent results
