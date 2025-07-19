@@ -2213,30 +2213,6 @@ const server = http.createServer(async (req, res) => {
       // File not found, continue to SPA fallback
     }
   }
-  
-  // SPA fallback - serve index.html for all non-API routes
-  const indexPath = path.join(process.cwd(), 'dist', 'index.html');
-  
-  try {
-    const data = fs.readFileSync(indexPath);
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(data);
-    return;
-  } catch {
-    // Fallback to 404 if no dist directory
-    sendJSON(res, 404, {
-      success: false,
-      error: 'Endpoint not found',
-      available_endpoints: [
-        'GET /health',
-        'GET /api/agents',
-        'GET /api/metrics',
-        'GET /api/subnet/:id/data',
-        'POST /api/tao/question'
-      ],
-      timestamp: new Date().toISOString()
-    });
-  }
 
   // ===== SCOUTBRIEF ADMIN ENDPOINTS =====
   // Admin login endpoint
@@ -2329,6 +2305,30 @@ const server = http.createServer(async (req, res) => {
     }
     return;
   }
+  
+  // SPA fallback - serve index.html for all non-API routes
+  const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+  
+  try {
+    const data = fs.readFileSync(indexPath);
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(data);
+    return;
+  } catch {
+    // Fallback to 404 if no dist directory
+    sendJSON(res, 404, {
+      success: false,
+      error: 'Endpoint not found',
+      available_endpoints: [
+        'GET /health',
+        'GET /api/agents',
+        'GET /api/metrics',
+        'GET /api/subnet/:id/data',
+        'POST /api/tao/question'
+      ],
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // Helper function to read request body
@@ -2350,11 +2350,16 @@ server.listen(PORT, () => {
   console.log(`🚀 Pure Node.js Backend API Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🤖 IO.net Intelligence: ${IONET_API_KEY ? 'ENABLED' : 'DISABLED (fallback to basic responses)'}`);
+  console.log(`🔐 ScoutBrief Admin: ${process.env.SCOUTBRIEF_ADMIN_PASSWORD ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
   console.log(`📋 Available endpoints:`);
   console.log(`   GET /health - Health check`);
   console.log(`   GET /api/agents - Subnet agents list`);
   console.log(`   GET /api/subnet/:id/data - Individual subnet data`);
   console.log(`   POST /api/tao/question - TAO question processing`);
+  console.log(`   POST /api/scoutbrief/admin/login - Admin authentication`);
+  console.log(`   GET /api/scoutbrief/admin/status - Check auth status`);
+  console.log(`   GET /api/scoutbrief/admin/stats - Admin statistics`);
+  console.log(`   POST /api/newsletter/subscribe - Newsletter subscription`);
   console.log(`✅ ZERO DEPENDENCIES - Pure Node.js HTTP server ready!`);
   console.log(`🔧 No Express, no path-to-regexp, no crashes!`);
 });
