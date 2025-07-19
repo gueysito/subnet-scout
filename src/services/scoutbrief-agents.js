@@ -38,8 +38,12 @@ class ScoutBriefAgents {
       }
 
       const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || 'No response from IONET API';
+      
+      console.log('IONET raw response:', content);
+      
       return {
-        content: data.choices?.[0]?.message?.content || 'No response from IONET API'
+        content: content
       };
     } catch (error) {
       console.error('IONET API call failed:', error.message);
@@ -90,10 +94,11 @@ SCORING RUBRIC:
 - 30-49: 0-10% growth, slowing
 - 0-29: Negative growth or stagnant
 
-Return JSON:
+You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
+
 {
   "score": <int>,
-  "trend": "accelerating|steady|decelerating",
+  "trend": "accelerating|steady|decelerating", 
   "key_finding": "<one sentence insight>",
   "analysis": "<150 word detailed analysis>",
   "data_points": [<specific numbers that support analysis>]
@@ -122,13 +127,22 @@ Return JSON:
         { temperature: 0.6, maxTokens: 400 }
       );
 
-      // Parse JSON response
-      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      // Parse JSON response with better handling
+      console.log('Momentum agent response content:', response.content);
+      
+      // Try to extract JSON from response
+      let jsonMatch = response.content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError.message);
+          console.error('Attempted to parse:', jsonMatch[0]);
+        }
       }
+      
+      // If no JSON found, create a structured response from the text
+      throw new Error(`No valid JSON found in Momentum agent response. Raw response: ${response.content.substring(0, 200)}...`);
     } catch (error) {
       console.error('Momentum agent failed:', error.message);
       throw error; // No fallbacks - fail fast
@@ -167,7 +181,8 @@ SCORING RUBRIC:
 - 30-49: Minimal activity, concerning
 - 0-29: Abandoned or security risks
 
-Return JSON:
+You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
+
 {
   "score": <int>,
   "development_status": "highly_active|active|maintaining|declining|abandoned",
@@ -242,7 +257,8 @@ SCORING RUBRIC:
 - 30-49: Below average, <95% uptime
 - 0-29: Poor efficiency or major outages
 
-Return JSON:
+You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
+
 {
   "score": <int>,
   "efficiency_rating": "excellent|good|average|poor",
@@ -325,10 +341,11 @@ SCORING RUBRIC:
 - 30-49: Low engagement, some concerns
 - 0-29: Negative sentiment or abandonment
 
-Return JSON:
+You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
+
 {
   "score": <int>,
-  "sentiment": "very_positive|positive|neutral|negative|very_negative",
+  "sentiment": "very_positive|positive|neutral|negative|very_negative", 
   "key_finding": "<one sentence insight>",
   "analysis": "<150 word detailed analysis>",
   "community_highlights": [<top 3 community topics>]
@@ -401,12 +418,13 @@ SCORING RUBRIC:
 - 30-49: High risk, concerns present
 - 0-29: Critical risk, immediate attention
 
-Return JSON:
+You must respond ONLY with valid JSON in this exact format. Do not include any other text, explanation, or markdown formatting:
+
 {
   "score": <int>,
   "risk_level": "minimal|low|moderate|high|critical",
   "key_finding": "<one sentence insight>",
-  "analysis": "<150 word detailed analysis>",
+  "analysis": "<150 word detailed analysis>", 
   "risk_factors": [<list of specific risks>],
   "recommendations": [<mitigation suggestions>]
 }`;
