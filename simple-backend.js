@@ -8,6 +8,8 @@ import http from 'http';
 import https from 'https';
 import fs from 'fs';
 import path from 'path';
+import aitableService from './shared/utils/aitableService.js';
+import scoutBriefAgents from './src/services/scoutbrief-agents.js';
 
 const PORT = process.env.PORT || 8080;
 
@@ -2296,7 +2298,17 @@ const server = http.createServer(async (req, res) => {
       }
       
       // Store email in subscribers set (avoids duplicates)
-      subscribers.add(email.toLowerCase().trim());
+      const cleanEmail = email.toLowerCase().trim();
+      subscribers.add(cleanEmail);
+      
+      // ALSO add to AITable for external integration
+      try {
+        await aitableService.addSubscriber(cleanEmail, { source: 'scoutbrief_admin' });
+        console.log(`✅ Email added to both in-memory storage and AITable: ${cleanEmail}`);
+      } catch (aitableError) {
+        console.warn(`⚠️ AITable integration failed (continuing anyway): ${aitableError.message}`);
+        // Don't fail the subscription if AITable fails
+      }
       
       sendJSON(res, 200, {
         success: true,
@@ -2356,47 +2368,156 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Brief generation endpoint
+  // Brief generation endpoint - REAL AI AGENT INTELLIGENCE
   if (pathname === '/api/scoutbrief/admin/generate' && method === 'POST') {
     try {
+      console.log('🚀 Starting REAL AI agent intelligence generation...');
+      
       // Increment generation counter
       briefGenerations++;
       
-      // Mock report data
-      const reportData = {
+      // 1. Get current quarter info
+      const now = new Date();
+      const quarterInfo = {
+        quarter: `Q${Math.ceil((now.getMonth() + 1) / 3)}`,
+        year: now.getFullYear()
+      };
+      
+      // 2. Get admin context from stored contexts (use most recent)
+      const adminContext = briefContexts.length > 0 
+        ? briefContexts[briefContexts.length - 1].context
+        : 'No specific context provided for this quarter.';
+      
+      console.log(`📊 Analyzing subnets for ${quarterInfo.quarter} ${quarterInfo.year}`);
+      console.log(`📝 Using admin context: ${adminContext.substring(0, 100)}...`);
+      
+      // 3. Fetch real subnet data from our existing endpoint
+      const subnetResponse = await fetch(`http://localhost:${PORT}/api/agents`);
+      if (!subnetResponse.ok) {
+        throw new Error('Failed to fetch subnet data');
+      }
+      
+      const subnetsData = await subnetResponse.json();
+      console.log(`🔍 Found ${subnetsData.length} subnets to analyze`);
+      
+      // 4. Run REAL AI agent analysis on top 10 subnets (to avoid overwhelming IONET)
+      const topSubnets = subnetsData
+        .sort((a, b) => (b.registration_count || 0) - (a.registration_count || 0))
+        .slice(0, 10);
+      
+      console.log(`🤖 Running 5 AI agents on top ${topSubnets.length} subnets...`);
+      
+      const analysisResult = await scoutBriefAgents.analyzeSubnets(
+        topSubnets,
+        adminContext,
+        quarterInfo,
+        3 // Max 3 concurrent to avoid rate limits
+      );
+      
+      // 5. Generate comprehensive report from agent results
+      const report = {
         id: Date.now().toString(),
-        title: `ScoutBrief Q${Math.ceil(new Date().getMonth() / 3)} ${new Date().getFullYear()} Intelligence Report`,
+        title: `ScoutBrief ${quarterInfo.quarter} ${quarterInfo.year} Intelligence Report`,
         status: 'generated',
         generated_at: new Date().toISOString(),
-        summary: `Generated intelligence brief using ${briefContexts.length} context(s) for ${subscribers.size} subscriber(s).`,
-        sections: [
-          {
-            title: 'Market Overview',
-            content: 'AI-powered analysis of subnet performance and trends.'
+        quarter: quarterInfo.quarter,
+        year: quarterInfo.year,
+        admin_context: adminContext,
+        summary: `AI-powered analysis of ${analysisResult.results.length} subnets using 5 specialized agents (Momentum, Dr. Protocol, Ops, Pulse, Guardian). Generated for ${subscribers.size} subscribers.`,
+        
+        // Overall statistics
+        statistics: {
+          subnets_analyzed: analysisResult.results.length,
+          failed_analyses: analysisResult.errors.length,
+          average_score: analysisResult.results.length > 0 
+            ? Math.round(analysisResult.results.reduce((sum, r) => sum + r.overall_score, 0) / analysisResult.results.length)
+            : 0,
+          top_performer: analysisResult.results.length > 0 
+            ? analysisResult.results.reduce((max, current) => current.overall_score > max.overall_score ? current : max)
+            : null
+        },
+        
+        // Agent insights by category
+        agent_insights: {
+          momentum: {
+            title: 'Growth & Momentum Analysis',
+            insights: analysisResult.results.map(r => ({
+              subnet_id: r.subnet_id,
+              score: r.agents.momentum.score,
+              trend: r.agents.momentum.trend,
+              finding: r.agents.momentum.key_finding
+            }))
           },
-          {
-            title: 'Key Insights', 
-            content: 'Strategic recommendations based on current data.'
+          technical: {
+            title: 'Technical Health Assessment',
+            insights: analysisResult.results.map(r => ({
+              subnet_id: r.subnet_id,
+              score: r.agents.dr_protocol.score,
+              status: r.agents.dr_protocol.development_status,
+              finding: r.agents.dr_protocol.key_finding
+            }))
           },
-          {
-            title: 'Future Outlook',
-            content: 'Predictive analysis for upcoming quarter.'
+          performance: {
+            title: 'Operational Performance',
+            insights: analysisResult.results.map(r => ({
+              subnet_id: r.subnet_id,
+              score: r.agents.ops.score,
+              efficiency: r.agents.ops.efficiency_rating,
+              finding: r.agents.ops.key_finding
+            }))
+          },
+          community: {
+            title: 'Community Sentiment',
+            insights: analysisResult.results.map(r => ({
+              subnet_id: r.subnet_id,
+              score: r.agents.pulse.score,
+              sentiment: r.agents.pulse.sentiment,
+              finding: r.agents.pulse.key_finding
+            }))
+          },
+          risk: {
+            title: 'Risk Assessment',
+            insights: analysisResult.results.map(r => ({
+              subnet_id: r.subnet_id,
+              score: r.agents.guardian.score,
+              risk_level: r.agents.guardian.risk_level,
+              finding: r.agents.guardian.key_finding
+            }))
           }
-        ]
+        },
+        
+        // Detailed subnet analysis
+        subnet_analyses: analysisResult.results,
+        
+        // Processing errors (if any)
+        errors: analysisResult.errors,
+        
+        // Generation metadata
+        generation_metadata: {
+          generation_number: briefGenerations,
+          ionet_api_used: true,
+          agents_used: ['Momentum', 'Dr. Protocol', 'Ops', 'Pulse', 'Guardian'],
+          processing_time_ms: Date.now() - now.getTime()
+        }
       };
+      
+      console.log(`✅ Intelligence report generated successfully!`);
+      console.log(`📈 Analyzed ${analysisResult.results.length} subnets with average score: ${report.statistics.average_score}`);
       
       sendJSON(res, 200, {
         success: true,
-        message: 'Intelligence brief generated successfully!',
-        report: reportData,
+        message: 'Real AI intelligence brief generated successfully!',
+        report: report,
         generation_number: briefGenerations,
         timestamp: new Date().toISOString()
       });
+      
     } catch (error) {
-      console.error('Brief generation error:', error);
+      console.error('❌ Real AI brief generation failed:', error);
       sendJSON(res, 500, {
         success: false,
-        error: 'Internal server error'
+        error: `Intelligence generation failed: ${error.message}`,
+        fallback_available: false // No mock fallbacks!
       });
     }
     return;
