@@ -126,7 +126,7 @@ const apiLimiter = rateLimit({
 // More restrictive rate limiting for compute-intensive endpoints
 const computeIntensiveLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 20, // Limit each IP to 20 requests per 5 minutes for heavy operations
+  max: 100, // Limit each IP to 100 requests per 5 minutes for heavy operations
   message: {
     error: {
       code: "RATE_LIMIT_EXCEEDED_COMPUTE",
@@ -3440,6 +3440,7 @@ app.get('/api/scoutbrief/admin/reports-list', checkAdminAuth, (req, res) => {
   try {
     // Get all reports from database
     const allReports = scoutBriefDB.getAllReports();
+    console.log(`📊 Reports list requested - found ${allReports.length} reports`);
     
     res.json({
       reports: allReports.map(report => ({

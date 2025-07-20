@@ -125,9 +125,9 @@ const ScoutBriefAdmin = () => {
           }
           
           // Small delay to ensure backend has saved everything
-          setTimeout(() => {
+          setTimeout(async () => {
             fetchReports();
-            updateStats();
+            await updateStats();
           }, 1000);
         } else if (status.status === 'failed') {
           clearInterval(interval);
