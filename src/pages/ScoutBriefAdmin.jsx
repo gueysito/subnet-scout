@@ -478,7 +478,7 @@ const ScoutBriefAdmin = () => {
           
           <div className="mb-6">
             <p className="text-gray-300 mb-4">
-              Run AI agent analysis on the top 20 subnets using the latest monthly context.
+              Run AI agent analysis on the top 50 subnets using the latest monthly context.
               This will generate a comprehensive intelligence brief with insights from all 5 agents.
             </p>
             

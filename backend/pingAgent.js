@@ -3316,26 +3316,39 @@ app.post('/api/scoutbrief/admin/generate', checkAdminAuth, async (req, res) => {
     
     // Store individual agent analyses in database
     console.log('💾 Storing agent analyses to database...');
-    for (const analysis of analysisResult.results) {
+    for (const result of analysisResult.results) {
       // Store each agent's analysis separately
       const agents = ['momentum', 'dr_protocol', 'ops', 'pulse', 'guardian'];
       for (const agentType of agents) {
-        const agentData = analysis.agents[agentType];
+        const agentData = result.analysis[agentType];
         if (agentData) {
           scoutBriefDB.storeAgentAnalysis(
             quarterKey,
-            analysis.subnet_id,
+            result.subnet.subnet_id,
             agentType,
             agentData.score,
             JSON.stringify(agentData),
-            { analyzed_at: analysis.analyzed_at }
+            { analyzed_at: new Date().toISOString() }
           );
         }
       }
     }
     
-    // Rank subnets by overall score
+    // Calculate overall scores and rank subnets
     const rankedSubnets = analysisResult.results
+      .filter(r => r.success && r.analysis)
+      .map(r => {
+        // Calculate overall score from all agents
+        const agents = ['momentum', 'dr_protocol', 'ops', 'pulse', 'guardian'];
+        const scores = agents.map(agent => r.analysis[agent]?.score || 0);
+        const overall_score = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+        
+        return {
+          subnet_id: r.subnet.subnet_id,
+          overall_score: overall_score,
+          agents: r.analysis
+        };
+      })
       .filter(r => r.overall_score > 0)
       .sort((a, b) => b.overall_score - a.overall_score);
     
@@ -3397,7 +3410,7 @@ app.post('/api/scoutbrief/admin/generate', checkAdminAuth, async (req, res) => {
       }
     };
     
-    scoutBriefDB.storeReport(quarterInfo.quarter, quarterInfo.year, reportData, reportContent);
+    scoutBriefDB.storeReport(quarterInfo.quarter, quarterInfo.year, reportData, reportContent, 'completed');
     
     console.log(`✅ Report generation completed in ${Date.now() - startTime}ms`);
     
