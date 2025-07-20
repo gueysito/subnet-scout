@@ -23,16 +23,18 @@ const ScoutBriefAdmin = () => {
 
   const updateStats = useCallback(async () => {
     try {
-      const [contextsRes, reportsRes] = await Promise.all([
+      const [contextsRes, reportsRes, statsRes] = await Promise.all([
         fetch('/api/scoutbrief/admin/contexts'),
-        fetch('/api/scoutbrief/admin/reports-list')
+        fetch('/api/scoutbrief/admin/reports-list'),
+        fetch('/api/scoutbrief/admin/stats')
       ]);
       
       const contextsData = await contextsRes.json();
       const reportsData = await reportsRes.json();
+      const statsData = await statsRes.json();
       
       setStats({
-        active_subscribers: 0,
+        active_subscribers: statsData.active_subscribers || 0,
         brief_contexts: contextsData.contexts?.length || 0,
         brief_generations: reportsData.reports?.length || 0
       });

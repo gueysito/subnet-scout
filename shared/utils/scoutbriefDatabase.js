@@ -192,12 +192,12 @@ class ScoutBriefDatabase {
     try {
       const subscriberCount = this.db.prepare('SELECT COUNT(*) as count FROM scoutbrief_subscribers WHERE status = ?').get('active');
       const contextCount = this.db.prepare('SELECT COUNT(*) as count FROM scoutbrief_contexts').get();
-      const generationCount = this.db.prepare('SELECT COUNT(*) as count FROM scoutbrief_generations').get();
+      const reportsCount = this.db.prepare('SELECT COUNT(*) as count FROM reports').get();
 
       return {
         active_subscribers: subscriberCount.count,
         brief_contexts: contextCount.count,
-        brief_generations: generationCount.count
+        brief_generations: reportsCount.count
       };
     } catch (error) {
       console.error('Failed to get database stats:', error);
@@ -281,6 +281,62 @@ class ScoutBriefDatabase {
     } catch (error) {
       console.error('Failed to clear agent analyses:', error);
       throw error;
+    }
+  }
+
+  // Get all reports
+  getAllReports() {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM reports 
+        ORDER BY year DESC, quarter DESC
+      `);
+      const reports = stmt.all();
+      return reports.map(report => {
+        // Parse JSON fields
+        report.agent_data = report.agent_data ? JSON.parse(report.agent_data) : null;
+        report.report_content = report.report_content ? JSON.parse(report.report_content) : null;
+        return report;
+      });
+    } catch (error) {
+      console.error('Failed to get all reports:', error);
+      return [];
+    }
+  }
+
+  // Get latest report
+  getLatestReport() {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM reports 
+        ORDER BY year DESC, quarter DESC 
+        LIMIT 1
+      `);
+      const report = stmt.get();
+      if (report) {
+        // Parse JSON fields
+        report.agent_data = report.agent_data ? JSON.parse(report.agent_data) : null;
+        report.report_content = report.report_content ? JSON.parse(report.report_content) : null;
+      }
+      return report;
+    } catch (error) {
+      console.error('Failed to get latest report:', error);
+      return null;
+    }
+  }
+
+  // Get all contexts
+  getAllContexts() {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT id, quarter, year, context_data as context, created_at 
+        FROM scoutbrief_contexts 
+        ORDER BY year DESC, quarter DESC
+      `);
+      return stmt.all();
+    } catch (error) {
+      console.error('Failed to get all contexts:', error);
+      return [];
     }
   }
 

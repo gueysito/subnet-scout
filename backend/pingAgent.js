@@ -3309,8 +3309,7 @@ app.post('/api/scoutbrief/admin/generate', checkAdminAuth, async (req, res) => {
     const analysisResult = await scoutBriefAgents.analyzeSubnets(
       allSubnets, 
       latestContext.context_data, 
-      quarterInfo,
-      3 // Max 3 concurrent requests to avoid overwhelming IONET
+      process.env.IONET_API_KEY
     );
     
     console.log(`📈 Analysis complete: ${analysisResult.results.length} successful, ${analysisResult.errors.length} failed`);
@@ -3419,6 +3418,75 @@ app.post('/api/scoutbrief/admin/generate', checkAdminAuth, async (req, res) => {
       details: error.message,
       request_id: requestId,
       processing_time_ms: Date.now() - startTime
+    });
+  }
+});
+
+// Get reports list endpoint
+app.get('/api/scoutbrief/admin/reports-list', checkAdminAuth, (req, res) => {
+  try {
+    // Get all reports from database
+    const allReports = scoutBriefDB.getAllReports();
+    
+    res.json({
+      reports: allReports.map(report => ({
+        id: `${report.quarter}-${report.year}`,
+        title: `${report.quarter} ${report.year} Intelligence Brief`,
+        generated_at: report.created_at,
+        subnets_analyzed: report.report_content?.successful_analyses || 0,
+        quarter: report.quarter,
+        year: report.year
+      }))
+    });
+  } catch (error) {
+    console.error('Failed to get reports list:', error);
+    res.status(500).json({
+      error: 'Failed to get reports list',
+      details: error.message
+    });
+  }
+});
+
+// Get latest report endpoint
+app.get('/api/scoutbrief/admin/latest-report', checkAdminAuth, (req, res) => {
+  try {
+    const latestReport = scoutBriefDB.getLatestReport();
+    
+    if (!latestReport) {
+      return res.status(404).json({
+        error: 'No reports found'
+      });
+    }
+    
+    res.json({
+      report: {
+        id: `${latestReport.quarter}-${latestReport.year}`,
+        title: `${latestReport.quarter} ${latestReport.year} Intelligence Brief`,
+        ...latestReport.report_content
+      }
+    });
+  } catch (error) {
+    console.error('Failed to get latest report:', error);
+    res.status(500).json({
+      error: 'Failed to get latest report',
+      details: error.message
+    });
+  }
+});
+
+// Get contexts endpoint
+app.get('/api/scoutbrief/admin/contexts', checkAdminAuth, (req, res) => {
+  try {
+    const contexts = scoutBriefDB.getAllContexts();
+    
+    res.json({
+      contexts: contexts
+    });
+  } catch (error) {
+    console.error('Failed to get contexts:', error);
+    res.status(500).json({
+      error: 'Failed to get contexts',
+      details: error.message
     });
   }
 });
