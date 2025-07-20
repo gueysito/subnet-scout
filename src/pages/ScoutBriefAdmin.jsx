@@ -110,8 +110,11 @@ const ScoutBriefAdmin = () => {
             alert('Report completed but download failed. Use "Download Latest Report".');
           }
           
-          fetchReports();
-          updateStats();
+          // Small delay to ensure backend has saved everything
+          setTimeout(() => {
+            fetchReports();
+            updateStats();
+          }, 1000);
         } else if (status.status === 'failed') {
           clearInterval(interval);
           localStorage.removeItem('currentAnalysisJob');
