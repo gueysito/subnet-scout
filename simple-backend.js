@@ -134,12 +134,15 @@ async function initDataPersistence() {
     
     // Load persisted reports
     try {
-      const reportsData = await fsPromises.readFile(path.join(DATA_DIR, 'reports.json'), 'utf-8');
+      const reportsPath = path.join(DATA_DIR, 'reports.json');
+      console.log(`📂 Looking for reports at: ${reportsPath}`);
+      const reportsData = await fsPromises.readFile(reportsPath, 'utf-8');
       reports.length = 0; // Clear array
       reports.push(...JSON.parse(reportsData));
       console.log(`✅ Loaded ${reports.length} reports from disk`);
     } catch {
       console.log('📁 No reports file found, starting fresh');
+      console.log(`📍 Data directory path: ${DATA_DIR}`);
     }
   } catch (error) {
     console.error('Error initializing data persistence:', error);
@@ -2661,6 +2664,8 @@ const server = http.createServer(async (req, res) => {
 
   // Reports list endpoint
   if (pathname === '/api/scoutbrief/admin/reports-list' && method === 'GET') {
+    console.log(`📊 Reports list requested. Current reports in memory: ${reports.length}`);
+    
     const allReports = reports.map((report, index) => ({
       id: report.id,
       title: report.title,
