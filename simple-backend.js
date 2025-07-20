@@ -12,6 +12,40 @@ import path from 'path';
 import aitableService from './shared/utils/aitableService.js';
 import scoutBriefAgents from './src/services/scoutbrief-agents.js';
 
+// SendFox API service
+async function addToSendFox(email) {
+  try {
+    const sendfoxToken = process.env.SENDFOX_API_TOKEN;
+    if (!sendfoxToken) {
+      console.warn('⚠️ SENDFOX_API_TOKEN not configured, skipping SendFox integration');
+      return null;
+    }
+
+    const response = await fetch('https://api.sendfox.com/contacts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${sendfoxToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email,
+        lists: [591171]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`SendFox API error: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log(`✅ Email added to SendFox: ${email}`);
+    return result;
+  } catch (error) {
+    console.warn(`⚠️ SendFox integration failed: ${error.message}`);
+    throw error;
+  }
+}
+
 const PORT = process.env.PORT || 8080;
 
 // SQLite database for persistent storage
@@ -2466,6 +2500,15 @@ const server = http.createServer(async (req, res) => {
       } catch (aitableError) {
         console.warn(`⚠️ AITable integration failed (continuing anyway): ${aitableError.message}`);
         // Don't fail the subscription if AITable fails
+      }
+      
+      // ALSO add to SendFox for email marketing
+      try {
+        await addToSendFox(cleanEmail);
+        console.log(`✅ Email added to SQLite, AITable, and SendFox: ${cleanEmail}`);
+      } catch (sendfoxError) {
+        console.warn(`⚠️ SendFox integration failed (continuing anyway): ${sendfoxError.message}`);
+        // Don't fail the subscription if SendFox fails
       }
       
       sendJSON(res, 200, {
