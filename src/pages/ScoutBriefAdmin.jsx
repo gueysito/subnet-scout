@@ -18,6 +18,8 @@ const ScoutBriefAdmin = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState('');
   const [reportData, setReportData] = useState(null);
+  const [showContextsManager, setShowContextsManager] = useState(false);
+  const [contextsList, setContextsList] = useState([]);
 
   const updateStats = useCallback(async () => {
     try {
@@ -64,6 +66,16 @@ const ScoutBriefAdmin = () => {
       setReportsList(data.reports || []);
     } catch (error) {
       console.error('Failed to fetch reports:', error);
+    }
+  }, []);
+
+  const fetchContexts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/scoutbrief/admin/contexts');
+      const data = await response.json();
+      setContextsList(data.contexts || []);
+    } catch (error) {
+      console.error('Failed to fetch contexts:', error);
     }
   }, []);
 
@@ -328,7 +340,7 @@ const ScoutBriefAdmin = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-blue-400 mb-2">ScoutBrief Admin Panel</h1>
-          <p className="text-gray-400">Manage quarterly intelligence brief generation</p>
+          <p className="text-gray-400">Manage monthly intelligence brief generation</p>
           <button 
             onClick={updateStats}
             className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
@@ -426,13 +438,13 @@ const ScoutBriefAdmin = () => {
                 required
               />
               <p className="text-xs text-gray-500 mt-2">
-                This context will guide all 5 AI agents (Momentum, Dr. Protocol, Ops, Pulse, Guardian) in generating the quarterly intelligence brief.
+                This context will guide all 5 AI agents (Momentum, Dr. Protocol, Ops, Pulse, Guardian) in generating the monthly intelligence brief.
               </p>
             </div>
 
             {submitStatus === 'success' && (
               <div className="mb-4 p-4 rounded-lg bg-green-900/50 border border-green-700 text-green-300">
-                ✅ Context submitted successfully! The quarterly brief context has been saved.
+                ✅ Context submitted successfully! The monthly brief context has been saved.
               </div>
             )}
 
@@ -460,11 +472,11 @@ const ScoutBriefAdmin = () => {
 
         {/* Report Generation Section */}
         <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
-          <h2 className="text-2xl font-bold text-white mb-6">Generate Quarterly Report</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Generate Monthly Report</h2>
           
           <div className="mb-6">
             <p className="text-gray-300 mb-4">
-              Run AI agent analysis on the top 20 subnets using the latest quarterly context.
+              Run AI agent analysis on the top 20 subnets using the latest monthly context.
               This will generate a comprehensive intelligence brief with insights from all 5 agents.
             </p>
             
@@ -484,7 +496,7 @@ const ScoutBriefAdmin = () => {
                 ) : (
                   <>
                     <Zap className="w-6 h-6 mr-3" />
-                    Generate Report (20 Subnets)
+                    Generate Report
                   </>
                 )}
               </button>
@@ -518,6 +530,16 @@ const ScoutBriefAdmin = () => {
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Reports History
+              </button>
+              <button
+                onClick={async () => {
+                  await fetchContexts();
+                  setShowContextsManager(true);
+                }}
+                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-white font-semibold transition-colors duration-200 flex items-center"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                View Contexts
               </button>
             </div>
 
@@ -579,6 +601,75 @@ const ScoutBriefAdmin = () => {
                           Delete
                         </button>
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Contexts Manager Section */}
+        {showContextsManager && (
+          <div className="bg-zinc-900/60 backdrop-blur-sm p-8 rounded-xl border border-zinc-700 mt-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Contexts Manager</h2>
+              <button
+                onClick={() => setShowContextsManager(false)}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-white font-semibold"
+              >
+                Close
+              </button>
+            </div>
+            
+            {contextsList.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No contexts saved yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {contextsList.map((context) => (
+                  <div key={context.id} className="p-4 bg-zinc-800/50 rounded-lg border border-zinc-600">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white">
+                          {context.quarter} {context.year} Context
+                        </h3>
+                        <div className="text-sm text-gray-400 mt-1">
+                          <span>Created: {new Date(context.created_at).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(context.context);
+                            alert('Context copied to clipboard!');
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-white text-sm"
+                        >
+                          Copy
+                        </button>
+                        <button
+                          onClick={() => {
+                            const blob = new Blob([context.context], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `Context_${context.quarter}_${context.year}.txt`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-white text-sm"
+                        >
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-zinc-900/50 p-3 rounded text-sm text-gray-300 max-h-32 overflow-y-auto">
+                      {context.context}
                     </div>
                   </div>
                 ))}

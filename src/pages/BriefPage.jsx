@@ -48,13 +48,13 @@ const BriefPage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-12 text-center">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-400 mb-4">
-            Quarterly Intelligence Briefs
+            Monthly Intelligence Briefs
           </h1>
           <p className="text-xl sm:text-2xl text-gray-300 mb-2">
-            5 AI Agents. 118 Subnets. 1 Quarterly Report.
+            5 AI Agents. 118 Subnets. 1 Monthly Report.
           </p>
           <p className="text-lg text-gray-400 max-w-3xl mx-auto leading-relaxed">
-            Get exclusive quarterly intelligence powered by our specialized AI research team. 
+            Get exclusive monthly intelligence powered by our specialized AI research team. 
             We analyze all 118 Bittensor subnets to uncover patterns invisible to human analysis 
             and deliver professional insights you won't find anywhere else.
           </p>
@@ -154,7 +154,7 @@ const BriefPage = () => {
               Join the Intelligence Network
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Be among the first to receive our exclusive quarterly intelligence briefings. 
+              Be among the first to receive our exclusive monthly intelligence briefings. 
               Each report delivers deep subnet analysis, emerging trend identification, 
               and strategic insights you won't find anywhere else.
             </p>
