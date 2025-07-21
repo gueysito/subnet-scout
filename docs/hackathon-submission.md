@@ -21,10 +21,12 @@
 
 ### **AI Integration Excellence**
 
+- **95% io.net Intelligence Platform** - Primary AI engine for all advanced features
 - **7 io.net Intelligence Agents** orchestrated for comprehensive analysis
-- **Multi-model LLM selection** with fallback strategies
-- **TAO ecosystem Q&A system** for natural language subnet queries
-- **Predictive analytics** with 7-day forecasting capabilities
+- **Multi-model LLM selection**: `meta-llama/Llama-3.3-70B-Instruct`, `deepseek-ai/DeepSeek-R1`
+- **TAO ecosystem Q&A system** powered by io.net models
+- **Predictive analytics** with 7-day forecasting using io.net Intelligence
+- **Legacy Claude usage: 5%** - Only for basic summaries in base ScoreAgent class
 
 ### **Enterprise Production Quality**
 
@@ -40,17 +42,22 @@
 ### **Core Infrastructure Usage**
 
 - **Distributed Computing:** Python Ray framework utilizing io.net's processing power
-- **AI Model Selection:** Strategic use of multiple io.net models for specialized tasks
+- **AI Model Architecture:** 95% io.net Intelligence, 5% legacy Claude
+- **Primary io.net Models:**
+  - `meta-llama/Llama-3.3-70B-Instruct` - Enhanced scoring, risk assessment, TAO Q&A
+  - `deepseek-ai/DeepSeek-R1` - Trend prediction, comparative analysis
+  - `Meta-Llama-3.1-8B-Instruct-Turbo` - Fast inference tasks
 - **Cost Optimization:** Leveraging io.net's infrastructure for 83% cost savings
+- **Token Quotas:** 500k tokens/day per model with intelligent management
 
-### **7 Intelligence Agents Implemented**
+### **7 Intelligence Agents Implemented (All Powered by io.net)**
 
-1. **General Intelligence Agent** - Primary TAO ecosystem analysis
+1. **General Intelligence Agent** - Primary TAO ecosystem analysis (io.net: Llama-3.3-70B)
 2. **Web Search Agent** - Real-time news and announcements via DuckDuckGo
-3. **Data Analysis Agent** - Subnet metrics and performance analysis
+3. **Data Analysis Agent** - Subnet metrics and performance analysis (io.net: Llama-3.3-70B)
 4. **Social Intelligence Agent** - Community sentiment via Kaito integration
 5. **Code Analysis Agent** - GitHub development activity tracking
-6. **Reasoning Agent** - Complex multi-factor TAO ecosystem analysis
+6. **Reasoning Agent** - Complex multi-factor TAO ecosystem analysis (io.net: DeepSeek-R1)
 7. **Academic Agent** - Technical documentation and research analysis
 
 ### **Smart Agent Routing**
@@ -153,10 +160,11 @@ const processQuestionWithIONetAgents = async (question) => {
 
 ### **Technical Breakthroughs**
 
-1. **Multi-Agent AI Orchestration** - First implementation of 7 io.net agents working together
-2. **Distributed Subnet Processing** - Python Ray framework processing all 118 subnets simultaneously
-3. **Smart Query Classification** - Natural language processing for intelligent agent routing
-4. **Real-time Data Fusion** - Combining technical, social, and development metrics
+1. **Multi-Agent io.net Orchestration** - 7 specialized io.net Intelligence agents working together
+2. **95% io.net Intelligence Architecture** - Primary AI platform with only 5% legacy Claude
+3. **Distributed Subnet Processing** - Python Ray framework processing all 118 subnets simultaneously
+4. **Smart Query Classification** - io.net-powered NLP for intelligent agent routing
+5. **Real-time Data Fusion** - Combining technical, social, and development metrics
 
 ### **Problem-Solution Fit**
 
@@ -172,20 +180,21 @@ const processQuestionWithIONetAgents = async (question) => {
 ### **Unique Value Propositions**
 
 1. **Complete Coverage** - Only platform monitoring ALL 118 Bittensor subnets
-2. **AI Intelligence** - 7 specialized io.net agents providing deep analysis
+2. **io.net Intelligence Platform** - 95% io.net AI with 7 specialized agents
 3. **Real-time Processing** - 5.37-second analysis vs hours of manual work
 4. **Cost Efficiency** - 83% cheaper than traditional cloud solutions
 5. **Enterprise Security** - A-grade security rating for production deployment
+6. **Hackathon Compliance** - Deep io.net integration, not just API calls
 
 ### **vs Traditional Solutions**
 
-| Feature         | Traditional Tools | Subnet Scout         |
-| --------------- | ----------------- | -------------------- |
-| Subnet Coverage | 5-10 top subnets  | All 118 subnets      |
-| Analysis Time   | 2-8 hours         | 5.37 seconds         |
-| Cost Structure  | $900/month        | $150/month           |
-| AI Integration  | None              | 7 specialized agents |
-| Security Rating | C-grade average   | A-grade (95/100)     |
+| Feature         | Traditional Tools | Subnet Scout                     |
+| --------------- | ----------------- | -------------------------------- |
+| Subnet Coverage | 5-10 top subnets  | All 118 subnets                  |
+| Analysis Time   | 2-8 hours         | 5.37 seconds                     |
+| Cost Structure  | $900/month        | $150/month                       |
+| AI Integration  | None              | 95% io.net Intelligence Platform |
+| Security Rating | C-grade average   | A-grade (95/100)                 |
 
 ---
 
@@ -233,7 +242,8 @@ const processQuestionWithIONetAgents = async (question) => {
 
 - **Frontend:** React 18 + Vite + Tailwind CSS
 - **Backend:** Node.js + Express.js + Python Ray
-- **AI Integration:** io.net multi-agent system
+- **AI Integration:** 95% io.net Intelligence Platform (5% legacy Claude)
+- **io.net Models:** Llama-3.3-70B-Instruct, DeepSeek-R1, Llama-3.1-8B-Turbo
 - **Database:** PostgreSQL + Redis caching
 - **Security:** JWT + CSRF + comprehensive hardening
 - **Infrastructure:** io.net distributed computing
