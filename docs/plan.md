@@ -11,6 +11,7 @@ The historical hackathon plan below is preserved, not resumed.
 | SEC-02 Dormant security boundaries | Implemented; local checks verified | Admin namespace returns 503 before dispatch in both backends; all listeners default to loopback; private browser calls and legacy token verification refuse access. Seven focused checks (including cache refusal and separate SQLite state) and private-key canary build pass; removing admin/identity guards or restoring old browser config makes its regression check fail. | Candidate review addressed; publish and inspect CI. |
 | SEC-03 Generated data | Implemented; schema checks verified | Cookie/database snapshots removed from the current tree; generated state ignored; both database initialization paths work without saved data. Git history is unchanged. | Historical-data decisions require separate scope. |
 | DEFER-01 Existing utility tests / lint | Deferred by Carlos | Original source and candidate: 3/17 utility tests fail, 14 pass; full lint has 56 errors. Existing source tested with the candidate toolchain because original frozen install itself fails from manifest/lock mismatch. | Resolve before revival; do not claim a clean general test/lint gate. |
+| DEFER-03 Hosting integration | Separate scope | An active Netlify GitHub App created a PR preview despite old inactive deployment records. This repair uses `[skip netlify]` on the PR/merge to avoid production deployment. Netlify private settings could not be inspected because its connector requires sign-in. | Review existing hosting and history separately; do not assume the old site is gone. |
 | DEFER-02 Revival / public exposure | Deferred | No public-use approval. Wider auth, rate limits, data isolation, input/upload handling, bot security and hosting review were not completed by this repair. | Review before any revival or public hosting. |
 
 Security verification commands: `npm run test:security`, `npm run check:client-secrets`,
@@ -160,3 +161,8 @@ Set up everything **except the final code**. Prep so well that build phase = “
 
 🧠 **Remember:** This is just the beginning. Build it, ship it, and see who vibes with it. You can always expand post-hackathon.
 
+
+The old security workflow was disabled by GitHub inactivity. Maintenance restores
+push/PR/manual checks, with the obsolete daily schedule removed. Existing CI lint
+failures remain visible and owner-deferred. A Netlify preview created automatically
+before discovery is a separate hosting state, not an intentional production release.
