@@ -166,3 +166,7 @@ The old security workflow was disabled by GitHub inactivity. Maintenance restore
 push/PR/manual checks, with the obsolete daily schedule removed. Existing CI lint
 failures remain visible and owner-deferred. A Netlify preview created automatically
 before discovery is a separate hosting state, not an intentional production release.
+
+The secret scanner uses the publisher's default event revision selection and a
+pinned CLI version. Its action already supplies `--fail`; extra arguments contain
+only `--no-verification`. The old glob exclusion file is not passed as a regex file.
