@@ -1,10 +1,17 @@
 // Environment configuration for API client
 // Support both browser (import.meta.env) and Node.js (process.env) environments
 const getEnvVar = (name) => {
-  // Try import.meta.env first (browser/Vite), then process.env (Node.js)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[name];
-  }
+  // Static public references keep Vite from embedding the entire env object.
+  const publicEnv = {
+    VITE_MOCK_API_URL: import.meta.env?.VITE_MOCK_API_URL,
+    VITE_BACKEND_URL: import.meta.env?.VITE_BACKEND_URL,
+    VITE_ENABLE_DEBUG_LOGS: import.meta.env?.VITE_ENABLE_DEBUG_LOGS,
+    VITE_ENABLE_ERROR_SIMULATION: import.meta.env?.VITE_ENABLE_ERROR_SIMULATION,
+    VITE_TELEGRAM_BOT_USERNAME: import.meta.env?.VITE_TELEGRAM_BOT_USERNAME,
+    VITE_DOMAIN_URL: import.meta.env?.VITE_DOMAIN_URL,
+    NODE_ENV: import.meta.env?.MODE,
+  };
+  if (publicEnv[name] !== undefined) return publicEnv[name];
   // eslint-disable-next-line no-undef
   if (typeof process !== 'undefined' && process.env) {
     // eslint-disable-next-line no-undef
@@ -20,11 +27,6 @@ export const ENV_CONFIG = {
   // API Endpoints
   MOCK_API_URL: getEnvVar('VITE_MOCK_API_URL') || 'http://localhost:3001',
   BACKEND_URL: getEnvVar('VITE_BACKEND_URL') || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? `${window.location.protocol}//${window.location.host}` : 'http://localhost:8080'),
-  
-  // External API Keys
-  IONET_API_KEY: getEnvVar('VITE_IONET_API_KEY') || getEnvVar('IONET_API_KEY'),
-  TAOSTATS_USERNAME: getEnvVar('VITE_TAOSTATS_USERNAME') || getEnvVar('TAOSTATS_API_USERNAME'),
-  TAOSTATS_PASSWORD: getEnvVar('VITE_TAOSTATS_PASSWORD') || getEnvVar('TAOSTATS_API_SECRET'),
   
   // Development Settings
   NODE_ENV: getEnvVar('NODE_ENV') || 'development',
@@ -46,15 +48,7 @@ export const validateEnvironment = () => {
   const warnings = [];
   const errors = [];
 
-  // Check if we're in production without real API keys
-  if (!ENV_CONFIG.USE_MOCK_API && ENV_CONFIG.NODE_ENV === 'production') {
-    if (!ENV_CONFIG.IONET_API_KEY) {
-      errors.push('VITE_IONET_API_KEY is required in production mode');
-    }
-    if (!ENV_CONFIG.TAOSTATS_USERNAME || !ENV_CONFIG.TAOSTATS_PASSWORD) {
-      warnings.push('TaoStats credentials not provided - some features may be limited');
-    }
-  }
+  // Provider credentials belong only to the server, never to Vite configuration.
 
   // Development warnings
   if (ENV_CONFIG.USE_MOCK_API && ENV_CONFIG.NODE_ENV === 'production') {
@@ -88,9 +82,7 @@ export const getEnvironmentInfo = () => {
     apiMode: ENV_CONFIG.USE_MOCK_API ? 'mock' : 'real',
     mockApiUrl: ENV_CONFIG.MOCK_API_URL,
     backendUrl: ENV_CONFIG.BACKEND_URL,
-    hasIoNetKey: !!ENV_CONFIG.IONET_API_KEY,
-    hasTaoStatsCredentials: !!(ENV_CONFIG.TAOSTATS_USERNAME && ENV_CONFIG.TAOSTATS_PASSWORD),
     debugEnabled: ENV_CONFIG.ENABLE_DEBUG_LOGS,
     errorSimulationEnabled: ENV_CONFIG.ENABLE_ERROR_SIMULATION
   };
-}; 
+};

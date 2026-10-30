@@ -24,6 +24,7 @@ import { authenticateToken, requireAdmin } from '../shared/middleware/auth.js';
 import { csrfProtection, getCSRFToken } from '../shared/middleware/csrf.js';
 import { httpsRedirect, startServer, gracefulShutdown as httpsGracefulShutdown } from '../shared/config/https.js';
 import session from 'express-session';
+import { denyDormantAdmin } from '../shared/config/dormant.js';
 
 // Load .env variables
 dotenv.config();
@@ -32,6 +33,9 @@ dotenv.config();
 import scoutBriefDB from '../shared/utils/scoutbriefDatabase.js';
 
 const app = express();
+app.use((req, res, next) => {
+  if (!denyDormantAdmin(req, res)) next();
+});
 
 // Security: Helmet middleware for security headers
 app.use(helmet({

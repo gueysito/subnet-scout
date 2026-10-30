@@ -8,15 +8,9 @@ const API_CONFIG = {
   // Mock endpoints (local mock server)
   MOCK_BASE_URL: ENV_CONFIG.MOCK_API_URL,
   
-  // Real API endpoints
-  IONET_BASE_URL: 'https://api.io.net',
-  TAOSTATS_BASE_URL: 'https://api.taostats.io',
+  // Only the backend handles private provider credentials.
   BACKEND_BASE_URL: ENV_CONFIG.BACKEND_URL, // Use environment variable
   
-  // API Keys
-  IONET_API_KEY: ENV_CONFIG.IONET_API_KEY,
-  TAOSTATS_USERNAME: ENV_CONFIG.TAOSTATS_USERNAME,
-  TAOSTATS_PASSWORD: ENV_CONFIG.TAOSTATS_PASSWORD,
 };
 
 class ApiClient {
@@ -58,45 +52,16 @@ class ApiClient {
 
   // 1. io.net API calls
   async getIoNetAgents() {
-    const url = this.useMock 
-      ? `${API_CONFIG.MOCK_BASE_URL}/api/ionet/agents`
-      : `${API_CONFIG.IONET_BASE_URL}/v1/agents`;
-    
-    const headers = this.useMock 
-      ? {}
-      : { 'Authorization': `Bearer ${API_CONFIG.IONET_API_KEY}` };
-
-    return this.fetchWithErrorHandling(url, { headers });
+    if (!this.useMock) throw new Error('DORMANT_DIRECT_PROVIDER_DISABLED');
+    return this.fetchWithErrorHandling(`${API_CONFIG.MOCK_BASE_URL}/api/ionet/agents`);
   }
 
   // 2. TaoStats API calls
   async getTaoStatsData(netuid = 1, options = {}) {
-    const { page = 1, limit = 10, blockStart, blockEnd } = options;
-    
-    let url, headers;
-    
-    if (this.useMock) {
-      url = `${API_CONFIG.MOCK_BASE_URL}/api/taostats/pool/history?netuid=${netuid}&page=${page}&limit=${limit}`;
-      headers = { 'Authorization': 'mock:credentials' };
-    } else {
-      const params = new URLSearchParams({
-        netuid: netuid.toString(),
-        frequency: 'by_hour',
-        page: page.toString(),
-        order: 'block_number_desc'
-      });
-      
-      if (blockStart) params.append('block_start', blockStart.toString());
-      if (blockEnd) params.append('block_end', blockEnd.toString());
-      
-      url = `${API_CONFIG.TAOSTATS_BASE_URL}/api/dtao/pool/history/v1?${params}`;
-      headers = { 
-        'Authorization': `${API_CONFIG.TAOSTATS_USERNAME}:${API_CONFIG.TAOSTATS_PASSWORD}`,
-        'Accept': 'application/json'
-      };
-    }
-
-    return this.fetchWithErrorHandling(url, { headers });
+    if (!this.useMock) throw new Error('DORMANT_DIRECT_PROVIDER_DISABLED');
+    const { page = 1, limit = 10 } = options;
+    const url = `${API_CONFIG.MOCK_BASE_URL}/api/taostats/pool/history?netuid=${netuid}&page=${page}&limit=${limit}`;
+    return this.fetchWithErrorHandling(url, { headers: { Authorization: 'mock:credentials' } });
   }
 
   // 3. Internal scoring API calls - SIMPLIFIED (removed Ask Claude)
@@ -351,4 +316,4 @@ const apiClient = new ApiClient();
 
 // Export both the class and instance
 export default apiClient;
-export { ApiClient, API_CONFIG }; 
+export { ApiClient, API_CONFIG };

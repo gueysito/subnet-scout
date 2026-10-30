@@ -1,4 +1,13 @@
+> **Dormant security-maintenance state (2026-10-30).** This project is not being
+> revived or deployed. Admin operations and direct browser provider access are
+> disabled, servers default to loopback, and generated data is not tracked.
+> Historical production-readiness claims below are not a current approval to host it.
+> See [the security maintenance tracker](docs/plan.md#security-maintenance-2026-10-30).
+
 # CLAUDE.md
+
+Standards baseline: deferred (2026-10-30). Carlos approved narrow dormant security
+maintenance; contributor/front-door and broad format/lint adoption wait for revival.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 

@@ -1,5 +1,17 @@
 # Subnet Scout - Change Log
 
+## Dormant security maintenance (2026-10-30)
+
+- Patch Node/npm selection and both dependency locks; remove the legacy Privy SDK
+  and make optional token verification refuse access until revival.
+- Disable the ScoutBrief admin API across both backend entrypoints; bind backend,
+  mock, Vite development and preview listeners to loopback by default.
+- Remove private provider configuration/direct calls from browser code; verify
+  production output with synthetic key canaries.
+- Remove generated cookie/database snapshots and ignore future runtime artifacts;
+  preserve and test clean SQLite schema initialization. Git history is unchanged.
+- Track existing utility-test/lint failures separately, as approved. No deployment.
+
 ## [Latest Updates] - 2025-07-11
 
 ### 🌐 Website Links Integration (Commit: 8606ce2)

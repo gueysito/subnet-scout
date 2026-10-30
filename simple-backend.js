@@ -11,6 +11,7 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import aitableService from './shared/utils/aitableService.js';
 import scoutBriefAgents from './src/services/scoutbrief-agents.js';
+import { denyDormantAdmin, LOCAL_HOST } from './shared/config/dormant.js';
 
 // SendFox API service
 async function addToSendFox(email) {
@@ -63,8 +64,9 @@ let quarterlyContexts = []; // This will replace the SQLite contexts for file st
 // Initialize SQLite database
 function initDatabase() {
   try {
-    // Use /tmp for Railway compatibility
-    const dbPath = '/tmp/scoutbrief.db';
+    // Keep generated state local to this checkout (and out of version control).
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const dbPath = path.join(DATA_DIR, 'simple-backend.db');
     db = new Database(dbPath);
     
     // Create tables
@@ -2026,6 +2028,7 @@ async function processSubnetComparison(subnet1, subnet2, originalQuestion = '') 
 
 // Main HTTP server
 const server = http.createServer(async (req, res) => {
+  if (denyDormantAdmin(req, res)) return;
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = requestUrl.pathname;
   const query = Object.fromEntries(requestUrl.searchParams);
@@ -3276,7 +3279,7 @@ function getRequestBody(req) {
 }
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, LOCAL_HOST, () => {
   console.log(`🚀 Pure Node.js Backend API Server running on port ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🤖 IO.net Intelligence: ${IONET_API_KEY ? 'ENABLED' : 'DISABLED (fallback to basic responses)'}`);

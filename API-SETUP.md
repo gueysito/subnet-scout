@@ -1,3 +1,7 @@
+> Dormant project: provider variables below are server-only. Do not add private
+> keys to Vite configuration. Direct browser provider calls and admin actions are
+> disabled; see the README maintenance status before using these historical notes.
+
 # 🚀 API Setup Guide - Real Live Data Integration
 
 _Complete setup for Subnet Scout Agent with TaoStats and io.net APIs_
@@ -158,11 +162,11 @@ const getEnvVar = (name) => {
 
 export const ENV_CONFIG = {
   USE_MOCK_API: getEnvVar("VITE_USE_MOCK_API") === "true" || false, // DEFAULT TO REAL DATA!
-  IONET_API_KEY: getEnvVar("VITE_IONET_API_KEY") || getEnvVar("IONET_API_KEY"),
+  IONET_API_KEY: getEnvVar("IONET_API_KEY") || getEnvVar("IONET_API_KEY"),
   TAOSTATS_USERNAME:
-    getEnvVar("VITE_TAOSTATS_USERNAME") || getEnvVar("TAOSTATS_API_USERNAME"),
+    getEnvVar("TAOSTATS_API_USERNAME") || getEnvVar("TAOSTATS_API_USERNAME"),
   TAOSTATS_PASSWORD:
-    getEnvVar("VITE_TAOSTATS_PASSWORD") || getEnvVar("TAOSTATS_API_SECRET"),
+    getEnvVar("TAOSTATS_API_SECRET") || getEnvVar("TAOSTATS_API_SECRET"),
 };
 ```
 

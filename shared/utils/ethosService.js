@@ -13,25 +13,16 @@
 
 import cacheService from './cacheService.js';
 import logger from './logger.js';
+import { parkedTokenVerification, refuseParkedIdentity } from '../config/dormant.js';
 
 class EthosService {
   constructor() {
     this.baseURL = process.env.ETHOS_API_BASE_URL || 'https://api.ethos.network';
     this.clientHeader = 'SubnetScout/1.0';
     
-    // Initialize Privy client for token verification if credentials are available
-    this.privyConfigured = !!(process.env.REACT_APP_PRIVY_APP_ID && process.env.PRIVY_APP_SECRET);
-    
-    if (this.privyConfigured) {
-      try {
-        // Dynamic import for Privy client to handle missing dependency gracefully
-        this.initPrivyClient();
-      } catch (error) {
-        console.warn('Privy client initialization failed, running without token verification:', error.message);
-        this.privyConfigured = false;
-      }
-    }
-    
+    // Legacy login is deliberately parked; protected routes fail closed.
+    this.privyConfigured = false;
+
     // Token usage tracking (150 user limit)
     this.tokenUsage = {
       totalUsers: 0,
@@ -60,48 +51,7 @@ class EthosService {
     console.log('🪪 Ethos Network Service initialized with token usage tracking');
   }
 
-  async initPrivyClient() {
-    try {
-      const { PrivyClient } = await import('@privy-io/server-auth');
-      this.privyClient = new PrivyClient({
-        appId: process.env.REACT_APP_PRIVY_APP_ID,
-        appSecret: process.env.PRIVY_APP_SECRET
-      });
-      logger.info('✅ Privy client initialized successfully for Ethos authentication');
-    } catch (error) {
-      logger.error('❌ Failed to initialize Privy client:', error);
-      this.privyConfigured = false;
-      throw error;
-    }
-  }
-
-  /**
-   * Verify Privy token and extract user information
-   */
-  async verifyPrivyToken(token) {
-    if (!this.privyConfigured) {
-      throw new Error('Privy authentication not configured');
-    }
-    
-    try {
-      const claims = await this.privyClient.verifyAuthToken(token);
-      return {
-        valid: true,
-        userId: claims.userId,
-        walletAddress: claims.wallet?.address,
-        claims
-      };
-    } catch (error) {
-      logger.error('Privy token verification failed', { 
-        error: error.message,
-        service: 'ethos'
-      });
-      return {
-        valid: false,
-        error: error.message
-      };
-    }
-  }
+  verifyPrivyToken = parkedTokenVerification;
 
   /**
    * Track token usage to stay within 150 user limit
@@ -149,6 +99,7 @@ class EthosService {
    * Make authenticated API request to Ethos
    */
   async makeRequest(endpoint, token, options = {}) {
+    refuseParkedIdentity();
     if (!this.canMakeRequest()) {
       throw new Error('Ethos API usage limit reached (150 users)');
     }
@@ -314,6 +265,7 @@ class EthosService {
    * Supports: profileId:10, address:0x..., service:discord:123, etc.
    */
   async getUserProfile(userkey, token) {
+    refuseParkedIdentity();
     const cacheKey = `ethos:profile:${userkey}`;
     
     try {
@@ -367,6 +319,7 @@ class EthosService {
    * Get user reputation score
    */
   async getUserScore(userkey, token) {
+    refuseParkedIdentity();
     const cacheKey = `ethos:score:${userkey}`;
     
     try {
@@ -414,6 +367,7 @@ class EthosService {
    * Get user reviews and attestations
    */
   async getUserReviews(userkey, token, limit = 10) {
+    refuseParkedIdentity();
     const cacheKey = `ethos:reviews:${userkey}:${limit}`;
     
     try {
@@ -461,6 +415,7 @@ class EthosService {
    * Get user activity feed
    */
   async getUserActivities(userkey, token, limit = 10) {
+    refuseParkedIdentity();
     const cacheKey = `ethos:activities:${userkey}:${limit}`;
     
     try {
@@ -508,6 +463,7 @@ class EthosService {
    * Get comprehensive user identity data
    */
   async getComprehensiveIdentity(userkey, token) {
+    refuseParkedIdentity();
     try {
       logger.info('Ethos comprehensive identity request', {
         service: 'ethos',
@@ -607,4 +563,4 @@ class EthosService {
 // Create and export service instance
 const ethosService = new EthosService();
 
-export default ethosService; 
+export default ethosService;
