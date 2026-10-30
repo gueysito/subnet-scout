@@ -7,12 +7,17 @@ The historical hackathon plan below is preserved, not resumed.
 
 | Task | State | Acceptance / evidence | Next action |
 | --- | --- | --- | --- |
-| SEC-01 Runtime and dependencies | Implemented; local checks verified | Node 22.23.4/npm 11.12.1; both frozen installs succeed; both locked graphs audit with zero findings; native SQLite loads; build passes. | GitHub backend audit and dormant boundary/build job pass; original lint failures remain deferred. Complete publication. |
-| SEC-02 Dormant security boundaries | Implemented; local checks verified | Admin namespace returns 503 before dispatch in both backends; all listeners default to loopback; private browser calls and legacy token verification refuse access. Seven focused checks (including cache refusal and separate SQLite state) and private-key canary build pass; removing admin/identity guards or restoring old browser config makes its regression check fail. | GitHub backend audit and dormant boundary/build job pass; original lint failures remain deferred. Complete publication. |
-| SEC-03 Generated data | Implemented; schema checks verified | Cookie/database snapshots removed from the current tree; generated state ignored; both database initialization paths work without saved data. Git history is unchanged. | Historical-data decisions require separate scope. |
+| SEC-01 Runtime and dependencies | Verified | Node 22.23.4/npm 11.12.1; both frozen installs succeed; both locked graphs audit with zero findings; native SQLite loads; build passes. | Keep dormant; any revival needs separate approval. |
+| SEC-02 Dormant security boundaries | Verified | Admin namespace returns 503 before dispatch in both backends; all listeners default to loopback; private browser calls and legacy token verification refuse access. Seven focused checks (including cache refusal and separate SQLite state) and private-key canary build pass; removing admin/identity guards or restoring old browser config makes its regression check fail. | Keep dormant; any revival needs separate approval. |
+| SEC-03 Generated data | Verified | Cookie/database snapshots removed from the current tree; generated state ignored; both database initialization paths work without saved data. Git history is unchanged. | Historical-data decisions require separate scope. |
 | DEFER-01 Existing utility tests / lint | Deferred by Carlos | Original source and candidate: 3/17 utility tests fail, 14 pass; full lint has 56 errors. Existing source tested with the candidate toolchain because original frozen install itself fails from manifest/lock mismatch. | Resolve before revival; do not claim a clean general test/lint gate. |
 | DEFER-03 Hosting integration | Separate scope | An active Netlify GitHub App created a PR preview despite old inactive deployment records. This repair uses `[skip netlify]` on the PR/merge to avoid production deployment. Netlify private settings could not be inspected because its connector requires sign-in. | Review existing hosting and history separately; do not assume the old site is gone. |
 | DEFER-02 Revival / public exposure | Deferred | No public-use approval. Wider auth, rate limits, data isolation, input/upload handling, bot security and hosting review were not completed by this repair. | Review before any revival or public hosting. |
+
+GitHub verification: [run 41144799744](https://github.com/gueysito/subnet-scout/actions/runs/41144799744)
+passed backend audit, dormant boundary/build, secret detection and CodeQL. Root audit
+passed; the existing lint step remains failed and owner-deferred. Publication is
+tracked by [PR #2](https://github.com/gueysito/subnet-scout/pull/2).
 
 Security verification commands: `npm run test:security`, `npm run check:client-secrets`,
 `npm run build`, and `npm audit --audit-level=moderate` in both npm projects.
