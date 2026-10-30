@@ -81,6 +81,12 @@ tmp/
 *.db
 *.sqlite
 *.sqlite3
+*.db-wal
+*.db-shm
+cookies.txt
+/data/contexts.json
+/data/reports.json
+.agents/
 
 # --- Optional: OS junk ---
 Thumbs.db

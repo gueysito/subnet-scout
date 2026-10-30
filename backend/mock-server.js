@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { LOCAL_HOST } from '../shared/config/dormant.js';
 
 dotenv.config();
 
@@ -264,7 +265,7 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.MOCK_SERVER_PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, LOCAL_HOST, () => {
   console.log(`🔧 Mock Server running at http://localhost:${PORT}`);
   console.log(`📋 Available endpoints:`);
   console.log(`   GET  /api/ionet/agents - Mock io.net agents`);
@@ -275,4 +276,4 @@ app.listen(PORT, () => {
   console.log(`   GET  /health - Health check`);
 });
 
-export default app; 
+export default app;

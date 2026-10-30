@@ -7,6 +7,7 @@ import https from 'https';
 import http from 'http';
 import fs from 'fs';
 import logger from '../utils/logger.js';
+import { LOCAL_HOST } from './dormant.js';
 
 /**
  * HTTPS redirect middleware for production
@@ -128,7 +129,7 @@ export const startServer = (app) => {
     
     if (httpsServer) {
       // Start HTTPS server
-      httpsServer.listen(httpsPort, () => {
+      httpsServer.listen(httpsPort, LOCAL_HOST, () => {
         logger.info(`🔒 HTTPS server running on port ${httpsPort}`);
       });
 
@@ -140,7 +141,7 @@ export const startServer = (app) => {
       });
 
       const httpServer = createHTTPServer(httpApp);
-      httpServer.listen(httpPort, () => {
+      httpServer.listen(httpPort, LOCAL_HOST, () => {
         logger.info(`🔄 HTTP redirect server running on port ${httpPort}`);
       });
 
@@ -152,7 +153,7 @@ export const startServer = (app) => {
 
   // Development or fallback HTTP server
   const httpServer = createHTTPServer(app);
-  httpServer.listen(httpPort, () => {
+  httpServer.listen(httpPort, LOCAL_HOST, () => {
     logger.info(`🌐 HTTP server running on port ${httpPort}`);
   });
 

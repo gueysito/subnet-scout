@@ -10,11 +10,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.55.1",
-    "@privy-io/server-auth": "^1.28.2",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.0",
-    "express": "^5.1.0",
+    "express": "5.3.0",
     "express-rate-limit": "^7.5.1",
     "helmet": "^8.1.0",
     "morgan": "^1.10.0",
@@ -25,7 +24,8 @@
     "winston": "^3.17.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.23.4 <23",
+    "npm": ">=11.12.1 <12"
   },
   "keywords": [
     "api",
@@ -39,5 +39,6 @@
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^9.2.0"
-  }
+  },
+  "packageManager": "npm@11.12.1"
 }

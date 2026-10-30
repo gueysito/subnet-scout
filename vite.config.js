@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { LOCAL_HOST } from './shared/config/dormant.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -13,7 +14,7 @@ export default defineConfig({
     },
   },
   server: {
-    host: true,
+    host: LOCAL_HOST,
     port: 5173,
     strictPort: false,
     proxy: {
@@ -24,4 +25,5 @@ export default defineConfig({
       },
     },
   },
+  preview: { host: LOCAL_HOST },
 })

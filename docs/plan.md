@@ -1,4 +1,32 @@
 
+# Security maintenance: 2026-10-30
+
+Current scope: dormant repository maintenance only. Carlos approved this off-roadmap
+repair and deferred broader standards adoption. No hosting, bots or provider calls.
+The historical hackathon plan below is preserved, not resumed.
+
+| Task | State | Acceptance / evidence | Next action |
+| --- | --- | --- | --- |
+| SEC-01 Runtime and dependencies | Verified | Node 22.23.4/npm 11.12.1; both frozen installs succeed; both locked graphs audit with zero findings; native SQLite loads; build passes. | Keep dormant; any revival needs separate approval. |
+| SEC-02 Dormant security boundaries | Verified | Admin namespace returns 503 before dispatch in both backends; all listeners default to loopback; private browser calls and legacy token verification refuse access. Seven focused checks (including cache refusal and separate SQLite state) and private-key canary build pass; removing admin/identity guards or restoring old browser config makes its regression check fail. | Keep dormant; any revival needs separate approval. |
+| SEC-03 Generated data | Verified | Cookie/database snapshots removed from the current tree; generated state ignored; both database initialization paths work without saved data. Git history is unchanged. | Historical-data decisions require separate scope. |
+| DEFER-01 Existing utility tests / lint | Deferred by Carlos | Original source and candidate: 3/17 utility tests fail, 14 pass; full lint has 56 errors. Existing source tested with the candidate toolchain because original frozen install itself fails from manifest/lock mismatch. | Resolve before revival; do not claim a clean general test/lint gate. |
+| DEFER-03 Hosting integration | Separate scope | An active Netlify GitHub App created a PR preview despite old inactive deployment records. This repair uses `[skip netlify]` on the PR/merge to avoid production deployment. Netlify private settings could not be inspected because its connector requires sign-in. | Review existing hosting and history separately; do not assume the old site is gone. |
+| DEFER-02 Revival / public exposure | Deferred | No public-use approval. Wider auth, rate limits, data isolation, input/upload handling, bot security and hosting review were not completed by this repair. | Review before any revival or public hosting. |
+
+GitHub verification: [run 41144799744](https://github.com/gueysito/subnet-scout/actions/runs/41144799744)
+passed backend audit, dormant boundary/build, secret detection and CodeQL. Root audit
+passed; the existing lint step remains failed and owner-deferred. Publication is
+tracked by [PR #2](https://github.com/gueysito/subnet-scout/pull/2).
+
+Security verification commands: `npm run test:security`, `npm run check:client-secrets`,
+`npm run build`, and `npm audit --audit-level=moderate` in both npm projects.
+Install with `npm ci --ignore-scripts`; only `npm run prepare:sqlite` explicitly
+permits the reviewed native setup. Other lifecycle scripts (including automatic
+hook installation) stay disabled by the supply-chain policy.
+
+---
+
 # 🧭 Subnet Scout Agent — Hackathon Execution Plan (June 20–July 14)
 
 This is your day-by-day guide for shipping the **Subnet Scout Agent** during the [IO Hackathon Q2 2025](https://io.net/hackathon). You’re a **solo builder**, aiming to stay sane and submit a polished MVP that people actually want to use.
@@ -138,3 +166,12 @@ Set up everything **except the final code**. Prep so well that build phase = “
 
 🧠 **Remember:** This is just the beginning. Build it, ship it, and see who vibes with it. You can always expand post-hackathon.
 
+
+The old security workflow was disabled by GitHub inactivity. Maintenance restores
+push/PR/manual checks, with the obsolete daily schedule removed. Existing CI lint
+failures remain visible and owner-deferred. A Netlify preview created automatically
+before discovery is a separate hosting state, not an intentional production release.
+
+The secret scanner uses the publisher's default event revision selection and a
+pinned CLI version. Its action already supplies `--fail`; extra arguments contain
+only `--no-verification`. The old glob exclusion file is not passed as a regex file.

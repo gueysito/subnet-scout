@@ -5,9 +5,7 @@ on:
     branches: [ main, master, develop, production/* ]
   pull_request:
     branches: [ main, master ]
-  schedule:
-    # Run security audit daily at 2 AM UTC
-    - cron: '0 2 * * *'
+  workflow_dispatch:
 
 jobs:
   security-audit:
@@ -23,11 +21,13 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version-file: .nvmrc
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm install --global npm@11.12.1 --ignore-scripts
+        npm ci --ignore-scripts
 
     - name: Run npm audit
       run: |
@@ -52,19 +52,18 @@ jobs:
         fetch-depth: 0
 
     - name: Run TruffleHog OSS
-      uses: trufflesecurity/trufflehog@main
+      uses: trufflesecurity/trufflehog@c85580b712841eda4c53bc28fc6ace6100e8c16c # v3.99.4
       with:
         path: ./
-        base: main
-        head: HEAD
-        extra_args: --debug --only-verified --exclude-paths=.trufflehogignore
+        version: 3.99.4
+        extra_args: --no-verification
 
     - name: Custom secret patterns scan
       run: |
         echo "🔍 Scanning for common secret patterns..."
         
         # Check for API keys and tokens in production files only (exclude environment variable references)
-        if grep -r -i -E "(api_key|secret|password|token|private_key)\s*[=:]\s*['\"][a-zA-Z0-9]{25,}['\"]" . \
+        if grep -r -l -i -E "(api_key|secret|password|token|private_key)\s*[=:]\s*['\"][a-zA-Z0-9]{25,}['\"]" . \
           --exclude-dir=node_modules \
           --exclude-dir=.git \
           --exclude-dir=dist \
@@ -80,7 +79,7 @@ jobs:
         fi
         
         # Check for .env files in repository
-        if find . -name ".env" -not -path "./node_modules/*" -not -path "./.git/*"; then
+        if [ -n "$(git ls-files -- '.env' '**/.env')" ]; then
           echo "❌ .env files found in repository!"
           exit 1
         fi
@@ -98,26 +97,18 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version-file: .nvmrc
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm install --global npm@11.12.1 --ignore-scripts
+        npm ci --ignore-scripts
 
-    - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/node@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --severity-threshold=medium
-      continue-on-error: true
-
-    - name: Upload Snyk report as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: snyk-report
-        path: snyk-report.json
-      if: always()
+    - name: Audit the separate backend lockfile
+      run: |
+        npm --prefix backend ci --ignore-scripts
+        npm --prefix backend audit --audit-level=moderate
 
   code-analysis:
     name: Static Code Analysis
@@ -146,7 +137,7 @@ jobs:
         category: "/language:javascript"
 
   security-headers:
-    name: Security Headers Check
+    name: Dormant Boundary and Build Checks
     runs-on: ubuntu-latest
     
     steps:
@@ -156,41 +147,22 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version-file: .nvmrc
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
-
-    - name: Start server for testing
       run: |
-        npm run backend &
-        sleep 10
-      env:
-        NODE_ENV: test
+        npm install --global npm@11.12.1 --ignore-scripts
+        npm ci --ignore-scripts
 
-    - name: Test security headers
-      run: |
-        echo "🔍 Testing security headers..."
-        
-        # Test for security headers
-        response=$(curl -s -I http://localhost:8080/health)
-        
-        echo "Response headers:"
-        echo "$response"
-        
-        # Check for required security headers
-        if ! echo "$response" | grep -i "x-content-type-options"; then
-          echo "❌ Missing X-Content-Type-Options header"
-          exit 1
-        fi
-        
-        if ! echo "$response" | grep -i "x-frame-options\|content-security-policy"; then
-          echo "❌ Missing frame protection headers"
-          exit 1
-        fi
-        
-        echo "✅ Security headers check passed"
+    - name: Prepare the reviewed SQLite native dependency only
+      run: npm run prepare:sqlite
+
+    - name: Verify dormant boundaries and existing security headers offline
+      run: npm run test:security
+
+    - name: Build and verify private provider configuration stays out of the browser
+      run: npm run check:client-secrets
 
   report:
     name: Security Report

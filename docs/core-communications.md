@@ -1,3 +1,7 @@
+> Dormant project: provider variables below are server-only. Do not add private
+> keys to Vite configuration. Direct browser provider calls and admin actions are
+> disabled; see the README maintenance status before using these historical notes.
+
 # Core Communications Documentation
 
 _Subnet Scout System Architecture & Integration Guide_
@@ -610,9 +614,9 @@ const headers = {
 
 ```javascript
 // Environment Variables (.env)
-VITE_IONET_API_KEY = io - v1 - your - key - here;
-VITE_TAOSTATS_USERNAME = your - username;
-VITE_TAOSTATS_PASSWORD = your - password;
+IONET_API_KEY = io - v1 - your - key - here;
+TAOSTATS_API_USERNAME = your - username;
+TAOSTATS_API_SECRET = your - password;
 ANTHROPIC_API_KEY = sk - ant - api03 - [your - actual - key - here];
 TELEGRAM_BOT_TOKEN = your - bot - token - here;
 ```
@@ -731,9 +735,9 @@ export const ENV_CONFIG = {
   BACKEND_URL: import.meta.env.VITE_BACKEND_URL || "http://localhost:8080",
 
   // External API Keys
-  IONET_API_KEY: import.meta.env.VITE_IONET_API_KEY,
-  TAOSTATS_USERNAME: import.meta.env.VITE_TAOSTATS_USERNAME,
-  TAOSTATS_PASSWORD: import.meta.env.VITE_TAOSTATS_PASSWORD,
+  IONET_API_KEY: import.meta.env.IONET_API_KEY,
+  TAOSTATS_USERNAME: import.meta.env.TAOSTATS_API_USERNAME,
+  TAOSTATS_PASSWORD: import.meta.env.TAOSTATS_API_SECRET,
 
   // Development Settings
   NODE_ENV: import.meta.env.NODE_ENV || "development",
@@ -774,11 +778,11 @@ VITE_FRONTEND_URL=http://localhost:5173
 
 # ============= EXTERNAL API KEYS =============
 # io.net GPU Agents API
-VITE_IONET_API_KEY=io-v1-your-key-here
+IONET_API_KEY=io-v1-your-key-here
 
 # TaoStats Subnet Data API
-VITE_TAOSTATS_USERNAME=your-username
-VITE_TAOSTATS_PASSWORD=your-password
+TAOSTATS_API_USERNAME=your-username
+TAOSTATS_API_SECRET=your-password
 
 # Claude AI (Backend only - not prefixed with VITE_)
 ANTHROPIC_API_KEY=sk-ant-api03-[your-actual-key-here]
@@ -812,8 +816,8 @@ NODE_ENV=development
 
 **3. External API Credentials**
 
-- `VITE_IONET_API_KEY` - io.net authentication
-- `VITE_TAOSTATS_USERNAME/PASSWORD` - TaoStats authentication
+- `IONET_API_KEY` - io.net authentication
+- `TAOSTATS_API_USERNAME/PASSWORD` - TaoStats authentication
 - `ANTHROPIC_API_KEY` - Claude AI (backend only)
 - `TELEGRAM_BOT_TOKEN` - Telegram bot (backend only)
 
@@ -885,8 +889,8 @@ export const validateEnvironment = () => {
 
   // Production without API keys
   if (!useMockApis && isProduction) {
-    if (!process.env.VITE_IONET_API_KEY) {
-      errors.push("VITE_IONET_API_KEY required in production");
+    if (!process.env.IONET_API_KEY) {
+      errors.push("IONET_API_KEY required in production");
     }
   }
 
@@ -951,9 +955,9 @@ npm run dev
 ```bash
 # 1. Environment setup
 export VITE_USE_MOCK_API=false
-export VITE_IONET_API_KEY=your-real-key
-export VITE_TAOSTATS_USERNAME=your-username
-export VITE_TAOSTATS_PASSWORD=your-password
+export IONET_API_KEY=your-real-key
+export TAOSTATS_API_USERNAME=your-username
+export TAOSTATS_API_SECRET=your-password
 export ANTHROPIC_API_KEY=your-claude-key
 
 # 2. Build frontend
@@ -1023,12 +1027,12 @@ echo $VITE_BACKEND_URL     # Should match running backend
 ```bash
 # Problem: Missing or incorrect API keys
 # Check API keys are set:
-echo $VITE_IONET_API_KEY          # Should start with 'io-v1-'
-echo $VITE_TAOSTATS_USERNAME      # Should be your username
+echo $IONET_API_KEY          # Should start with 'io-v1-'
+echo $TAOSTATS_API_USERNAME      # Should be your username
 echo $ANTHROPIC_API_KEY           # Should start with 'sk-ant-'
 
 # Verify API keys work:
-curl -H "Authorization: Bearer $VITE_IONET_API_KEY" https://api.io.net/v1/agents
+curl -H "Authorization: Bearer $IONET_API_KEY" https://api.io.net/v1/agents
 ```
 
 **4. "Frontend showing old data" Issues**
@@ -2576,9 +2580,9 @@ const useSubnetAgents = (autoFetch = true) => {
 const validateEnvironment = () => {
   const requiredVars = [
     "VITE_BACKEND_URL",
-    "VITE_ANTHROPIC_API_KEY",
+    "ANTHROPIC_API_KEY",
     "VITE_TAOSTATS_API_KEY",
-    "VITE_IONET_API_KEY",
+    "IONET_API_KEY",
   ];
 
   const missing = requiredVars.filter((key) => !process.env[key]);

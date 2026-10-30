@@ -1,3 +1,7 @@
+> Historical hackathon instructions. The project is dormant. Use the pinned
+> runtime and offline maintenance commands in README.md. Hosting, live integrations
+> and broader standards adoption require a separate revival decision.
+
 # 🔧 Development Guidelines
 
 ## 🌿 **MANDATORY: Feature Branch Workflow**
