@@ -2,7 +2,8 @@
 # Security maintenance: 2026-10-30
 
 Current scope: dormant repository maintenance only. Carlos approved this off-roadmap
-repair and deferred broader standards adoption. No hosting, bots or provider calls.
+repair and deferred broader standards adoption. No hosting revival, bots or provider
+jobs. Carlos subsequently approved reversible Netlify shutdown after review.
 The historical hackathon plan below is preserved, not resumed.
 
 | Task | State | Acceptance / evidence | Next action |
@@ -11,7 +12,7 @@ The historical hackathon plan below is preserved, not resumed.
 | SEC-02 Dormant security boundaries | Verified | Admin namespace returns 503 before dispatch in both backends; all listeners default to loopback; private browser calls and legacy token verification refuse access. Seven focused checks (including cache refusal and separate SQLite state) and private-key canary build pass; removing admin/identity guards or restoring old browser config makes its regression check fail. | Keep dormant; any revival needs separate approval. |
 | SEC-03 Generated data | Verified | Cookie/database snapshots removed from the current tree; generated state ignored; both database initialization paths work without saved data. Git history is unchanged. | Historical-data decisions require separate scope. |
 | DEFER-01 Existing utility tests / lint | Deferred by Carlos | Original source and candidate: 3/17 utility tests fail, 14 pass; full lint has 56 errors. Existing source tested with the candidate toolchain because original frozen install itself fails from manifest/lock mismatch. | Resolve before revival; do not claim a clean general test/lint gate. |
-| DEFER-03 Hosting integration | Separate scope | An active Netlify GitHub App created a PR preview despite old inactive deployment records. This repair uses `[skip netlify]` on the PR/merge to avoid production deployment. Netlify private settings could not be inspected because its connector requires sign-in. | Review existing hosting and history separately; do not assume the old site is gone. |
+| OPS-01 Netlify shutdown | Verified offline (2026-10-30) | Carlos approved reversible disablement. Netlify reports `disabled: true`; production, main-branch, PR-preview and old JavaScript asset URLs return 404. Project configuration and the patched GitHub repo are retained. | Keep disabled; re-enabling requires a new owner decision. |
 | DEFER-02 Revival / public exposure | Deferred | No public-use approval. Wider auth, rate limits, data isolation, input/upload handling, bot security and hosting review were not completed by this repair. | Review before any revival or public hosting. |
 
 GitHub verification: [run 41144799744](https://github.com/gueysito/subnet-scout/actions/runs/41144799744)
